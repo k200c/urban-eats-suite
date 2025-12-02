@@ -1,0 +1,17 @@
+import { ReactNode } from 'react';
+import { BottomNav } from './BottomNav';
+
+interface CustomerLayoutProps {
+  children: ReactNode;
+}
+
+export function CustomerLayout({ children }: CustomerLayoutProps) {
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <main className="max-w-lg mx-auto">
+        {children}
+      </main>
+      <BottomNav />
+    </div>
+  );
+}
