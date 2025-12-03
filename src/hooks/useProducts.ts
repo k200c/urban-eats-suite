@@ -18,7 +18,12 @@ export function useProducts(category?: ProductCategory | 'All') {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase products fetch error:', error.message, error);
+        throw error;
+      }
+      
+      console.log(`Fetched ${data?.length ?? 0} products for category: ${category ?? 'All'}`);
       return data as Product[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes

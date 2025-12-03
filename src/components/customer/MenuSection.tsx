@@ -131,7 +131,8 @@ export function MenuSection() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No items available</p>
+          <p className="text-muted-foreground">Connected to database, but found 0 items.</p>
+          <p className="text-xs text-muted-foreground/70 mt-2">Check Table Data in Supabase.</p>
         </div>
       )}
 
