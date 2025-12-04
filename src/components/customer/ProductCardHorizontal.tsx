@@ -29,7 +29,7 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addItem(product, 1, []);
+    addItem(product, 1, [], []);
     toast.success('Added to Cart', {
       description: `${product.name} has been added to your order`,
     });

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import { useProductModifiers } from '@/hooks/useProductModifiers';
+import { useProductIngredients } from '@/hooks/useProductIngredients';
 import { ProductCardHorizontal } from './ProductCardHorizontal';
 import { ProductSheet } from './ProductSheet';
 import { Product, ProductCategory } from '@/types/database';
@@ -16,6 +17,7 @@ export function MenuSection() {
 
   const { data: products, isLoading, isError, refetch } = useProducts(selectedCategory);
   const { data: modifierGroups } = useProductModifiers(selectedProduct?.id);
+  const { data: ingredients } = useProductIngredients(selectedProduct?.id);
 
   // Group products by category
   const productsByCategory = products?.reduce((acc, product) => {
@@ -140,6 +142,7 @@ export function MenuSection() {
       <ProductSheet
         product={selectedProduct}
         modifierGroups={modifierGroups}
+        ingredients={ingredients}
         onClose={() => setSelectedProduct(null)}
       />
     </section>

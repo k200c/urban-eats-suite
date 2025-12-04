@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, Product, SelectedModifier } from '@/types/database';
+import { CartItem, Product, SelectedModifier, RemovedIngredient } from '@/types/database';
 
 interface CartStore {
   items: CartItem[];
-  addItem: (product: Product, quantity: number, modifiers: SelectedModifier[]) => void;
+  addItem: (product: Product, quantity: number, modifiers: SelectedModifier[], removedIngredients: RemovedIngredient[]) => void;
   removeItem: (index: number) => void;
   updateQuantity: (index: number, quantity: number) => void;
   clearCart: () => void;
@@ -17,7 +17,7 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
 
-      addItem: (product, quantity, modifiers) => {
+      addItem: (product, quantity, modifiers, removedIngredients) => {
         const modifiersTotal = modifiers.reduce((sum, m) => sum + m.price_adjustment, 0);
         const totalPrice = (product.price + modifiersTotal) * quantity;
 
@@ -28,6 +28,7 @@ export const useCartStore = create<CartStore>()(
               product,
               quantity,
               selectedModifiers: modifiers,
+              removedIngredients,
               totalPrice,
             },
           ],

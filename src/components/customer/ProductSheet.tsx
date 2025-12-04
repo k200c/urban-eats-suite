@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Minus, Plus, X } from 'lucide-react';
-import { Product, Modifier, SelectedModifier } from '@/types/database';
+import { Product, Modifier, SelectedModifier, RemovedIngredient } from '@/types/database';
 import { ModifierGroupWithModifiers } from '@/hooks/useProductModifiers';
+import { ProductIngredientWithDetails } from '@/hooks/useProductIngredients';
 import { useCartStore } from '@/stores/cartStore';
 import { toast } from 'sonner';
 
@@ -24,12 +26,14 @@ const categoryImages: Record<string, string> = {
 interface ProductSheetProps {
   product: Product | null;
   modifierGroups?: ModifierGroupWithModifiers[];
+  ingredients?: ProductIngredientWithDetails[];
   onClose: () => void;
 }
 
-export function ProductSheet({ product, modifierGroups, onClose }: ProductSheetProps) {
+export function ProductSheet({ product, modifierGroups, ingredients, onClose }: ProductSheetProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedModifiers, setSelectedModifiers] = useState<SelectedModifier[]>([]);
+  const [includedIngredients, setIncludedIngredients] = useState<Record<string, boolean>>({});
   const addItem = useCartStore((state) => state.addItem);
 
   // Reset state when product changes
@@ -37,8 +41,16 @@ export function ProductSheet({ product, modifierGroups, onClose }: ProductSheetP
     if (product) {
       setQuantity(1);
       setSelectedModifiers([]);
+      // Initialize all default ingredients as included
+      const initialIngredients: Record<string, boolean> = {};
+      ingredients?.forEach((ing) => {
+        if (ing.is_default) {
+          initialIngredients[ing.id] = true;
+        }
+      });
+      setIncludedIngredients(initialIngredients);
     }
-  }, [product?.id]);
+  }, [product?.id, ingredients]);
 
   if (!product) return null;
 
@@ -61,17 +73,36 @@ export function ProductSheet({ product, modifierGroups, onClose }: ProductSheetP
     });
   };
 
-  // Calculate total price in real-time
+  const toggleIngredient = (ingredientId: string) => {
+    setIncludedIngredients((prev) => ({
+      ...prev,
+      [ingredientId]: !prev[ingredientId],
+    }));
+  };
+
+  // Calculate total price in real-time (ingredients don't affect price)
   const modifiersTotal = selectedModifiers.reduce((sum, m) => sum + m.price_adjustment, 0);
   const totalPrice = (product.price + modifiersTotal) * quantity;
 
+  // Get removed ingredients for cart
+  const getRemovedIngredients = (): RemovedIngredient[] => {
+    return (ingredients || [])
+      .filter((ing) => ing.is_default && !includedIngredients[ing.id])
+      .map((ing) => ({ id: ing.id, name: ing.name }));
+  };
+
   const handleAddToOrder = () => {
-    addItem(product, quantity, selectedModifiers);
+    const removedIngredients = getRemovedIngredients();
+    addItem(product, quantity, selectedModifiers, removedIngredients);
     toast.success('Added to Cart', {
       description: `${quantity}x ${product.name} added to your order`,
     });
     onClose();
   };
+
+  const defaultIngredients = ingredients?.filter((ing) => ing.is_default) || [];
+  const hasIngredients = defaultIngredients.length > 0;
+  const hasModifiers = modifierGroups && modifierGroups.length > 0;
 
   return (
     <Sheet open={!!product} onOpenChange={() => onClose()}>
@@ -117,15 +148,51 @@ export function ProductSheet({ product, modifierGroups, onClose }: ProductSheetP
               )}
             </SheetHeader>
 
-            {/* Modifier Groups */}
-            {modifierGroups && modifierGroups.length > 0 && (
+            {/* SECTION 1: What's Inside (Removable Ingredients) */}
+            {hasIngredients && (
+              <div className="mb-8">
+                <h4 className="font-heading text-sm uppercase tracking-wider text-foreground mb-4">
+                  What's Inside
+                </h4>
+                <div className="space-y-2">
+                  {defaultIngredients.map((ingredient) => {
+                    const isIncluded = includedIngredients[ingredient.id] ?? true;
+                    return (
+                      <div
+                        key={ingredient.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                          isIncluded
+                            ? 'border-white/10 bg-transparent'
+                            : 'border-destructive/30 bg-destructive/5'
+                        }`}
+                      >
+                        <span className={`${isIncluded ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
+                          {ingredient.name}
+                        </span>
+                        <Switch
+                          checked={isIncluded}
+                          onCheckedChange={() => toggleIngredient(ingredient.id)}
+                          className="data-[state=checked]:bg-success data-[state=unchecked]:bg-muted"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* SECTION 2: Make it Epic (Paid Extras) */}
+            {hasModifiers && (
               <div className="space-y-6">
+                <h4 className="font-heading text-sm uppercase tracking-wider text-foreground">
+                  Make it Epic
+                </h4>
                 {modifierGroups.map((group) => (
                   <div key={group.id} className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-heading text-sm uppercase tracking-wider text-foreground">
+                      <h5 className="text-sm text-muted-foreground">
                         {group.name}
-                      </h4>
+                      </h5>
                       {group.min_selection && group.min_selection > 0 && (
                         <span className="text-xs text-muted-foreground">
                           Required

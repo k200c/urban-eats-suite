@@ -74,6 +74,7 @@ export default function StaffPOS() {
           product,
           quantity: 1,
           selectedModifiers: [],
+          removedIngredients: [],
           totalPrice: product.price,
         },
       ];

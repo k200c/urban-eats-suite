@@ -78,6 +78,8 @@ export default function Cart() {
         <div className="space-y-3 mb-6">
           {items.map((item, index) => {
             const imageUrl = item.product.image_url || categoryImages[item.product.category] || heroBurger;
+            const hasRemovedIngredients = item.removedIngredients && item.removedIngredients.length > 0;
+            const hasExtras = item.selectedModifiers.length > 0;
             
             return (
               <div key={index} className="street-card p-4 flex gap-4">
@@ -87,14 +89,27 @@ export default function Cart() {
                   className="w-20 h-20 rounded-lg object-cover"
                 />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-heading text-base text-foreground truncate">
+                  <h3 className="font-heading text-base text-foreground">
                     {item.product.name}
                   </h3>
-                  {item.selectedModifiers.length > 0 && (
-                    <p className="text-xs text-muted-foreground truncate mt-1">
-                      {item.selectedModifiers.map((m) => m.name).join(', ')}
-                    </p>
-                  )}
+                  
+                  {/* Customizations */}
+                  <div className="mt-1 space-y-0.5">
+                    {/* Removed Ingredients - Red */}
+                    {hasRemovedIngredients && (
+                      <p className="text-xs text-destructive">
+                        {item.removedIngredients.map((ing) => `No ${ing.name}`).join(', ')}
+                      </p>
+                    )}
+                    
+                    {/* Added Extras - Green */}
+                    {hasExtras && (
+                      <p className="text-xs text-success">
+                        {item.selectedModifiers.map((m) => `+ ${m.name}`).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center justify-between mt-3">
                     <span className="price-badge">
                       €{item.totalPrice.toFixed(2)}

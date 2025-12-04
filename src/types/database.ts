@@ -51,6 +51,25 @@ export interface ProductModifier {
   group_id: string;
 }
 
+export interface Ingredient {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface ProductIngredient {
+  id: string;
+  product_id: string;
+  ingredient_id: string;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface RemovedIngredient {
+  id: string;
+  name: string;
+}
+
 export interface Order {
   id: string;
   user_id: string | null;
@@ -94,5 +113,6 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selectedModifiers: SelectedModifier[];
+  removedIngredients: RemovedIngredient[];
   totalPrice: number;
 }
