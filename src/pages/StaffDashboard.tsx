@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { KitchenDisplaySystem } from '@/components/staff/KitchenDisplaySystem';
 import { toast } from 'sonner';
 
 const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '1 hour'];
@@ -89,7 +90,7 @@ export default function StaffDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6 max-w-4xl">
+      <main className="container mx-auto px-4 py-6 space-y-6 max-w-6xl">
         {/* Store Status Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -172,6 +173,15 @@ export default function StaffDashboard() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Kitchen Display System */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <KitchenDisplaySystem />
         </motion.div>
 
         {/* Quick Stock Manager */}
