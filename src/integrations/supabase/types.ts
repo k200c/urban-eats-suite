@@ -35,6 +35,36 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          created_at: string
+          last_order_date: string | null
+          name: string | null
+          phone_number: string
+          total_spend: number
+          updated_at: string
+          visit_count: number
+        }
+        Insert: {
+          created_at?: string
+          last_order_date?: string | null
+          name?: string | null
+          phone_number: string
+          total_spend?: number
+          updated_at?: string
+          visit_count?: number
+        }
+        Update: {
+          created_at?: string
+          last_order_date?: string | null
+          name?: string | null
+          phone_number?: string
+          total_spend?: number
+          updated_at?: string
+          visit_count?: number
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           created_at: string
