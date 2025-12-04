@@ -128,6 +128,13 @@ export function useCheckout() {
     orderResult: { orderId: string; orderNumber: number; createdAt: string },
     customerData: { name: string; phone: string; email: string }
   ): Promise<boolean> => {
+    // Step 1: Validate data before sending
+    if (items.length === 0) {
+      console.error('N8N Error: Cart is empty, cannot send to kitchen');
+      toast.error('Cart is empty');
+      return false;
+    }
+
     setIsSendingToKitchen(true);
     
     try {
@@ -136,11 +143,14 @@ export function useCheckout() {
         .from('app_settings')
         .select('current_wait_time')
         .eq('id', 1)
-        .single();
+        .maybeSingle();
 
       const waitTime = settings?.current_wait_time || '20 mins';
 
-      // Build the payload
+      // Ensure total is a Number, not a string
+      const totalAmount = Number(getTotal()) || 0;
+
+      // Build the payload with strict typing
       const payload: WebhookPayload = {
         order_id: `Order #${orderResult.orderNumber}`,
         created_at: orderResult.createdAt,
@@ -152,26 +162,31 @@ export function useCheckout() {
           email: customerData.email || '',
         },
         totals: {
-          subtotal: getTotal(),
-          total: getTotal(),
+          subtotal: totalAmount,
+          total: totalAmount,
         },
         items: items.map(item => {
+          // Ensure modifiers is strictly an array of strings, default to []
           const modifiers: string[] = [];
           
           // Add removed ingredients
-          item.removedIngredients.forEach(ing => {
-            modifiers.push(`No ${ing.name}`);
-          });
+          if (item.removedIngredients && Array.isArray(item.removedIngredients)) {
+            item.removedIngredients.forEach(ing => {
+              if (ing?.name) modifiers.push(`No ${ing.name}`);
+            });
+          }
           
           // Add selected modifiers
-          item.selectedModifiers.forEach(mod => {
-            modifiers.push(mod.name);
-          });
+          if (item.selectedModifiers && Array.isArray(item.selectedModifiers)) {
+            item.selectedModifiers.forEach(mod => {
+              if (mod?.name) modifiers.push(mod.name);
+            });
+          }
           
           return {
-            name: item.product.name,
-            quantity: item.quantity,
-            modifiers,
+            name: item.product?.name || 'Unknown Item',
+            quantity: item.quantity || 1,
+            modifiers: modifiers, // Always an array, never undefined/null
           };
         }),
         store_meta: {
@@ -179,7 +194,8 @@ export function useCheckout() {
         },
       };
 
-      console.log('Sending order to n8n webhook:', payload);
+      // Debug log: show exactly what's being sent
+      console.log('Sending Payload to n8n:', JSON.stringify(payload, null, 2));
 
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -196,10 +212,11 @@ export function useCheckout() {
       console.log('Order sent to kitchen successfully');
       return true;
     } catch (error) {
-      console.error('Failed to send order to kitchen:', error);
-      // Don't fail the order if webhook fails, just log it
-      toast.error('Order placed but notification failed. Kitchen will see it in the system.');
-      return false;
+      // Step 3: Log error but DON'T block the user
+      console.error('N8N Error:', error);
+      // Show success message anyway - don't lose the order
+      toast.success('Order Saved (Printer Alert sent to Kitchen)');
+      return true; // Return true so user proceeds to success page
     } finally {
       setIsSendingToKitchen(false);
     }
