@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          current_wait_time: string
+          id: number
+          is_store_open: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          current_wait_time?: string
+          id?: number
+          is_store_open?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          current_wait_time?: string
+          id?: number
+          is_store_open?: boolean
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ingredients: {
         Row: {
           created_at: string

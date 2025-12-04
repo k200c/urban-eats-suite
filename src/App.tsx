@@ -13,6 +13,7 @@ import Account from "./pages/Account";
 import Auth from "./pages/Auth";
 import StaffPOS from "./pages/StaffPOS";
 import StaffPOSQuick from "./pages/StaffPOSQuick";
+import StaffDashboard from "./pages/StaffDashboard";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -50,6 +51,7 @@ const App = () => {
             <Route path="/account" element={<Account />} />
             <Route path="/staff" element={<StaffPOS />} />
             <Route path="/staff/pos" element={<StaffPOSQuick />} />
+            <Route path="/staff/dashboard" element={<StaffDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
