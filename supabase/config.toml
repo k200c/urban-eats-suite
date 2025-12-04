@@ -1,1 +1,4 @@
 project_id = "ftzinsesuiuqcjfpbaur"
+
+[functions.viva-wallet]
+verify_jwt = false

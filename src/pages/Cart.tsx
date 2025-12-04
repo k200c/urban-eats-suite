@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Minus, Plus, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
-import { CheckoutModal } from '@/components/checkout/CheckoutModal';
+import { CustomerCheckoutModal } from '@/components/checkout/CustomerCheckoutModal';
 import { OrderSuccessModal } from '@/components/checkout/OrderSuccessModal';
 
 import heroBurger from '@/assets/hero-burger.jpg';
@@ -180,7 +180,7 @@ export default function Cart() {
         </div>
 
         {/* Checkout Modal */}
-        <CheckoutModal
+        <CustomerCheckoutModal
           open={showCheckout}
           onOpenChange={setShowCheckout}
           onSuccess={handleCheckoutSuccess}

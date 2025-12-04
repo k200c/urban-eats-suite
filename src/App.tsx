@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
 import Account from "./pages/Account";
+import Auth from "./pages/Auth";
 import StaffPOS from "./pages/StaffPOS";
 import StaffPOSQuick from "./pages/StaffPOSQuick";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/account" element={<Account />} />
