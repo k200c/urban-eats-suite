@@ -9,6 +9,7 @@ import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
 import Account from "./pages/Account";
 import StaffPOS from "./pages/StaffPOS";
+import StaffPOSQuick from "./pages/StaffPOSQuick";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -42,6 +43,7 @@ const App = () => {
             <Route path="/cart" element={<Cart />} />
             <Route path="/account" element={<Account />} />
             <Route path="/staff" element={<StaffPOS />} />
+            <Route path="/staff/pos" element={<StaffPOSQuick />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

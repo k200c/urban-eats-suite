@@ -135,6 +135,7 @@ export type Database = {
           id: string
           order_id: string | null
           product_id: string | null
+          product_name: string | null
           quantity: number | null
           selected_modifiers: Json | null
           unit_price: number
@@ -144,6 +145,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           product_id?: string | null
+          product_name?: string | null
           quantity?: number | null
           selected_modifiers?: Json | null
           unit_price: number
@@ -153,6 +155,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           product_id?: string | null
+          product_name?: string | null
           quantity?: number | null
           selected_modifiers?: Json | null
           unit_price?: number
@@ -179,6 +182,8 @@ export type Database = {
           cash_tendered: number | null
           change_due: number | null
           created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
           id: string
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           status: Database["public"]["Enums"]["order_status"] | null
@@ -190,6 +195,8 @@ export type Database = {
           cash_tendered?: number | null
           change_due?: number | null
           created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           status?: Database["public"]["Enums"]["order_status"] | null
@@ -201,6 +208,8 @@ export type Database = {
           cash_tendered?: number | null
           change_due?: number | null
           created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           status?: Database["public"]["Enums"]["order_status"] | null
@@ -362,14 +371,43 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "staff" | "customer"
       order_status: "pending" | "cooking" | "ready" | "completed"
       payment_method: "card" | "cash" | "split"
       post_platform: "Instagram" | "SMS"
@@ -508,6 +546,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "staff", "customer"],
       order_status: ["pending", "cooking", "ready", "completed"],
       payment_method: ["card", "cash", "split"],
       post_platform: ["Instagram", "SMS"],

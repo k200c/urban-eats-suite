@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useCartStore } from '@/stores/cartStore';
 import { Button } from '@/components/ui/button';
 import { Trash2, Minus, Plus, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { Navbar } from '@/components/layout/Navbar';
+import { CheckoutModal } from '@/components/checkout/CheckoutModal';
+import { OrderSuccessModal } from '@/components/checkout/OrderSuccessModal';
 
 import heroBurger from '@/assets/hero-burger.jpg';
 import loadedFries from '@/assets/loaded-fries.jpg';
@@ -22,14 +24,17 @@ export default function Cart() {
   const navigate = useNavigate();
   const { items, removeItem, updateQuantity, clearCart, getTotal } = useCartStore();
   const total = getTotal();
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [orderNumber, setOrderNumber] = useState<number>(0);
 
-  const handleCheckout = () => {
-    if (items.length === 0) {
-      toast.error('Your cart is empty');
-      return;
-    }
-    toast.success('Order placed successfully!');
-    clearCart();
+  const handleCheckoutSuccess = (num: number) => {
+    setOrderNumber(num);
+    setShowSuccess(true);
+  };
+
+  const handleSuccessContinue = () => {
+    setShowSuccess(false);
     navigate('/');
   };
 
@@ -167,12 +172,27 @@ export default function Cart() {
           <div className="max-w-lg mx-auto">
             <Button
               className="w-full h-14 btn-glow text-lg font-semibold tracking-wider"
-              onClick={handleCheckout}
+              onClick={() => setShowCheckout(true)}
             >
               CHECKOUT - €{total.toFixed(2)}
             </Button>
           </div>
         </div>
+
+        {/* Checkout Modal */}
+        <CheckoutModal
+          open={showCheckout}
+          onOpenChange={setShowCheckout}
+          onSuccess={handleCheckoutSuccess}
+        />
+
+        {/* Order Success Modal */}
+        <OrderSuccessModal
+          open={showSuccess}
+          onOpenChange={setShowSuccess}
+          orderNumber={orderNumber}
+          onContinue={handleSuccessContinue}
+        />
       </div>
     </div>
   );
