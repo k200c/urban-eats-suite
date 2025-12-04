@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Menu, X } from 'lucide-react';
+import { ShoppingBag, Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/stores/cartStore';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,17 @@ export function Navbar() {
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+            {/* Staff Login */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/auth')}
+              className="hidden sm:flex text-muted-foreground hover:text-foreground"
+            >
+              <User className="w-4 h-4 mr-1" />
+              STAFF
+            </Button>
+
             {/* Cart Icon */}
             <Button
               variant="ghost"
@@ -98,6 +109,13 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
+              <a
+                href="/auth"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
+                onClick={() => setIsOpen(false)}
+              >
+                STAFF LOGIN
+              </a>
               <Button onClick={scrollToMenu} className="w-full btn-glow mt-2">
                 ORDER NOW
               </Button>
