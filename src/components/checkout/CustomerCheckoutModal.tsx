@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock } from 'lucide-react';
+import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -14,11 +14,11 @@ interface CustomerCheckoutModalProps {
   onSuccess: (orderNumber: number) => void;
 }
 
-type Step = 'details' | 'payment' | 'pending';
+type Step = 'details' | 'payment' | 'sending' | 'pending';
 
 export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: CustomerCheckoutModalProps) {
   const { user, profile } = useAuth();
-  const { submitOrder, isSubmitting, total } = useCheckout();
+  const { submitOrder, sendToKitchen, isSubmitting, isSendingToKitchen, total, items } = useCheckout();
   
   const [step, setStep] = useState<Step>('details');
   const [customerName, setCustomerName] = useState('');
@@ -48,33 +48,46 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
   const canProceed = customerName.trim() && customerPhone.trim();
 
   const handlePayCard = async () => {
-    // Initiate Viva Wallet flow
+    // Card payments DO NOT trigger the n8n webhook
+    // Proceed directly to Viva Wallet flow
     initiateVivaWallet();
   };
 
   const handlePayOnCollection = async () => {
+    // Show "Sending to Kitchen" spinner
+    setStep('sending');
+
     const result = await submitOrder({
       paymentMethod: 'cash',
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
+      customerEmail: customerEmail.trim(),
     });
 
     if (result) {
+      // Send to n8n webhook for cash/collection payments
+      await sendToKitchen(result, {
+        name: customerName.trim(),
+        phone: customerPhone.trim(),
+        email: customerEmail.trim(),
+      });
+
       setOrderNumber(result.orderNumber);
       setStep('pending');
+    } else {
+      // If order failed, go back to payment step
+      setStep('payment');
     }
   };
 
   // Placeholder for Viva Wallet integration
   const initiateVivaWallet = async () => {
-    // TODO: Connect to Viva Wallet Smart Checkout API
-    // This will redirect to Viva Wallet payment page
-    // After successful payment, webhook will update order status
-    
+    // Card payments - NO webhook trigger
     const result = await submitOrder({
       paymentMethod: 'card',
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
+      customerEmail: customerEmail.trim(),
     });
 
     if (result) {
@@ -208,7 +221,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   </div>
                 </div>
 
-                {/* Pay Card - Viva Wallet */}
+                {/* Pay Card - Viva Wallet (NO webhook) */}
                 <Button
                   variant="glow"
                   size="lg"
@@ -226,7 +239,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   )}
                 </Button>
 
-                {/* Pay on Collection */}
+                {/* Pay on Collection (TRIGGERS webhook) */}
                 <Button
                   variant="outline"
                   size="lg"
@@ -251,6 +264,36 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                 >
                   Back
                 </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 2.5: Sending to Kitchen (only for cash/collection) */}
+          {step === 'sending' && (
+            <motion.div
+              key="sending"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="py-12"
+            >
+              <div className="text-center space-y-6">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto"
+                >
+                  <ChefHat className="w-10 h-10 text-primary" />
+                </motion.div>
+
+                <div>
+                  <p className="font-heading text-2xl text-foreground">SENDING TO KITCHEN...</p>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    Your order is being prepared
+                  </p>
+                </div>
+
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
               </div>
             </motion.div>
           )}

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard, Banknote, Check, Loader2, Smartphone } from 'lucide-react';
+import { CreditCard, Banknote, Check, Loader2, Smartphone, ChefHat } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 
 interface StaffCheckoutModalProps {
@@ -16,7 +16,8 @@ interface StaffCheckoutModalProps {
 export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [amountTendered, setAmountTendered] = useState('');
-  const { submitOrder, isSubmitting, total } = useCheckout();
+  const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
+  const { submitOrder, sendToKitchen, isSubmitting, total, items } = useCheckout();
 
   const tenderedValue = parseFloat(amountTendered) || 0;
   const remaining = total - tenderedValue;
@@ -24,7 +25,7 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
   const canPayCash = tenderedValue >= total && total > 0;
 
   const handleCardPayment = async () => {
-    // Trigger Tap to Phone intent (placeholder)
+    // Card payments DO NOT trigger the n8n webhook
     triggerTapToPhone();
     
     const result = await submitOrder({
@@ -39,15 +40,28 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
   };
 
   const handleCashPayment = async () => {
+    // Show "Sending to Kitchen" state
+    setIsSendingToKitchen(true);
+
     const result = await submitOrder({
       paymentMethod: 'cash',
       amountTendered: tenderedValue,
     });
 
     if (result) {
+      // Send to n8n webhook for cash payments
+      await sendToKitchen(result, {
+        name: '',
+        phone: '',
+        email: '',
+      });
+
       setAmountTendered('');
+      setIsSendingToKitchen(false);
       onOpenChange(false);
       onSuccess(result.orderNumber);
+    } else {
+      setIsSendingToKitchen(false);
     }
   };
 
@@ -63,150 +77,189 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-2xl text-center">STAFF CHECKOUT</DialogTitle>
-        </DialogHeader>
+        <AnimatePresence mode="wait">
+          {/* Sending to Kitchen State */}
+          {isSendingToKitchen ? (
+            <motion.div
+              key="sending"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="py-12"
+            >
+              <div className="text-center space-y-6">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto"
+                >
+                  <ChefHat className="w-10 h-10 text-primary" />
+                </motion.div>
 
-        <div className="mt-4">
-          {/* Order Total */}
-          <div className="text-center mb-6 p-4 bg-secondary rounded-lg">
-            <p className="text-muted-foreground text-sm uppercase tracking-wider">Order Total</p>
-            <p className="font-heading text-4xl text-primary mt-1">€{total.toFixed(2)}</p>
-          </div>
-
-          {/* Payment Method Tabs */}
-          <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'card' | 'cash')}>
-            <TabsList className="grid w-full grid-cols-2 h-14">
-              <TabsTrigger value="card" className="h-12 gap-2 text-base">
-                <Smartphone className="w-5 h-5" />
-                TERMINAL
-              </TabsTrigger>
-              <TabsTrigger value="cash" className="h-12 gap-2 text-base">
-                <Banknote className="w-5 h-5" />
-                CASH
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Card Terminal Payment */}
-            <TabsContent value="card" className="mt-6">
-              <div className="text-center p-4 bg-primary/10 rounded-lg mb-4">
-                <Smartphone className="w-12 h-12 text-primary mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Tap to Phone ready. Customer can tap card when prompted.
-                </p>
-              </div>
-              <Button
-                className="w-full h-16 text-lg btn-glow"
-                onClick={handleCardPayment}
-                disabled={isSubmitting || total === 0}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard className="w-6 h-6 mr-2" />
-                    CHARGE €{total.toFixed(2)}
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-
-            {/* Cash Payment with Calculator */}
-            <TabsContent value="cash" className="mt-6 space-y-4">
-              {/* Amount Tendered Input */}
-              <div>
-                <label className="text-sm text-muted-foreground uppercase tracking-wider">
-                  Amount Tendered
-                </label>
-                <div className="relative mt-2">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-muted-foreground">€</span>
-                  <Input
-                    type="number"
-                    value={amountTendered}
-                    onChange={(e) => setAmountTendered(e.target.value)}
-                    placeholder="0.00"
-                    className="h-16 text-3xl font-heading text-center pl-10 pr-4"
-                    step="0.01"
-                    min="0"
-                    autoFocus
-                  />
+                <div>
+                  <p className="font-heading text-2xl text-foreground">SENDING TO KITCHEN...</p>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    Your order is being prepared
+                  </p>
                 </div>
+
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
               </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="checkout"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <DialogHeader>
+                <DialogTitle className="font-heading text-2xl text-center">STAFF CHECKOUT</DialogTitle>
+              </DialogHeader>
 
-              {/* Quick Amount Buttons */}
-              <div className="grid grid-cols-4 gap-2">
-                {quickAmounts.map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="secondary"
-                    className="h-12"
-                    onClick={() => setAmountTendered(amount.toString())}
-                  >
-                    €{amount}
-                  </Button>
-                ))}
+              <div className="mt-4">
+                {/* Order Total */}
+                <div className="text-center mb-6 p-4 bg-secondary rounded-lg">
+                  <p className="text-muted-foreground text-sm uppercase tracking-wider">Order Total</p>
+                  <p className="font-heading text-4xl text-primary mt-1">€{total.toFixed(2)}</p>
+                </div>
+
+                {/* Payment Method Tabs */}
+                <Tabs value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'card' | 'cash')}>
+                  <TabsList className="grid w-full grid-cols-2 h-14">
+                    <TabsTrigger value="card" className="h-12 gap-2 text-base">
+                      <Smartphone className="w-5 h-5" />
+                      TERMINAL
+                    </TabsTrigger>
+                    <TabsTrigger value="cash" className="h-12 gap-2 text-base">
+                      <Banknote className="w-5 h-5" />
+                      CASH
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Card Terminal Payment (NO webhook) */}
+                  <TabsContent value="card" className="mt-6">
+                    <div className="text-center p-4 bg-primary/10 rounded-lg mb-4">
+                      <Smartphone className="w-12 h-12 text-primary mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Tap to Phone ready. Customer can tap card when prompted.
+                      </p>
+                    </div>
+                    <Button
+                      className="w-full h-16 text-lg btn-glow"
+                      onClick={handleCardPayment}
+                      disabled={isSubmitting || total === 0}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <>
+                          <CreditCard className="w-6 h-6 mr-2" />
+                          CHARGE €{total.toFixed(2)}
+                        </>
+                      )}
+                    </Button>
+                  </TabsContent>
+
+                  {/* Cash Payment with Calculator (TRIGGERS webhook) */}
+                  <TabsContent value="cash" className="mt-6 space-y-4">
+                    {/* Amount Tendered Input */}
+                    <div>
+                      <label className="text-sm text-muted-foreground uppercase tracking-wider">
+                        Amount Tendered
+                      </label>
+                      <div className="relative mt-2">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-muted-foreground">€</span>
+                        <Input
+                          type="number"
+                          value={amountTendered}
+                          onChange={(e) => setAmountTendered(e.target.value)}
+                          placeholder="0.00"
+                          className="h-16 text-3xl font-heading text-center pl-10 pr-4"
+                          step="0.01"
+                          min="0"
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Amount Buttons */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {quickAmounts.map((amount) => (
+                        <Button
+                          key={amount}
+                          variant="secondary"
+                          className="h-12"
+                          onClick={() => setAmountTendered(amount.toString())}
+                        >
+                          €{amount}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Exact Amount Button */}
+                    <Button
+                      variant="outline"
+                      className="w-full h-12"
+                      onClick={() => setAmountTendered(total.toFixed(2))}
+                    >
+                      Exact Amount (€{total.toFixed(2)})
+                    </Button>
+
+                    {/* Change/Remaining Display */}
+                    <AnimatePresence mode="wait">
+                      {amountTendered && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className={`p-4 rounded-lg text-center ${
+                            canPayCash ? 'bg-success/20' : 'bg-secondary'
+                          }`}
+                        >
+                          {canPayCash ? (
+                            <>
+                              <p className="text-sm text-muted-foreground uppercase">Change Due</p>
+                              <p className="font-heading text-5xl text-destructive mt-1">
+                                €{changeDue.toFixed(2)}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-sm text-muted-foreground uppercase">Remaining</p>
+                              <p className="font-heading text-2xl text-muted-foreground mt-1">
+                                €{remaining.toFixed(2)}
+                              </p>
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Pay Button */}
+                    <Button
+                      className="w-full h-16 text-lg"
+                      variant={canPayCash ? 'glow' : 'secondary'}
+                      onClick={handleCashPayment}
+                      disabled={!canPayCash || isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : canPayCash ? (
+                        <>
+                          <Check className="w-6 h-6 mr-2" />
+                          COMPLETE
+                        </>
+                      ) : (
+                        'ENTER AMOUNT'
+                      )}
+                    </Button>
+                  </TabsContent>
+                </Tabs>
               </div>
-
-              {/* Exact Amount Button */}
-              <Button
-                variant="outline"
-                className="w-full h-12"
-                onClick={() => setAmountTendered(total.toFixed(2))}
-              >
-                Exact Amount (€{total.toFixed(2)})
-              </Button>
-
-              {/* Change/Remaining Display */}
-              <AnimatePresence mode="wait">
-                {amountTendered && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`p-4 rounded-lg text-center ${
-                      canPayCash ? 'bg-success/20' : 'bg-secondary'
-                    }`}
-                  >
-                    {canPayCash ? (
-                      <>
-                        <p className="text-sm text-muted-foreground uppercase">Change Due</p>
-                        <p className="font-heading text-5xl text-destructive mt-1">
-                          €{changeDue.toFixed(2)}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-muted-foreground uppercase">Remaining</p>
-                        <p className="font-heading text-2xl text-muted-foreground mt-1">
-                          €{remaining.toFixed(2)}
-                        </p>
-                      </>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Pay Button */}
-              <Button
-                className="w-full h-16 text-lg"
-                variant={canPayCash ? 'glow' : 'secondary'}
-                onClick={handleCashPayment}
-                disabled={!canPayCash || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : canPayCash ? (
-                  <>
-                    <Check className="w-6 h-6 mr-2" />
-                    COMPLETE
-                  </>
-                ) : (
-                  'ENTER AMOUNT'
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   );
