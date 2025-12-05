@@ -2,6 +2,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { FooterInfoBar } from '@/components/layout/FooterInfoBar';
 import { HeroSection } from '@/components/customer/HeroSection';
 import { MenuSection } from '@/components/customer/MenuSection';
+import { FloatingCartButton } from '@/components/customer/FloatingCartButton';
 
 function AboutSection() {
   return (
@@ -35,6 +36,7 @@ export default function Index() {
       <HeroSection />
       <MenuSection />
       <AboutSection />
+      <FloatingCartButton />
       <FooterInfoBar />
     </div>
   );
