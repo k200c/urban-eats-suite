@@ -1,6 +1,8 @@
 import { Phone, Mail, MapPin, Clock, Instagram, Facebook } from 'lucide-react';
 import { motion } from 'framer-motion';
 import streetEatzLogo from '@/assets/street-eatz-logo.png';
+import { Navbar } from '@/components/layout/Navbar';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 const hours = [
   { day: 'Thursday', time: '12pm - 7pm' },
@@ -11,7 +13,9 @@ const hours = [
 
 export default function Details() {
   return (
-    <div className="min-h-screen bg-background pb-24 pt-20">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-background pb-24 pt-20">
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header with Logo */}
         <motion.div 
@@ -153,5 +157,7 @@ export default function Details() {
         </motion.section>
       </div>
     </div>
+      <BottomNav />
+    </>
   );
 }
