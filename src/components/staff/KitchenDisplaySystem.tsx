@@ -1,11 +1,11 @@
 import { useState, DragEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Clock, Volume2, VolumeX, GripVertical, Play, CheckCircle, PackageCheck } from 'lucide-react';
+import { ChefHat, Clock, Volume2, VolumeX, GripVertical, Play, CheckCircle, PackageCheck, RefreshCw, Bug } from 'lucide-react';
 import { useKitchenOrders, KitchenOrder } from '@/hooks/useKitchenOrders';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 
 type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed';
@@ -313,8 +313,12 @@ export function KitchenDisplaySystem() {
     isLoading, 
     updateOrderStatus, 
     soundEnabled, 
-    setSoundEnabled 
+    setSoundEnabled,
+    forceRefresh,
+    debugInfo
   } = useKitchenOrders();
+  
+  const [showDebug, setShowDebug] = useState(false);
 
   // Find full order data by ID
   const findOrderById = (orderId: string): KitchenOrder | undefined => {
@@ -455,6 +459,46 @@ export function KitchenDisplaySystem() {
           </div>
         )}
       </CardContent>
+      
+      {/* Debug Footer */}
+      <CardFooter className="border-t border-border pt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span>
+            <strong>Fetched:</strong> {debugInfo.totalFetched} orders
+          </span>
+          <span>
+            <strong>Last Refresh:</strong> {format(debugInfo.lastRefetch, 'HH:mm:ss')}
+          </span>
+          {showDebug && (
+            <span className="text-yellow-500">
+              P:{debugInfo.byStatus.pending} | C:{debugInfo.byStatus.cooking} | R:{debugInfo.byStatus.ready}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDebug(!showDebug)}
+            className="gap-1 text-xs"
+          >
+            <Bug className="w-3 h-3" />
+            {showDebug ? 'Hide' : 'Debug'}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              forceRefresh();
+              toast.success('Orders refreshed');
+            }}
+            className="gap-1"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Force Refresh
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 }
