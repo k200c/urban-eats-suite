@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCartStore } from '@/stores/cartStore';
 import { toast } from 'sonner';
 
-const N8N_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-order';
+const N8N_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-order';
 
 interface CheckoutData {
   paymentMethod: 'card' | 'cash';
