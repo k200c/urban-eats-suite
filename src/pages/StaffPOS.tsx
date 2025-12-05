@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProducts } from '@/hooks/useProducts';
+import { useAuth } from '@/hooks/useAuth';
 import { Product, ProductCategory, CartItem, SelectedModifier } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { 
