@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
 
-const N8N_WEBHOOK_URL = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-order";
+const N8N_WEBHOOK_URL = "https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-order";
 
 interface CheckoutData {
   paymentMethod: "card" | "cash";
@@ -24,7 +24,7 @@ interface WebhookPayload {
   created_at: string;
   status: string;
   payment_method: string;
-  order_source: 'staff' | 'web';
+  order_source: "staff" | "web";
   customer: {
     name: string;
     phone: string;
@@ -122,7 +122,7 @@ export function useCheckout() {
     customerData: { name: string; phone: string; email: string },
     cartItems: typeof items,
     orderTotal: number,
-    orderSource: 'staff' | 'web' = 'web',
+    orderSource: "staff" | "web" = "web",
   ): Promise<boolean> => {
     // Step 1: Validate data before sending
     if (!cartItems || cartItems.length === 0) {
