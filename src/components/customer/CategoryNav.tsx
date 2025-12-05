@@ -19,20 +19,24 @@ interface CategoryNavProps {
 export function CategoryNav({ selected, onSelect }: CategoryNavProps) {
   return (
     <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg py-3 -mx-4 px-4">
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {categories.map(({ value, label, icon: Icon }) => (
-          <button
-            key={value}
-            onClick={() => onSelect(value)}
-            className={cn(
-              'category-pill flex items-center gap-2 whitespace-nowrap',
-              selected === value && 'active'
-            )}
-          >
-            <Icon className="w-4 h-4" />
-            <span>{label}</span>
-          </button>
-        ))}
+      <div className="relative">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+          {categories.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => onSelect(value)}
+              className={cn(
+                'category-pill flex items-center gap-2 whitespace-nowrap flex-shrink-0',
+                selected === value && 'active'
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+        {/* Right fade hint for more categories */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent pointer-events-none md:hidden" />
       </div>
     </div>
   );

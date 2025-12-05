@@ -15,7 +15,8 @@ export function FooterInfoBar() {
           {/* Hours */}
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="w-4 h-4 text-primary" />
-            <span>Thu-Fri: 12-7pm</span>
+            <span className="hidden sm:inline">Thu-Fri: 12-7pm · Sat-Sun: 1-9pm</span>
+            <span className="sm:hidden">Thu-Sun Open</span>
           </div>
 
           {/* Live Status */}

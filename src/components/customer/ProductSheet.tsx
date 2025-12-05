@@ -108,7 +108,7 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
     <Sheet open={!!product} onOpenChange={() => onClose()}>
       <SheetContent
         side="bottom"
-        className="h-[85vh] rounded-t-3xl bg-gradient-to-b from-[#1A1A1A] to-[#0A0A0A] border-t border-white/10 p-0 overflow-hidden"
+        className="h-[90vh] rounded-t-3xl bg-gradient-to-b from-[#1A1A1A] to-[#0A0A0A] border-t border-white/10 p-0 overflow-hidden"
       >
         {/* Close Button */}
         <button

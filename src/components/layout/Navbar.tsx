@@ -1,26 +1,33 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/stores/cartStore';
-import { cn } from '@/lib/utils';
 
 const navLinks = [
   { label: 'MENU', href: '#menu' },
   { label: 'ABOUT', href: '#about' },
-  { label: 'GALLERY', href: '#gallery' },
 ];
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const itemCount = useCartStore((state) => state.getItemCount());
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const scrollToMenu = () => {
-    const menuSection = document.getElementById('menu');
-    if (menuSection) {
-      menuSection.scrollIntoView({ behavior: 'smooth' });
+  const scrollToSection = (sectionId: string) => {
+    // If not on home page, navigate first
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const section = document.getElementById(sectionId);
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      const section = document.getElementById(sectionId);
+      if (section) section.scrollIntoView({ behavior: 'smooth' });
     }
+    setIsOpen(false);
   };
 
   return (
@@ -37,13 +44,13 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link.label}
-                href={link.href}
+                onClick={() => scrollToSection(link.href.replace('#', ''))}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
               >
                 {link.label}
-              </a>
+              </button>
             ))}
           </div>
 
@@ -77,7 +84,7 @@ export function Navbar() {
 
             {/* Order Now Button */}
             <Button
-              onClick={scrollToMenu}
+              onClick={() => scrollToSection('menu')}
               className="hidden sm:flex btn-glow"
             >
               ORDER NOW
@@ -100,23 +107,21 @@ export function Navbar() {
           <div className="md:hidden py-4 border-t border-white/10 animate-fade-in">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <a
+                <button
                   key={link.label}
-                  href={link.href}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => scrollToSection(link.href.replace('#', ''))}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider text-left"
                 >
                   {link.label}
-                </a>
+                </button>
               ))}
-              <a
-                href="/auth"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
-                onClick={() => setIsOpen(false)}
+              <button
+                onClick={() => { navigate('/auth'); setIsOpen(false); }}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider text-left"
               >
                 STAFF LOGIN
-              </a>
-              <Button onClick={scrollToMenu} className="w-full btn-glow mt-2">
+              </button>
+              <Button onClick={() => scrollToSection('menu')} className="w-full btn-glow mt-2">
                 ORDER NOW
               </Button>
             </div>
