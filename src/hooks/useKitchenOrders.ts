@@ -67,15 +67,30 @@ export function useKitchenOrders() {
   // Update order status mutation
   const updateOrderStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: 'pending' | 'cooking' | 'ready' | 'completed' }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update({ status })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select('id, status')
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Order status update error:', error);
+        throw new Error(error.message || 'Failed to update order status');
+      }
+      
+      if (!data) {
+        throw new Error('Update failed - no rows affected. Check permissions.');
+      }
+
+      return data;
     },
     onSuccess: () => {
+      // Invalidate to refetch and sync UI
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+    },
+    onError: (error) => {
+      console.error('Mutation error:', error);
     }
   });
 
