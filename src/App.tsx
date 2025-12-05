@@ -11,6 +11,7 @@ import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
 import Account from "./pages/Account";
 import Auth from "./pages/Auth";
+import Details from "./pages/Details";
 import StaffPOS from "./pages/StaffPOS";
 import StaffPOSQuick from "./pages/StaffPOSQuick";
 import StaffDashboard from "./pages/StaffDashboard";
@@ -49,6 +50,7 @@ const App = () => {
             <Route path="/menu" element={<Menu />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/account" element={<Account />} />
+            <Route path="/details" element={<Details />} />
             <Route path="/staff" element={<StaffPOS />} />
             <Route path="/staff/pos" element={<StaffPOSQuick />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />

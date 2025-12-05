@@ -6,7 +6,7 @@ import { useCartStore } from '@/stores/cartStore';
 
 const navLinks = [
   { label: 'MENU', href: '#menu' },
-  { label: 'ABOUT', href: '#about' },
+  { label: 'DETAILS', href: '/details', isRoute: true },
 ];
 
 export function Navbar() {
@@ -44,13 +44,23 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => scrollToSection(link.href.replace('#', ''))}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
-              >
-                {link.label}
-              </button>
+              link.isRoute ? (
+                <button
+                  key={link.label}
+                  onClick={() => { navigate(link.href); setIsOpen(false); }}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
+                >
+                  {link.label}
+                </button>
+              ) : (
+                <button
+                  key={link.label}
+                  onClick={() => scrollToSection(link.href.replace('#', ''))}
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider"
+                >
+                  {link.label}
+                </button>
+              )
             ))}
           </div>
 
@@ -107,13 +117,23 @@ export function Navbar() {
           <div className="md:hidden py-4 border-t border-white/10 animate-fade-in">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <button
-                  key={link.label}
-                  onClick={() => scrollToSection(link.href.replace('#', ''))}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider text-left"
-                >
-                  {link.label}
-                </button>
+                link.isRoute ? (
+                  <button
+                    key={link.label}
+                    onClick={() => { navigate(link.href); setIsOpen(false); }}
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider text-left"
+                  >
+                    {link.label}
+                  </button>
+                ) : (
+                  <button
+                    key={link.label}
+                    onClick={() => scrollToSection(link.href.replace('#', ''))}
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors tracking-wider text-left"
+                  >
+                    {link.label}
+                  </button>
+                )
               ))}
               <button
                 onClick={() => { navigate('/auth'); setIsOpen(false); }}
