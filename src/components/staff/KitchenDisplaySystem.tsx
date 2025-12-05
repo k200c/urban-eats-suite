@@ -46,13 +46,13 @@ const columns: ColumnConfig[] = [
   }
 ];
 
-// Webhook URL for status notifications
-const STATUS_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-status';
+// Webhook URL for status notifications (production)
+const STATUS_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-status';
 
 interface OrderCardProps {
   order: KitchenOrder;
   onDragStart: (e: DragEvent, order: KitchenOrder) => void;
-  onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
+  onStatusChange: (orderId: string, newStatus: OrderStatus, skipWebhook?: boolean) => void;
   currentStatus: OrderStatus;
 }
 
@@ -104,35 +104,68 @@ function OrderCard({ order, onDragStart, onStatusChange, currentStatus }: OrderC
         return;
     }
     
-    await onStatusChange(order.id, newStatus);
+    // Only "Mark Ready" triggers webhook (cooking -> ready)
+    const skipWebhook = currentStatus !== 'cooking';
+    await onStatusChange(order.id, newStatus, skipWebhook);
     setIsUpdating(false);
   };
 
-  const getActionButton = () => {
+  // Quick complete: directly mark as completed without webhook
+  const handleQuickComplete = async () => {
+    setIsUpdating(true);
+    await onStatusChange(order.id, 'completed', true); // Skip webhook
+    setIsUpdating(false);
+  };
+
+  const getActionButtons = () => {
     switch (currentStatus) {
       case 'pending':
         return (
-          <Button 
-            size="sm" 
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
-            onClick={handleAction}
-            disabled={isUpdating}
-          >
-            <Play className="w-4 h-4 mr-1" />
-            Start Cooking
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+              onClick={handleAction}
+              disabled={isUpdating}
+            >
+              <Play className="w-4 h-4 mr-1" />
+              Start Cooking
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="px-2 border-muted-foreground/30 hover:bg-muted"
+              onClick={handleQuickComplete}
+              disabled={isUpdating}
+              title="Archive - Skip to Completed (No SMS)"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </Button>
+          </div>
         );
       case 'cooking':
         return (
-          <Button 
-            size="sm" 
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold"
-            onClick={handleAction}
-            disabled={isUpdating}
-          >
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Mark Ready
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold"
+              onClick={handleAction}
+              disabled={isUpdating}
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Mark Ready
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="px-2 border-muted-foreground/30 hover:bg-muted"
+              onClick={handleQuickComplete}
+              disabled={isUpdating}
+              title="Archive - Skip to Completed (No SMS)"
+            >
+              <PackageCheck className="w-4 h-4" />
+            </Button>
+          </div>
         );
       case 'ready':
         return (
@@ -225,9 +258,9 @@ function OrderCard({ order, onDragStart, onStatusChange, currentStatus }: OrderC
             <span className="font-bold text-primary">€{Number(order.total).toFixed(2)}</span>
           </div>
 
-          {/* Action Button */}
+          {/* Action Buttons */}
           <div className="mt-3">
-            {getActionButton()}
+            {getActionButtons()}
           </div>
         </CardContent>
       </Card>
@@ -240,7 +273,7 @@ interface KanbanColumnProps {
   orders: KitchenOrder[];
   onDrop: (e: DragEvent, status: OrderStatus) => void;
   onDragOver: (e: DragEvent) => void;
-  onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
+  onStatusChange: (orderId: string, newStatus: OrderStatus, skipWebhook?: boolean) => void;
 }
 
 function KanbanColumn({ config, orders, onDrop, onDragOver, onStatusChange }: KanbanColumnProps) {
@@ -326,38 +359,41 @@ export function KitchenDisplaySystem() {
       .find(order => order.id === orderId);
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus, skipWebhook = false) => {
     try {
-      // FETCH-THEN-SEND: Get fresh order data directly from database
-      const { data: freshOrder, error: fetchError } = await supabase
-        .from('orders')
-        .select('id, customer_name, customer_phone')
-        .eq('id', orderId)
-        .maybeSingle();
+      // Only send webhook for "Mark Ready" action (cooking -> ready)
+      if (!skipWebhook && newStatus === 'ready') {
+        // FETCH-THEN-SEND: Get fresh order data directly from database
+        const { data: freshOrder, error: fetchError } = await supabase
+          .from('orders')
+          .select('id, customer_name, customer_phone')
+          .eq('id', orderId)
+          .maybeSingle();
 
-      if (fetchError) {
-        console.error('Failed to fetch fresh order data:', fetchError);
-      }
-
-      // Construct webhook payload with fresh data (fallback to Guest if missing)
-      const payload = {
-        type: 'status_update',
-        status: newStatus,
-        order_id: orderId,
-        customer: {
-          name: freshOrder?.customer_name || 'Guest',
-          phone: freshOrder?.customer_phone || ''
+        if (fetchError) {
+          console.error('Failed to fetch fresh order data:', fetchError);
         }
-      };
 
-      // Fire webhook in background (don't block status update)
-      fetch(STATUS_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-        .then(() => console.log(`Status notification (${newStatus}) sent for order:`, orderId))
-        .catch((err) => console.error('Webhook failed:', err));
+        // Construct webhook payload with fresh data (fallback to Guest if missing)
+        const payload = {
+          type: 'status_update',
+          status: newStatus,
+          order_id: orderId,
+          customer: {
+            name: freshOrder?.customer_name || 'Guest',
+            phone: freshOrder?.customer_phone || ''
+          }
+        };
+
+        // Fire webhook in background (don't block status update)
+        fetch(STATUS_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(() => console.log(`Status notification (${newStatus}) sent for order:`, orderId))
+          .catch((err) => console.error('Webhook failed:', err));
+      }
 
       // Update status in database
       await updateOrderStatus.mutateAsync({ 
@@ -372,7 +408,8 @@ export function KitchenDisplaySystem() {
         completed: 'Completed'
       };
       
-      toast.success(`Order moved to ${statusLabels[newStatus]}`);
+      const label = skipWebhook && newStatus === 'completed' ? 'Archived' : statusLabels[newStatus];
+      toast.success(`Order ${label}`);
     } catch (error) {
       toast.error('Failed to update order status');
     }
