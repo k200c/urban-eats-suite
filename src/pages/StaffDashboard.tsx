@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, Clock, Package, ArrowLeft, Users } from 'lucide-react';
+import { Store, Clock, Package, ArrowLeft, Users, ChefHat } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { useProducts } from '@/hooks/useProducts';
@@ -75,6 +75,56 @@ export default function StaffDashboard() {
 
   const isStoreOpen = settings?.is_store_open ?? true;
 
+  // Quick Stock Manager Component
+  const QuickStockManager = () => (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Package className="w-5 h-5 text-primary" />
+          Quick Stock Manager
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {productsLoading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-12 bg-secondary/30 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {products?.map((product) => (
+              <div
+                key={product.id}
+                className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                  product.is_available
+                    ? 'bg-secondary/20 border-border'
+                    : 'bg-red-500/10 border-red-500/30'
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className={`font-medium truncate ${!product.is_available && 'text-muted-foreground line-through'}`}>
+                    {product.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{product.category}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-medium ${product.is_available ? 'text-green-400' : 'text-red-400'}`}>
+                    {product.is_available ? 'In Stock' : 'Sold Out'}
+                  </span>
+                  <Switch
+                    checked={product.is_available ?? true}
+                    onCheckedChange={(checked) => handleProductAvailability(product.id, checked)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -92,19 +142,24 @@ export default function StaffDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 max-w-6xl">
-        <Tabs defaultValue="operations" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+      <main className="container mx-auto px-4 py-6 max-w-7xl">
+        <Tabs defaultValue="kitchen" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="operations" className="flex items-center gap-2">
               <Store className="w-4 h-4" />
-              Operations
+              <span className="hidden sm:inline">Operations</span>
+            </TabsTrigger>
+            <TabsTrigger value="kitchen" className="flex items-center gap-2">
+              <ChefHat className="w-4 h-4" />
+              <span className="hidden sm:inline">Kitchen (KDS)</span>
             </TabsTrigger>
             <TabsTrigger value="customers" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Customers
+              <span className="hidden sm:inline">Customers</span>
             </TabsTrigger>
           </TabsList>
 
+          {/* Operations Tab */}
           <TabsContent value="operations" className="space-y-6">
             {/* Store Status Card */}
             <motion.div
@@ -189,71 +244,29 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </motion.div>
+          </TabsContent>
 
-            {/* Kitchen Display System */}
+          {/* Kitchen (KDS) Tab */}
+          <TabsContent value="kitchen" className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
+              transition={{ duration: 0.3 }}
             >
               <KitchenDisplaySystem />
             </motion.div>
 
-            {/* Quick Stock Manager */}
+            {/* Quick Stock Manager at bottom of Kitchen tab */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.3 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
             >
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Package className="w-5 h-5 text-primary" />
-                    Quick Stock Manager
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {productsLoading ? (
-                    <div className="space-y-3">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-12 bg-secondary/30 rounded animate-pulse" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                      {products?.map((product) => (
-                        <div
-                          key={product.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                            product.is_available
-                              ? 'bg-secondary/20 border-border'
-                              : 'bg-red-500/10 border-red-500/30'
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-medium truncate ${!product.is_available && 'text-muted-foreground line-through'}`}>
-                              {product.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{product.category}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`text-xs font-medium ${product.is_available ? 'text-green-400' : 'text-red-400'}`}>
-                              {product.is_available ? 'In Stock' : 'Sold Out'}
-                            </span>
-                            <Switch
-                              checked={product.is_available ?? true}
-                              onCheckedChange={(checked) => handleProductAvailability(product.id, checked)}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <QuickStockManager />
             </motion.div>
           </TabsContent>
 
+          {/* Customers Tab */}
           <TabsContent value="customers">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

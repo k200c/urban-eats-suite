@@ -1,13 +1,13 @@
 import { useState, DragEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Clock, Volume2, VolumeX, GripVertical } from 'lucide-react';
+import { ChefHat, Clock, Volume2, VolumeX, GripVertical, Play, CheckCircle, PackageCheck } from 'lucide-react';
 import { useKitchenOrders, KitchenOrder } from '@/hooks/useKitchenOrders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
-type OrderStatus = 'pending' | 'cooking' | 'ready';
+type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed';
 
 interface ColumnConfig {
   status: OrderStatus;
@@ -15,33 +15,74 @@ interface ColumnConfig {
   borderColor: string;
   bgColor: string;
   headerBg: string;
+  headerText: string;
 }
 
 const columns: ColumnConfig[] = [
   { 
     status: 'pending', 
-    title: 'NEW ORDERS', 
+    title: 'PENDING', 
     borderColor: 'border-red-500',
     bgColor: 'bg-red-500/5',
-    headerBg: 'bg-red-500/20'
+    headerBg: 'bg-red-500',
+    headerText: 'text-white'
   },
   { 
     status: 'cooking', 
     title: 'COOKING', 
     borderColor: 'border-yellow-500',
     bgColor: 'bg-yellow-500/5',
-    headerBg: 'bg-yellow-500/20'
+    headerBg: 'bg-yellow-500',
+    headerText: 'text-black'
   },
   { 
     status: 'ready', 
     title: 'READY', 
     borderColor: 'border-green-500',
     bgColor: 'bg-green-500/5',
-    headerBg: 'bg-green-500/20'
+    headerBg: 'bg-green-500',
+    headerText: 'text-white'
   }
 ];
 
-function OrderCard({ order, onDragStart }: { order: KitchenOrder; onDragStart: (e: DragEvent, order: KitchenOrder) => void }) {
+// Webhook URL for status notifications
+const STATUS_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-status';
+
+// Send webhook notification when order is marked ready
+async function sendReadyNotification(order: KitchenOrder): Promise<void> {
+  try {
+    await fetch(STATUS_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'status_update',
+        status: 'ready',
+        order_id: order.id,
+        customer: {
+          name: order.customer_name,
+          phone: order.customer_phone
+        }
+      }),
+    });
+    console.log('Ready notification sent for order:', order.id);
+  } catch (error) {
+    console.error('Failed to send ready notification:', error);
+    // Don't throw - webhook failure shouldn't block order status update
+  }
+}
+
+interface OrderCardProps {
+  order: KitchenOrder;
+  onDragStart: (e: DragEvent, order: KitchenOrder) => void;
+  onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
+  currentStatus: OrderStatus;
+}
+
+function OrderCard({ order, onDragStart, onStatusChange, currentStatus }: OrderCardProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   const timeAgo = order.created_at 
     ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true })
     : 'Unknown';
@@ -50,16 +91,16 @@ function OrderCard({ order, onDragStart }: { order: KitchenOrder; onDragStart: (
   const parseModifiers = (modifiers: unknown): string[] => {
     if (!modifiers) return [];
     if (Array.isArray(modifiers)) {
-      return modifiers.map((m: any) => {
+      return modifiers.map((m: unknown) => {
         if (typeof m === 'string') return m;
-        if (m && typeof m === 'object' && m.name) return m.name;
+        if (m && typeof m === 'object' && 'name' in m) return (m as { name: string }).name;
         return '';
       }).filter(Boolean);
     }
     return [];
   };
 
-  // Check if modifier indicates removal (e.g., "No Onions") or allergy
+  // Check if modifier indicates removal or allergy
   const isHighlightedModifier = (mod: string): boolean => {
     const lowered = mod.toLowerCase();
     return lowered.startsWith('no ') || 
@@ -67,6 +108,71 @@ function OrderCard({ order, onDragStart }: { order: KitchenOrder; onDragStart: (
            lowered.includes('allergies') ||
            lowered.includes('gluten') ||
            lowered.includes('dairy');
+  };
+
+  const handleAction = async () => {
+    setIsUpdating(true);
+    let newStatus: OrderStatus;
+    
+    switch (currentStatus) {
+      case 'pending':
+        newStatus = 'cooking';
+        break;
+      case 'cooking':
+        newStatus = 'ready';
+        break;
+      case 'ready':
+        newStatus = 'completed';
+        break;
+      default:
+        return;
+    }
+    
+    await onStatusChange(order.id, newStatus);
+    setIsUpdating(false);
+  };
+
+  const getActionButton = () => {
+    switch (currentStatus) {
+      case 'pending':
+        return (
+          <Button 
+            size="sm" 
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+            onClick={handleAction}
+            disabled={isUpdating}
+          >
+            <Play className="w-4 h-4 mr-1" />
+            Start Cooking
+          </Button>
+        );
+      case 'cooking':
+        return (
+          <Button 
+            size="sm" 
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold"
+            onClick={handleAction}
+            disabled={isUpdating}
+          >
+            <CheckCircle className="w-4 h-4 mr-1" />
+            Mark Ready
+          </Button>
+        );
+      case 'ready':
+        return (
+          <Button 
+            size="sm" 
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold"
+            onClick={handleAction}
+            disabled={isUpdating}
+          >
+            <PackageCheck className="w-4 h-4 mr-1" />
+            Complete / Pickup
+          </Button>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -97,7 +203,7 @@ function OrderCard({ order, onDragStart }: { order: KitchenOrder; onDragStart: (
 
           {/* Customer Name */}
           {order.customer_name && (
-            <p className="text-sm text-muted-foreground mb-2">
+            <p className="text-sm font-medium text-primary mb-2">
               {order.customer_name}
             </p>
           )}
@@ -109,7 +215,7 @@ function OrderCard({ order, onDragStart }: { order: KitchenOrder; onDragStart: (
               return (
                 <div key={item.id || idx} className="border-l-2 border-primary/30 pl-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">
+                    <span className="font-semibold text-sm bg-primary/20 px-1.5 rounded">
                       {item.quantity}x
                     </span>
                     <span className="font-medium">
@@ -142,23 +248,26 @@ function OrderCard({ order, onDragStart }: { order: KitchenOrder; onDragStart: (
             <span className="text-sm text-muted-foreground">Total</span>
             <span className="font-bold text-primary">€{Number(order.total).toFixed(2)}</span>
           </div>
+
+          {/* Action Button */}
+          <div className="mt-3">
+            {getActionButton()}
+          </div>
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-function KanbanColumn({ 
-  config, 
-  orders, 
-  onDrop,
-  onDragOver 
-}: { 
-  config: ColumnConfig; 
+interface KanbanColumnProps {
+  config: ColumnConfig;
   orders: KitchenOrder[];
   onDrop: (e: DragEvent, status: OrderStatus) => void;
   onDragOver: (e: DragEvent) => void;
-}) {
+  onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
+}
+
+function KanbanColumn({ config, orders, onDrop, onDragOver, onStatusChange }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = (e: DragEvent) => {
@@ -178,30 +287,32 @@ function KanbanColumn({
 
   return (
     <div 
-      className={`flex flex-col rounded-lg border-2 ${config.borderColor} ${config.bgColor} transition-all ${
-        isDragOver ? 'ring-2 ring-primary scale-[1.02]' : ''
+      className={`flex flex-col rounded-lg border-2 ${config.borderColor} ${config.bgColor} transition-all min-h-[300px] ${
+        isDragOver ? 'ring-2 ring-primary scale-[1.01]' : ''
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Column Header */}
-      <div className={`px-4 py-3 ${config.headerBg} rounded-t-md`}>
+      <div className={`px-4 py-3 ${config.headerBg} ${config.headerText} rounded-t-md`}>
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-sm tracking-wide">{config.title}</h3>
-          <span className="bg-background/50 px-2 py-0.5 rounded-full text-xs font-bold">
+          <span className="bg-black/20 px-2 py-0.5 rounded-full text-xs font-bold">
             {orders.length}
           </span>
         </div>
       </div>
 
       {/* Orders */}
-      <div className="flex-1 p-2 space-y-2 min-h-[200px] overflow-y-auto max-h-[500px]">
+      <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[500px]">
         <AnimatePresence mode="popLayout">
           {orders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
+              currentStatus={config.status}
+              onStatusChange={onStatusChange}
               onDragStart={(e, o) => {
                 e.dataTransfer.setData('orderId', o.id);
                 e.dataTransfer.setData('currentStatus', o.status || 'pending');
@@ -211,7 +322,7 @@ function KanbanColumn({
         </AnimatePresence>
         
         {orders.length === 0 && (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+          <div className="flex items-center justify-center h-24 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg">
             No orders
           </div>
         )}
@@ -229,7 +340,40 @@ export function KitchenDisplaySystem() {
     setSoundEnabled 
   } = useKitchenOrders();
 
-  const [draggedOrderId, setDraggedOrderId] = useState<string | null>(null);
+  // Find full order data by ID
+  const findOrderById = (orderId: string): KitchenOrder | undefined => {
+    return [...ordersByStatus.pending, ...ordersByStatus.cooking, ...ordersByStatus.ready]
+      .find(order => order.id === orderId);
+  };
+
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      // If marking as ready, trigger webhook notification
+      if (newStatus === 'ready') {
+        const order = findOrderById(orderId);
+        if (order) {
+          // Fire webhook in background (don't await)
+          sendReadyNotification(order);
+        }
+      }
+
+      await updateOrderStatus.mutateAsync({ 
+        orderId, 
+        status: newStatus as 'pending' | 'cooking' | 'ready' | 'completed' 
+      });
+      
+      const statusLabels: Record<OrderStatus, string> = {
+        pending: 'Pending',
+        cooking: 'Cooking',
+        ready: 'Ready',
+        completed: 'Completed'
+      };
+      
+      toast.success(`Order moved to ${statusLabels[newStatus]}`);
+    } catch (error) {
+      toast.error('Failed to update order status');
+    }
+  };
 
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
@@ -241,14 +385,8 @@ export function KitchenDisplaySystem() {
     const currentStatus = e.dataTransfer.getData('currentStatus');
 
     if (orderId && currentStatus !== newStatus) {
-      try {
-        await updateOrderStatus.mutateAsync({ orderId, status: newStatus as 'pending' | 'cooking' | 'ready' | 'completed' });
-        toast.success(`Order moved to ${newStatus.toUpperCase()}`);
-      } catch (error) {
-        toast.error('Failed to update order status');
-      }
+      await handleStatusChange(orderId, newStatus);
     }
-    setDraggedOrderId(null);
   };
 
   const totalOrders = 
@@ -259,7 +397,7 @@ export function KitchenDisplaySystem() {
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <ChefHat className="w-5 h-5 text-primary" />
             Kitchen Display System
@@ -278,12 +416,12 @@ export function KitchenDisplaySystem() {
             {soundEnabled ? (
               <>
                 <Volume2 className="w-4 h-4" />
-                Sound On
+                <span className="hidden sm:inline">Sound On</span>
               </>
             ) : (
               <>
                 <VolumeX className="w-4 h-4" />
-                Sound Off
+                <span className="hidden sm:inline">Sound Off</span>
               </>
             )}
           </Button>
@@ -291,7 +429,7 @@ export function KitchenDisplaySystem() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-64 bg-secondary/30 rounded-lg animate-pulse" />
             ))}
@@ -305,6 +443,7 @@ export function KitchenDisplaySystem() {
                 orders={ordersByStatus[column.status]}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
+                onStatusChange={handleStatusChange}
               />
             ))}
           </div>
