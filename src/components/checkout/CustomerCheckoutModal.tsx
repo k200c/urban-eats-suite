@@ -69,7 +69,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
     });
 
     if (result) {
-      // Send to n8n webhook for cash/collection payments
+      // Send to n8n webhook for cash/collection payments (marked as web order)
       // Pass the saved cart data since cart is now cleared
       await sendToKitchen(
         result,
@@ -79,7 +79,8 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
           email: customerEmail.trim(),
         },
         cartSnapshot,
-        totalSnapshot
+        totalSnapshot,
+        'web'
       );
 
       setOrderNumber(result.orderNumber);

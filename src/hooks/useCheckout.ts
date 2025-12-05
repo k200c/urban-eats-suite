@@ -24,6 +24,7 @@ interface WebhookPayload {
   created_at: string;
   status: string;
   payment_method: string;
+  order_source: 'staff' | 'web';
   customer: {
     name: string;
     phone: string;
@@ -121,6 +122,7 @@ export function useCheckout() {
     customerData: { name: string; phone: string; email: string },
     cartItems: typeof items,
     orderTotal: number,
+    orderSource: 'staff' | 'web' = 'web',
   ): Promise<boolean> => {
     // Step 1: Validate data before sending
     if (!cartItems || cartItems.length === 0) {
@@ -150,6 +152,7 @@ export function useCheckout() {
         created_at: orderResult.createdAt,
         status: "pending",
         payment_method: "cash",
+        order_source: orderSource,
         customer: {
           name: customerData.name || "",
           phone: customerData.phone || "",

@@ -53,13 +53,14 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
     });
 
     if (result) {
-      // Send to n8n webhook for cash payments
+      // Send to n8n webhook for cash payments (marked as staff order)
       // Pass the saved cart data since cart is now cleared
       await sendToKitchen(
         result,
         { name: '', phone: '', email: '' },
         cartSnapshot,
-        totalSnapshot
+        totalSnapshot,
+        'staff'
       );
 
       setAmountTendered('');
