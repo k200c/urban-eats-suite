@@ -16,6 +16,8 @@ interface StaffCheckoutModalProps {
 export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
   const [amountTendered, setAmountTendered] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
   const { submitOrder, sendToKitchen, isSubmitting, total, items } = useCheckout();
 
@@ -30,13 +32,21 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
     
     const result = await submitOrder({
       paymentMethod: 'card',
+      customerName: customerName || undefined,
+      customerPhone: customerPhone || undefined,
     });
 
     if (result) {
-      setAmountTendered('');
+      resetForm();
       onOpenChange(false);
       onSuccess(result.orderNumber);
     }
+  };
+
+  const resetForm = () => {
+    setAmountTendered('');
+    setCustomerName('');
+    setCustomerPhone('');
   };
 
   const handleCashPayment = async () => {
@@ -50,6 +60,8 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
     const result = await submitOrder({
       paymentMethod: 'cash',
       amountTendered: tenderedValue,
+      customerName: customerName || undefined,
+      customerPhone: customerPhone || undefined,
     });
 
     if (result) {
@@ -57,13 +69,13 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
       // Pass the saved cart data since cart is now cleared
       await sendToKitchen(
         result,
-        { name: '', phone: '', email: '' },
+        { name: customerName, phone: customerPhone, email: '' },
         cartSnapshot,
         totalSnapshot,
         'staff'
       );
 
-      setAmountTendered('');
+      resetForm();
       setIsSendingToKitchen(false);
       onOpenChange(false);
       onSuccess(result.orderNumber);
@@ -126,9 +138,25 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
 
               <div className="mt-4">
                 {/* Order Total */}
-                <div className="text-center mb-6 p-4 bg-secondary rounded-lg">
+                <div className="text-center mb-4 p-4 bg-secondary rounded-lg">
                   <p className="text-muted-foreground text-sm uppercase tracking-wider">Order Total</p>
                   <p className="font-heading text-4xl text-primary mt-1">€{total.toFixed(2)}</p>
+                </div>
+
+                {/* Optional Customer Info (for SMS notifications) */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <Input
+                    placeholder="Customer Name (optional)"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="h-10 text-sm"
+                  />
+                  <Input
+                    placeholder="Phone (optional)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="h-10 text-sm"
+                  />
                 </div>
 
                 {/* Payment Method Tabs */}
