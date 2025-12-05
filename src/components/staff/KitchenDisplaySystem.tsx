@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed';
 
@@ -47,31 +48,6 @@ const columns: ColumnConfig[] = [
 
 // Webhook URL for status notifications
 const STATUS_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-status';
-
-// Send webhook notification for ALL status changes
-async function sendStatusNotification(order: KitchenOrder, newStatus: OrderStatus): Promise<void> {
-  try {
-    await fetch(STATUS_WEBHOOK_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type: 'status_update',
-        status: newStatus,
-        order_id: order.id,
-        customer: {
-          name: order.customer_name,
-          phone: order.customer_phone
-        }
-      }),
-    });
-    console.log(`Status notification (${newStatus}) sent for order:`, order.id);
-  } catch (error) {
-    console.error('Failed to send status notification:', error);
-    // Don't throw - webhook failure shouldn't block order status update
-  }
-}
 
 interface OrderCardProps {
   order: KitchenOrder;
@@ -348,13 +324,38 @@ export function KitchenDisplaySystem() {
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      // Trigger webhook notification for ALL status changes
-      const order = findOrderById(orderId);
-      if (order) {
-        // Fire webhook in background (don't await)
-        sendStatusNotification(order, newStatus);
+      // FETCH-THEN-SEND: Get fresh order data directly from database
+      const { data: freshOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('id, customer_name, customer_phone')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Failed to fetch fresh order data:', fetchError);
       }
 
+      // Construct webhook payload with fresh data (fallback to Guest if missing)
+      const payload = {
+        type: 'status_update',
+        status: newStatus,
+        order_id: orderId,
+        customer: {
+          name: freshOrder?.customer_name || 'Guest',
+          phone: freshOrder?.customer_phone || ''
+        }
+      };
+
+      // Fire webhook in background (don't block status update)
+      fetch(STATUS_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(() => console.log(`Status notification (${newStatus}) sent for order:`, orderId))
+        .catch((err) => console.error('Webhook failed:', err));
+
+      // Update status in database
       await updateOrderStatus.mutateAsync({ 
         orderId, 
         status: newStatus as 'pending' | 'cooking' | 'ready' | 'completed' 
