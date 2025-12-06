@@ -46,8 +46,6 @@ const columns: ColumnConfig[] = [
   }
 ];
 
-// Webhook URL for status notifications (production)
-const STATUS_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-status';
 
 interface OrderCardProps {
   order: KitchenOrder;
@@ -385,14 +383,12 @@ export function KitchenDisplaySystem() {
           }
         };
 
-        // Fire webhook in background (don't block status update)
-        fetch(STATUS_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+        // Fire webhook via Edge Function in background (don't block status update)
+        supabase.functions.invoke("update-order-status", {
+          body: payload,
         })
           .then(() => console.log(`Status notification (${newStatus}) sent for order:`, orderId))
-          .catch((err) => console.error('Webhook failed:', err));
+          .catch((err) => console.error('Status webhook failed:', err));
       }
 
       // Update status in database

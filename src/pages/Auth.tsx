@@ -7,6 +7,18 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { User, Mail, Lock, Phone, ArrowRight } from 'lucide-react';
+import { z } from 'zod';
+
+// Validation schemas
+const signInSchema = z.object({
+  email: z.string().trim().email('Invalid email address').max(255, 'Email too long'),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Password too long'),
+});
+
+const signUpSchema = signInSchema.extend({
+  fullName: z.string().trim().max(100, 'Name too long').optional(),
+  phone: z.string().trim().max(20, 'Phone number too long').optional(),
+});
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -34,6 +46,21 @@ export default function Auth() {
     setSubmitting(true);
 
     try {
+      // Validate with Zod
+      const schema = isSignUp ? signUpSchema : signInSchema;
+      const validationResult = schema.safeParse({
+        email,
+        password,
+        ...(isSignUp && { fullName, phone }),
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0];
+        toast.error(firstError.message);
+        setSubmitting(false);
+        return;
+      }
+
       if (isSignUp) {
         const { error } = await signUp(email, password, fullName, phone);
         if (error) throw error;

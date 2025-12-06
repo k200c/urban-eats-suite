@@ -3,8 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
 
-const N8N_WEBHOOK_URL = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-order";
-
 interface CheckoutData {
   paymentMethod: "card" | "cash";
   amountTendered?: number;
@@ -196,18 +194,15 @@ export function useCheckout() {
       };
 
       // Debug log: show exactly what's being sent
-      console.log("Sending Payload to n8n:", JSON.stringify(payload, null, 2));
+      console.log("Sending Payload to kitchen:", JSON.stringify(payload, null, 2));
 
-      const response = await fetch(N8N_WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      // Use Edge Function to proxy the webhook (keeps URL secure)
+      const { error } = await supabase.functions.invoke("send-to-kitchen", {
+        body: payload,
       });
 
-      if (!response.ok) {
-        throw new Error(`Webhook failed with status: ${response.status}`);
+      if (error) {
+        throw new Error(`Kitchen notification failed: ${error.message}`);
       }
 
       console.log("Order sent to kitchen successfully");
