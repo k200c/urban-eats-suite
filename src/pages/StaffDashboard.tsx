@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplaySystem } from '@/components/staff/KitchenDisplaySystem';
 import { CustomerList } from '@/components/staff/CustomerList';
 import { SocialMediaManager } from '@/components/staff/SocialMediaManager';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
 
 const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '1 hour'];
@@ -289,7 +290,9 @@ export default function StaffDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <SocialMediaManager />
+              <ErrorBoundary fallbackMessage="Unable to load Social Dashboard">
+                <SocialMediaManager />
+              </ErrorBoundary>
             </motion.div>
           </TabsContent>
         </Tabs>

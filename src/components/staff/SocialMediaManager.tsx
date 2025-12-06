@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Trash2, Upload, Calendar, Image, Film, Layers, Sparkles } from 'lucide-react';
+import { Trash2, Upload, Calendar, Image, Film, Layers, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ const POST_TYPES = [
 
 export function SocialMediaManager() {
   const queryClient = useQueryClient();
+  const lastInvalidationRef = useRef<number>(0);
   
   // Form state
   const [contentIdea, setContentIdea] = useState('');
@@ -45,22 +46,38 @@ export function SocialMediaManager() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch scheduled posts
-  const { data: scheduledPosts, isLoading } = useQuery({
+  // Fetch scheduled posts with proper caching
+  const { data: scheduledPosts, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['social-media-posts'],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from('social_media_posts')
         .select('*')
         .eq('status', 'scheduled')
-        .order('scheduled_for', { ascending: true });
+        .order('scheduled_for', { ascending: true })
+        .limit(20)
+        .abortSignal(signal);
       
       if (error) throw error;
       return data as SocialMediaPost[];
     },
+    staleTime: 1000 * 60, // 1 minute - prevents constant refetching
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 
-  // Realtime subscription
+  // Debounced invalidation function
+  const debouncedInvalidate = useCallback(() => {
+    const now = Date.now();
+    const MIN_INVALIDATION_INTERVAL = 2000; // 2 seconds minimum between invalidations
+    
+    if (now - lastInvalidationRef.current > MIN_INVALIDATION_INTERVAL) {
+      lastInvalidationRef.current = now;
+      queryClient.invalidateQueries({ queryKey: ['social-media-posts'] });
+    }
+  }, [queryClient]);
+
+  // Realtime subscription with debounce
   useEffect(() => {
     const channel = supabase
       .channel('social-media-posts-changes')
@@ -72,7 +89,7 @@ export function SocialMediaManager() {
           table: 'social_media_posts',
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['social-media-posts'] });
+          debouncedInvalidate();
         }
       )
       .subscribe();
@@ -80,7 +97,7 @@ export function SocialMediaManager() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [debouncedInvalidate]);
 
   // Upload files to storage
   const uploadFiles = async (files: File[]): Promise<string[]> => {
@@ -202,6 +219,25 @@ export function SocialMediaManager() {
     }
     createPost.mutate();
   };
+
+  // Error state UI
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-destructive/10 border border-destructive/20">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-2">
+          Unable to load Social Dashboard
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
+          {error instanceof Error ? error.message : 'Something went wrong loading posts.'}
+        </p>
+        <Button onClick={() => refetch()} variant="outline" className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
