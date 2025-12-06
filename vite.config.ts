@@ -48,6 +48,11 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        // CRITICAL: Skip waiting and claim clients immediately to bust stale cache
+        skipWaiting: true,
+        clientsClaim: true,
+        // Clean up old caches on update
+        cleanupOutdatedCaches: true,
         // Cache strategies for different asset types
         runtimeCaching: [
           {
