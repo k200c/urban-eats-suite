@@ -226,21 +226,24 @@ export function useCheckout() {
 
         console.log("📡 Response status:", response.status);
         
-        if (!response.ok) {
+        if (response.status === 200) {
+          const responseData = await response.text();
+          console.log("✅ Order sent to kitchen successfully! Response:", responseData);
+          toast.success("Order sent to Kitchen! 👨‍🍳");
+          return true;
+        } else {
           const errorText = await response.text();
           console.error("❌ Webhook response error:", response.status, errorText);
-          throw new Error(`Webhook failed: ${response.status} - ${errorText}`);
+          toast.error(`Network Error: ${response.status}. Please show staff this screen.`);
+          // Still return true - order is saved in DB, don't lose it
+          return true;
         }
-
-        const responseData = await response.text();
-        console.log("✅ Order sent to kitchen successfully! Response:", responseData);
-        return true;
       } catch (fetchError) {
         const errorMessage = fetchError instanceof Error ? fetchError.message : "Unknown fetch error";
         console.error("❌ Fetch error:", errorMessage);
-        toast.error(`Order Failed: ${errorMessage}`);
+        toast.error(`Network Error: Connection failed. Please show staff this screen.`);
+        console.log("📋 Full error details:", fetchError);
         // Still return true so user proceeds - order is saved in DB
-        toast.success("Order Saved (Kitchen notification failed)");
         return true;
       }
     } catch (error) {
