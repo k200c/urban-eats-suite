@@ -145,8 +145,9 @@ export function useCheckout() {
       const totalAmount = Number(orderTotal) || 0;
 
       // Build the payload with strict typing
+      // IMPORTANT: order_id must be the actual UUID for database validation
       const payload: WebhookPayload = {
-        order_id: `Order #${orderResult.orderNumber}`,
+        order_id: orderResult.orderId,
         created_at: orderResult.createdAt,
         status: "pending",
         payment_method: "cash",
