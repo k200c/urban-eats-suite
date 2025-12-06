@@ -422,6 +422,39 @@ export type Database = {
         }
         Relationships: []
       }
+      social_media_posts: {
+        Row: {
+          brief: string | null
+          content_idea: string
+          created_at: string
+          id: string
+          media_urls: string[] | null
+          post_type: string
+          scheduled_for: string | null
+          status: string
+        }
+        Insert: {
+          brief?: string | null
+          content_idea: string
+          created_at?: string
+          id?: string
+          media_urls?: string[] | null
+          post_type: string
+          scheduled_for?: string | null
+          status?: string
+        }
+        Update: {
+          brief?: string | null
+          content_idea?: string
+          created_at?: string
+          id?: string
+          media_urls?: string[] | null
+          post_type?: string
+          scheduled_for?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
