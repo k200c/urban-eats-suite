@@ -197,6 +197,10 @@ export function useCheckout() {
       // HARDCODED PRODUCTION WEBHOOK URL FOR DEBUGGING
       const webhookUrl = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-order";
       
+      // 🔥 VERSION MARKER - If you see this, the new code is running!
+      console.log("🔥🔥🔥 sendToKitchen v3.0 - DIRECT FETCH ONLY - " + new Date().toISOString());
+      console.log("🔥 NO EDGE FUNCTION - This build: 2024-DEC-06");
+      
       // LOUD DEBUGGING - visible on mobile console
       console.log("🚀 Attempting to submit order to:", webhookUrl);
       console.log("📦 Payload:", JSON.stringify(payload, null, 2));
