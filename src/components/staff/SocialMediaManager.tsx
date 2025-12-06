@@ -46,7 +46,7 @@ export function SocialMediaManager() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch scheduled posts with proper caching
+  // Fetch scheduled posts - DISABLED FOR MAINTENANCE
   const { data: scheduledPosts, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['social-media-posts'],
     queryFn: async ({ signal }) => {
@@ -61,7 +61,8 @@ export function SocialMediaManager() {
       if (error) throw error;
       return data as SocialMediaPost[];
     },
-    staleTime: 1000 * 60, // 1 minute - prevents constant refetching
+    enabled: false, // QUARANTINE: Disabled to prevent 504 timeout
+    staleTime: 1000 * 60,
     retry: 2,
     refetchOnWindowFocus: false,
   });

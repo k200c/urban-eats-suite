@@ -283,17 +283,12 @@ export default function StaffDashboard() {
             </motion.div>
           </TabsContent>
 
-          {/* Social Media Tab */}
+          {/* Social Media Tab - QUARANTINED */}
           <TabsContent value="social">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ErrorBoundary fallbackMessage="Unable to load Social Dashboard">
-                <SocialMediaManager />
-              </ErrorBoundary>
-            </motion.div>
+            <div className="p-8 text-center border-2 border-dashed border-red-500/50 rounded-lg bg-red-500/10">
+              <p className="text-lg font-semibold text-red-400">🚧 Social Dashboard Disabled for Maintenance 🚧</p>
+              <p className="text-sm text-muted-foreground mt-2">This feature is temporarily unavailable while we resolve a performance issue.</p>
+            </div>
           </TabsContent>
         </Tabs>
       </main>
