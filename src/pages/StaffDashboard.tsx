@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, Clock, Package, ArrowLeft, Users, ChefHat } from 'lucide-react';
+import { Store, Clock, Package, ArrowLeft, Users, ChefHat, Share2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { useProducts } from '@/hooks/useProducts';
@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplaySystem } from '@/components/staff/KitchenDisplaySystem';
 import { CustomerList } from '@/components/staff/CustomerList';
+import { SocialMediaManager } from '@/components/staff/SocialMediaManager';
 import { toast } from 'sonner';
 
 const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '1 hour'];
@@ -144,7 +145,7 @@ export default function StaffDashboard() {
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         <Tabs defaultValue="kitchen" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
             <TabsTrigger value="operations" className="flex items-center gap-2">
               <Store className="w-4 h-4" />
               <span className="hidden sm:inline">Operations</span>
@@ -156,6 +157,10 @@ export default function StaffDashboard() {
             <TabsTrigger value="customers" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Customers</span>
+            </TabsTrigger>
+            <TabsTrigger value="social" className="flex items-center gap-2">
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Social Media</span>
             </TabsTrigger>
           </TabsList>
 
@@ -274,6 +279,17 @@ export default function StaffDashboard() {
               transition={{ duration: 0.3 }}
             >
               <CustomerList />
+            </motion.div>
+          </TabsContent>
+
+          {/* Social Media Tab */}
+          <TabsContent value="social">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <SocialMediaManager />
             </motion.div>
           </TabsContent>
         </Tabs>
