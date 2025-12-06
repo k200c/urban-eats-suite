@@ -39,6 +39,9 @@ Deno.serve(async (req) => {
 
   try {
     const N8N_WEBHOOK_URL = Deno.env.get("N8N_ORDER_WEBHOOK_URL");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
     if (!N8N_WEBHOOK_URL) {
       console.error("N8N_ORDER_WEBHOOK_URL secret not configured");
       return new Response(
@@ -57,7 +60,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Forwarding order to kitchen:", payload.order_id);
+    // SECURITY: Validate order exists in database before forwarding to kitchen
+    // This prevents attackers from sending fake orders to the kitchen printer
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, status, total')
+      .eq('id', payload.order_id)
+      .single();
+
+    if (orderError || !order) {
+      console.error('Order validation failed:', orderError?.message || 'Order not found');
+      return new Response(
+        JSON.stringify({ error: "Order validation failed - order not found in database" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Order validated, forwarding to kitchen:", payload.order_id);
 
     // Forward to n8n webhook
     const response = await fetch(N8N_WEBHOOK_URL, {
