@@ -427,6 +427,7 @@ export type Database = {
           brief: string | null
           content_idea: string
           created_at: string
+          generated_caption: string | null
           id: string
           media_urls: string[] | null
           post_type: string
@@ -437,6 +438,7 @@ export type Database = {
           brief?: string | null
           content_idea: string
           created_at?: string
+          generated_caption?: string | null
           id?: string
           media_urls?: string[] | null
           post_type: string
@@ -447,6 +449,7 @@ export type Database = {
           brief?: string | null
           content_idea?: string
           created_at?: string
+          generated_caption?: string | null
           id?: string
           media_urls?: string[] | null
           post_type?: string

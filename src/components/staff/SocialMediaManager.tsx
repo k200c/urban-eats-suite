@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { format } from 'date-fns';
-import { Trash2, Upload, Calendar, Image, Film, Layers, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  Trash2, Upload, Calendar, Image, Film, Layers, Sparkles, 
+  AlertCircle, RefreshCw, Loader2, Check, Clock 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,19 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-
-interface SocialMediaPost {
-  id: string;
-  content_idea: string;
-  brief: string | null;
-  post_type: string;
-  media_urls: string[];
-  scheduled_for: string | null;
-  status: string;
-  created_at: string;
-}
+import { useSocialMediaPosts, SocialMediaPost } from '@/hooks/useSocialMediaPosts';
 
 const POST_TYPES = [
   { value: 'Single', label: 'Single Post', icon: Image },
@@ -33,9 +24,6 @@ const POST_TYPES = [
 ];
 
 export function SocialMediaManager() {
-  const queryClient = useQueryClient();
-  const lastInvalidationRef = useRef<number>(0);
-  
   // Form state
   const [contentIdea, setContentIdea] = useState('');
   const [brief, setBrief] = useState('');
@@ -46,155 +34,24 @@ export function SocialMediaManager() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch scheduled posts - DISABLED FOR MAINTENANCE
-  const { data: scheduledPosts, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['social-media-posts'],
-    queryFn: async ({ signal }) => {
-      const { data, error } = await supabase
-        .from('social_media_posts')
-        .select('*')
-        .eq('status', 'scheduled')
-        .order('scheduled_for', { ascending: true })
-        .limit(20)
-        .abortSignal(signal);
-      
-      if (error) throw error;
-      return data as SocialMediaPost[];
-    },
-    enabled: true,
-    staleTime: 1000 * 60,
-    retry: 2,
-    refetchOnWindowFocus: false,
-  });
-
-  // Debounced invalidation function
-  const debouncedInvalidate = useCallback(() => {
-    const now = Date.now();
-    const MIN_INVALIDATION_INTERVAL = 2000; // 2 seconds minimum between invalidations
-    
-    if (now - lastInvalidationRef.current > MIN_INVALIDATION_INTERVAL) {
-      lastInvalidationRef.current = now;
-      queryClient.invalidateQueries({ queryKey: ['social-media-posts'] });
-    }
-  }, [queryClient]);
-
-  // Realtime subscription with debounce
-  useEffect(() => {
-    const channel = supabase
-      .channel('social-media-posts-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'social_media_posts',
-        },
-        () => {
-          debouncedInvalidate();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [debouncedInvalidate]);
-
-  // Upload files to storage
-  const uploadFiles = async (files: File[]): Promise<string[]> => {
-    const urls: string[] = [];
-    
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `posts/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('social-media-content')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('social-media-content')
-        .getPublicUrl(filePath);
-
-      urls.push(urlData.publicUrl);
-    }
-
-    return urls;
-  };
-
-  // Create post mutation
-  const createPost = useMutation({
-    mutationFn: async () => {
-      setUploading(true);
-      
-      // Upload files first
-      let mediaUrls: string[] = [];
-      if (uploadedFiles.length > 0) {
-        mediaUrls = await uploadFiles(uploadedFiles);
-      }
-
-      // Calculate scheduled time
-      let scheduledFor: string;
-      if (scheduleForLater && scheduledDate) {
-        const [hours, minutes] = scheduledTime.split(':').map(Number);
-        const dateTime = new Date(scheduledDate);
-        dateTime.setHours(hours, minutes, 0, 0);
-        scheduledFor = dateTime.toISOString();
-      } else {
-        scheduledFor = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('social_media_posts')
-        .insert({
-          content_idea: contentIdea,
-          brief: brief || null,
-          post_type: postType,
-          media_urls: mediaUrls,
-          scheduled_for: scheduledFor,
-          status: 'scheduled',
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Social Post added to Queue! 📅');
-      resetForm();
-      queryClient.invalidateQueries({ queryKey: ['social-media-posts'] });
-    },
-    onError: (error) => {
-      console.error('Create post error:', error);
-      toast.error('Failed to save post.');
-    },
-    onSettled: () => {
-      setUploading(false);
-    },
-  });
-
-  // Delete post mutation
-  const deletePost = useMutation({
-    mutationFn: async (postId: string) => {
-      const { error } = await supabase
-        .from('social_media_posts')
-        .delete()
-        .eq('id', postId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Post removed from queue');
-      queryClient.invalidateQueries({ queryKey: ['social-media-posts'] });
-    },
-    onError: () => {
-      toast.error('Failed to delete post');
-    },
-  });
+  const {
+    drafts,
+    scheduled,
+    isLoadingDrafts,
+    isLoadingScheduled,
+    draftsError,
+    scheduledError,
+    refetchDrafts,
+    refetchScheduled,
+    generateDraft,
+    schedulePost,
+    approveDraft,
+    updateCaption,
+    deletePost,
+    isGenerating,
+    isScheduling,
+    isApproving,
+  } = useSocialMediaPosts();
 
   const resetForm = () => {
     setContentIdea('');
@@ -212,17 +69,41 @@ export function SocialMediaManager() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contentIdea.trim()) {
-      toast.error('Please add a content idea');
-      return;
+    if (!contentIdea.trim()) return;
+
+    setUploading(true);
+    try {
+      if (scheduleForLater && scheduledDate) {
+        // Schedule post directly
+        await schedulePost({
+          contentIdea,
+          brief,
+          postType,
+          files: uploadedFiles,
+          scheduledDate,
+          scheduledTime,
+        });
+      } else {
+        // Generate draft via AI
+        await generateDraft({
+          contentIdea,
+          brief,
+          postType,
+          files: uploadedFiles,
+        });
+      }
+      resetForm();
+    } finally {
+      setUploading(false);
     }
-    createPost.mutate();
   };
 
+  const isSubmitting = isGenerating || isScheduling || uploading;
+
   // Error state UI
-  if (isError) {
+  if (draftsError && scheduledError) {
     return (
       <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-destructive/10 border border-destructive/20">
         <AlertCircle className="w-12 h-12 text-destructive mb-4" />
@@ -230,9 +111,9 @@ export function SocialMediaManager() {
           Unable to load Social Dashboard
         </h3>
         <p className="text-sm text-muted-foreground mb-4 text-center max-w-md">
-          {error instanceof Error ? error.message : 'Something went wrong loading posts.'}
+          {draftsError instanceof Error ? draftsError.message : 'Something went wrong loading posts.'}
         </p>
-        <Button onClick={() => refetch()} variant="outline" className="gap-2">
+        <Button onClick={() => { refetchDrafts(); refetchScheduled(); }} variant="outline" className="gap-2">
           <RefreshCw className="w-4 h-4" />
           Retry
         </Button>
@@ -379,25 +260,24 @@ export function SocialMediaManager() {
               )}
             </div>
 
-            {/* Submit Button */}
+            {/* Submit Button - Conditional based on schedule */}
             <Button
               type="submit"
-              disabled={createPost.isPending || uploading || !contentIdea.trim()}
+              disabled={isSubmitting || !contentIdea.trim()}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6"
             >
-              {createPost.isPending || uploading ? (
+              {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <Upload className="w-4 h-4 animate-pulse" />
-                  {uploading ? 'Uploading...' : 'Saving...'}
+                  {uploading ? 'Uploading...' : 'Processing...'}
                 </span>
-              ) : scheduleForLater ? (
+              ) : scheduleForLater && scheduledDate ? (
                 <span className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Schedule Post
+                  📅 Schedule Post
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  🚀 Post Now
+                  ✨ Generate Draft
                 </span>
               )}
             </Button>
@@ -405,83 +285,368 @@ export function SocialMediaManager() {
         </CardContent>
       </Card>
 
-      {/* Content Queue */}
+      {/* Content Queue with Tabs */}
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
             Content Queue
-            {scheduledPosts && scheduledPosts.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/20 text-primary">
-                {scheduledPosts.length}
-              </span>
-            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-20 bg-secondary/30 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : scheduledPosts && scheduledPosts.length > 0 ? (
-            <div className="space-y-3">
-              {scheduledPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="flex items-start gap-4 p-4 rounded-lg bg-secondary/20 border border-border hover:border-primary/30 transition-colors"
-                >
-                  {/* Thumbnail */}
-                  <div className="w-16 h-16 rounded-lg bg-secondary/50 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {post.media_urls && post.media_urls.length > 0 ? (
-                      <img
-                        src={post.media_urls[0]}
-                        alt="Post thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Image className="w-6 h-6 text-muted-foreground" />
-                    )}
-                  </div>
+          <Tabs defaultValue="drafts" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="drafts" className="gap-2">
+                <Sparkles className="w-4 h-4" />
+                Drafts
+                {drafts.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/20 text-primary">
+                    {drafts.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="scheduled" className="gap-2">
+                <Clock className="w-4 h-4" />
+                Scheduled
+                {scheduled.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/20 text-primary">
+                    {scheduled.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm line-clamp-2">{post.content_idea}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
-                        {post.post_type}
-                      </span>
-                      {post.scheduled_for && (
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(post.scheduled_for), "MMM d, h:mm a")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            {/* Drafts Tab */}
+            <TabsContent value="drafts">
+              <DraftsTab
+                drafts={drafts}
+                isLoading={isLoadingDrafts}
+                onApprove={approveDraft}
+                onUpdateCaption={updateCaption}
+                onDelete={deletePost}
+                isApproving={isApproving}
+              />
+            </TabsContent>
 
-                  {/* Delete Button */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deletePost.mutate(post.id)}
-                    disabled={deletePost.isPending}
-                    className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 flex-shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No scheduled posts yet</p>
-              <p className="text-sm">Create your first post above!</p>
-            </div>
-          )}
+            {/* Scheduled Tab */}
+            <TabsContent value="scheduled">
+              <ScheduledTab
+                posts={scheduled}
+                isLoading={isLoadingScheduled}
+                onDelete={deletePost}
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Drafts Tab Component
+interface DraftsTabProps {
+  drafts: SocialMediaPost[];
+  isLoading: boolean;
+  onApprove: (params: { postId: string; scheduledFor: string; caption?: string }) => Promise<void>;
+  onUpdateCaption: (params: { postId: string; caption: string }) => void;
+  onDelete: (postId: string) => void;
+  isApproving: boolean;
+}
+
+function DraftsTab({ drafts, isLoading, onApprove, onUpdateCaption, onDelete, isApproving }: DraftsTabProps) {
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-32 bg-secondary/30 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (drafts.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-50" />
+        <p className="font-medium">No drafts yet</p>
+        <p className="text-sm">Generate a draft above to get started!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {drafts.map((post) => (
+        <DraftCard
+          key={post.id}
+          post={post}
+          onApprove={onApprove}
+          onUpdateCaption={onUpdateCaption}
+          onDelete={onDelete}
+          isApproving={isApproving}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Draft Card Component
+interface DraftCardProps {
+  post: SocialMediaPost;
+  onApprove: (params: { postId: string; scheduledFor: string; caption?: string }) => Promise<void>;
+  onUpdateCaption: (params: { postId: string; caption: string }) => void;
+  onDelete: (postId: string) => void;
+  isApproving: boolean;
+}
+
+function DraftCard({ post, onApprove, onUpdateCaption, onDelete, isApproving }: DraftCardProps) {
+  const [caption, setCaption] = useState(post.generated_caption || '');
+  const [approveDate, setApproveDate] = useState<Date | undefined>();
+  const [approveTime, setApproveTime] = useState('12:00');
+  const [showScheduler, setShowScheduler] = useState(false);
+
+  const isGenerating = post.status === 'generating';
+
+  const handleApprove = async () => {
+    if (!approveDate) return;
+    
+    const [hours, minutes] = approveTime.split(':').map(Number);
+    const dateTime = new Date(approveDate);
+    dateTime.setHours(hours, minutes, 0, 0);
+
+    await onApprove({
+      postId: post.id,
+      scheduledFor: dateTime.toISOString(),
+      caption: caption !== post.generated_caption ? caption : undefined,
+    });
+    setShowScheduler(false);
+  };
+
+  const handleCaptionBlur = () => {
+    if (caption !== post.generated_caption && caption.trim()) {
+      onUpdateCaption({ postId: post.id, caption });
+    }
+  };
+
+  return (
+    <div className="p-4 rounded-lg bg-secondary/20 border border-border space-y-3">
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        {/* Thumbnail */}
+        <div className="w-16 h-16 rounded-lg bg-secondary/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+          {post.media_urls && post.media_urls.length > 0 ? (
+            <img
+              src={post.media_urls[0]}
+              alt="Post thumbnail"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Image className="w-6 h-6 text-muted-foreground" />
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm line-clamp-2">{post.content_idea}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
+              {post.post_type}
+            </span>
+            {isGenerating && (
+              <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500 flex items-center gap-1">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                AI Generating...
+              </span>
+            )}
+            {post.status === 'draft' && (
+              <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-500">
+                Ready for Review
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Delete */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDelete(post.id)}
+          className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 flex-shrink-0"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Caption Editor - Only show when draft is ready */}
+      {post.status === 'draft' && (
+        <>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">AI Generated Caption</Label>
+            <Textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              onBlur={handleCaptionBlur}
+              placeholder="Caption will appear here once AI generates it..."
+              className="min-h-[80px] bg-background/50 border-border text-sm"
+            />
+          </div>
+
+          {/* Approve & Schedule */}
+          {!showScheduler ? (
+            <Button
+              onClick={() => setShowScheduler(true)}
+              className="w-full gap-2"
+              variant="secondary"
+            >
+              <Check className="w-4 h-4" />
+              Approve & Schedule
+            </Button>
+          ) : (
+            <div className="space-y-3 p-3 rounded-lg bg-background/50 border border-border">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !approveDate && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-3 w-3" />
+                        {approveDate ? format(approveDate, "MMM d") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={approveDate}
+                        onSelect={setApproveDate}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Time</Label>
+                  <Input
+                    type="time"
+                    value={approveTime}
+                    onChange={(e) => setApproveTime(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleApprove}
+                  disabled={!approveDate || isApproving}
+                  className="flex-1 gap-2"
+                  size="sm"
+                >
+                  {isApproving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  Confirm
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowScheduler(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Scheduled Tab Component
+interface ScheduledTabProps {
+  posts: SocialMediaPost[];
+  isLoading: boolean;
+  onDelete: (postId: string) => void;
+}
+
+function ScheduledTab({ posts, isLoading, onDelete }: ScheduledTabProps) {
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-20 bg-secondary/30 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+        <p className="font-medium">No scheduled posts</p>
+        <p className="text-sm">Approve a draft to schedule it!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {posts.map((post) => (
+        <div
+          key={post.id}
+          className="flex items-start gap-4 p-4 rounded-lg bg-secondary/20 border border-border hover:border-primary/30 transition-colors"
+        >
+          {/* Thumbnail */}
+          <div className="w-16 h-16 rounded-lg bg-secondary/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+            {post.media_urls && post.media_urls.length > 0 ? (
+              <img
+                src={post.media_urls[0]}
+                alt="Post thumbnail"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Image className="w-6 h-6 text-muted-foreground" />
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm line-clamp-2">{post.content_idea}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
+                {post.post_type}
+              </span>
+              {post.scheduled_for && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {format(new Date(post.scheduled_for), "MMM d, h:mm a")}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Delete Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onDelete(post.id)}
+            className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 flex-shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ))}
     </div>
   );
 }
