@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
+
+// HARDCODED: Production webhook URL - bypasses env vars for reliability
+const N8N_STATUS_URL = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-status";
 
 type Order = Tables<'orders'>;
 type OrderItem = Tables<'order_items'>;
@@ -99,20 +103,61 @@ export function useKitchenOrders() {
   // Update order status mutation
   const updateOrderStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: 'pending' | 'cooking' | 'ready' | 'completed' }) => {
+      console.log(`[KDS] Updating order ${orderId} to status: ${status}`);
+      
+      // 1. Update database first
       const { data, error } = await supabase
         .from('orders')
         .update({ status })
         .eq('id', orderId)
-        .select('id, status')
+        .select('id, status, customer_name, customer_phone')
         .maybeSingle();
 
       if (error) {
-        console.error('Order status update error:', error);
+        console.error('[KDS] Order status update error:', error);
         throw new Error(error.message || 'Failed to update order status');
       }
       
       if (!data) {
         throw new Error('Update failed - no rows affected. Check permissions.');
+      }
+
+      // 2. Trigger webhook directly for cooking/ready statuses
+      if (['cooking', 'ready'].includes(status)) {
+        console.log(`🚀 [KDS] Sending '${status}' signal to n8n...`);
+        
+        const payload = {
+          type: "status_update",
+          status: status,
+          order_id: orderId,
+          customer: {
+            name: data.customer_name || "Guest",
+            phone: data.customer_phone || ""
+          }
+        };
+
+        console.log('[KDS] Webhook payload:', JSON.stringify(payload));
+
+        try {
+          const response = await fetch(N8N_STATUS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          
+          console.log(`[KDS] Webhook response status: ${response.status}`);
+          
+          if (response.ok) {
+            toast.success("Signal sent to Kitchen/SMS System! 📡");
+          } else {
+            console.warn('[KDS] Webhook returned non-OK status:', response.status);
+            toast.warning("Status updated, but webhook returned an error.");
+          }
+        } catch (err) {
+          console.error("[KDS] Webhook Failed:", err);
+          // Don't block the UI, just warn the staff
+          toast.error("Status updated, but SMS notification failed.");
+        }
       }
 
       return data;
@@ -122,7 +167,8 @@ export function useKitchenOrders() {
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
     },
     onError: (error) => {
-      console.error('Mutation error:', error);
+      console.error('[KDS] Mutation error:', error);
+      toast.error(`Failed to update order: ${error.message}`);
     }
   });
 
