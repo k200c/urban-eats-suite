@@ -383,12 +383,26 @@ export function KitchenDisplaySystem() {
           }
         };
 
-        // Fire webhook via Edge Function in background (don't block status update)
-        supabase.functions.invoke("update-order-status", {
-          body: payload,
+        // 🚀 BYPASSING EDGE FUNCTION - Direct fetch to n8n
+        console.log("%c 🚀 BYPASSING EDGE FUNCTION - Sending directly to N8N...", "background: #222; color: #bada55", payload);
+        
+        const N8N_STATUS_URL = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-status";
+        
+        fetch(N8N_STATUS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         })
-          .then(() => console.log(`Status notification (${newStatus}) sent for order:`, orderId))
-          .catch((err) => console.error('Status webhook failed:', err));
+          .then(async (response) => {
+            if (!response.ok) {
+              console.error(`❌ N8N Error: ${response.status} ${response.statusText}`);
+            } else {
+              console.log("✅ N8N Success - Status notification sent for order:", orderId);
+            }
+          })
+          .catch((err) => {
+            console.error("🚨 Network Error (N8N):", err);
+          });
       }
 
       // Update status in database
