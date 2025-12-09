@@ -24,7 +24,7 @@ interface CreatePostParams {
   scheduledTime?: string;
 }
 
-const N8N_GENERATE_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-generate';
+const N8N_GENERATE_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-generate';
 
 export function useSocialMediaPosts() {
   const queryClient = useQueryClient();
