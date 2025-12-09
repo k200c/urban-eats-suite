@@ -131,21 +131,32 @@ export function useSocialMediaPosts() {
     return urls;
   };
 
-  // Generate draft mutation (no date selected)
+  // Generate draft mutation (no date selected) - WITH LOUD DEBUGGING
   const generateDraftMutation = useMutation({
     mutationFn: async ({ contentIdea, brief, postType, files }: CreatePostParams) => {
+      console.log("%c 🚀 STARTING DRAFT GENERATION...", "background: #222; color: #bada55", { contentIdea, brief, postType, filesCount: files.length });
+
+      // VALIDATION: Check required fields
+      if (!contentIdea || contentIdea.trim() === '') {
+        toast.error('Content idea is required!');
+        throw new Error('Content idea is required');
+      }
+
       // Upload files first
       let mediaUrls: string[] = [];
       if (files.length > 0) {
+        console.log("📤 Uploading", files.length, "files...");
         mediaUrls = await uploadFiles(files);
+        console.log("✅ Files uploaded:", mediaUrls);
       }
 
-      // Insert with status 'generating'
-      const { data, error } = await supabase
+      // 1. INSERT INTO DATABASE FIRST
+      console.log("💾 Inserting post into database...");
+      const { data: newPost, error: dbError } = await supabase
         .from('social_media_posts')
         .insert({
-          content_idea: contentIdea,
-          brief: brief || null,
+          content_idea: contentIdea.trim(),
+          brief: brief?.trim() || null,
           post_type: postType,
           media_urls: mediaUrls,
           status: 'generating',
@@ -153,40 +164,56 @@ export function useSocialMediaPosts() {
         .select()
         .single();
 
-      if (error) throw error;
-
-      // Trigger n8n webhook for AI caption generation
-      try {
-        console.log('[SocialMedia] Triggering n8n webhook for post:', data.id);
-        const response = await fetch(N8N_GENERATE_WEBHOOK, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            post_id: data.id,
-            idea: contentIdea,
-            media_urls: mediaUrls,
-            brief: brief || '',
-          }),
-        });
-        
-        if (!response.ok) {
-          console.error('[SocialMedia] Webhook response not ok:', response.status);
-        } else {
-          console.log('[SocialMedia] Webhook triggered successfully');
-        }
-      } catch (webhookError) {
-        console.error('[SocialMedia] Webhook error:', webhookError);
-        // Don't throw - we still created the post, n8n will handle retry
+      if (dbError) {
+        console.error("❌ DB Error:", dbError);
+        toast.error("Failed to save draft to database.");
+        throw dbError;
       }
 
-      return data;
+      console.log("✅ Post saved to DB with ID:", newPost.id);
+
+      // 2. CONSTRUCT PAYLOAD WITH VALIDATION
+      const payload = {
+        post_id: newPost.id,
+        idea: newPost.content_idea,
+        brief: newPost.brief || "",
+        media_urls: newPost.media_urls || []
+      };
+
+      console.log("%c 📦 PAYLOAD TO N8N:", "background: #333; color: #00ff00", JSON.stringify(payload, null, 2));
+
+      // 3. TRIGGER WEBHOOK WITH EXPLICIT FETCH
+      try {
+        const response = await fetch(N8N_GENERATE_WEBHOOK, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ N8N Error (${response.status}):`, errorText);
+          toast.error(`AI request failed: ${response.status}`);
+          // Don't throw - post is saved, n8n can retry
+        } else {
+          console.log("✅ N8N webhook triggered successfully!");
+          toast.success("✨ AI is writing your caption...");
+        }
+      } catch (netError) {
+        console.error("🚨 Network/Webhook Error:", netError);
+        toast.error(`Draft saved, but AI failed: ${netError instanceof Error ? netError.message : 'Unknown error'}`);
+        // Don't throw - we still created the post
+      }
+
+      return newPost;
     },
     onSuccess: () => {
-      toast.success('✨ AI is writing your caption... check Drafts tab!');
       queryClient.invalidateQueries({ queryKey: ['social-media-drafts'] });
     },
     onError: (error) => {
-      console.error('Generate draft error:', error);
+      console.error('❌ Generate draft mutation error:', error);
       toast.error('Failed to create draft');
     },
   });
