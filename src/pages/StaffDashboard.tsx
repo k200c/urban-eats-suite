@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplaySystem } from '@/components/staff/KitchenDisplaySystem';
 import { CustomerList } from '@/components/staff/CustomerList';
 import { SocialMediaManager } from '@/components/staff/SocialMediaManager';
+import { AddProductDialog } from '@/components/staff/AddProductDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
 
@@ -81,10 +82,13 @@ export default function StaffDashboard() {
   const QuickStockManager = () => (
     <Card className="bg-card border-border">
       <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Package className="w-5 h-5 text-primary" />
-          Quick Stock Manager
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Package className="w-5 h-5 text-primary" />
+            Quick Stock Manager
+          </CardTitle>
+          <AddProductDialog onProductAdded={refetchProducts} />
+        </div>
       </CardHeader>
       <CardContent>
         {productsLoading ? (
