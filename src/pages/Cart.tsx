@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { CustomerCheckoutModal } from '@/components/checkout/CustomerCheckoutModal';
 import { OrderSuccessModal } from '@/components/checkout/OrderSuccessModal';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { toast } from 'sonner';
 
 import heroBurger from '@/assets/hero-burger.jpg';
 import loadedFries from '@/assets/loaded-fries.jpg';
@@ -27,6 +29,19 @@ export default function Cart() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState<number>(0);
+
+  const { data: appSettings } = useAppSettings();
+  const isStoreOpen = appSettings?.is_store_open ?? true;
+
+  const handleCheckoutClick = () => {
+    if (!isStoreOpen) {
+      toast.error("We are currently closed!", {
+        description: "You can browse, but ordering opens Thu 12pm.",
+      });
+      return;
+    }
+    setShowCheckout(true);
+  };
 
   const handleCheckoutSuccess = (num: number) => {
     setOrderNumber(num);
@@ -171,10 +186,16 @@ export default function Cart() {
         <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 bg-gradient-to-t from-black via-black/95 to-transparent">
           <div className="max-w-lg mx-auto">
             <Button
-              className="w-full h-16 md:h-14 btn-glow text-lg md:text-base font-bold tracking-wider"
-              onClick={() => setShowCheckout(true)}
+              className={`w-full h-16 md:h-14 text-lg md:text-base font-bold tracking-wider ${
+                isStoreOpen ? 'btn-glow' : 'bg-muted text-muted-foreground cursor-not-allowed'
+              }`}
+              onClick={handleCheckoutClick}
+              disabled={!isStoreOpen}
             >
-              CHECKOUT - €{total.toFixed(2)}
+              {isStoreOpen 
+                ? `CHECKOUT - €${total.toFixed(2)}`
+                : "STORE CLOSED (Opens Thu 12pm)"
+              }
             </Button>
           </div>
         </div>

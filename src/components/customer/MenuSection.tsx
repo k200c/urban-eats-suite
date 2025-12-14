@@ -6,7 +6,7 @@ import { useProductIngredients } from '@/hooks/useProductIngredients';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { ProductCardHorizontal } from './ProductCardHorizontal';
 import { ProductSheet } from './ProductSheet';
-import { StoreClosedOverlay } from './StoreClosedOverlay';
+
 import { WaitTimeBanner } from './WaitTimeBanner';
 import { Product, ProductCategory } from '@/types/database';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -163,10 +163,7 @@ export function MenuSection() {
 
   return (
     <>
-      {/* Store Closed Overlay */}
-      {!isStoreOpen && <StoreClosedOverlay />}
-      
-      {/* Wait Time Banner */}
+      {/* Wait Time Banner - only show when store is open */}
       {isStoreOpen && waitTime && <WaitTimeBanner waitTime={waitTime} />}
       
       <section ref={sectionRef} id="menu" className="px-4 py-12 max-w-4xl mx-auto scroll-mt-20 relative">
