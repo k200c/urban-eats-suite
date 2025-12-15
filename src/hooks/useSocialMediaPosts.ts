@@ -18,10 +18,14 @@ export interface SocialMediaPost {
 interface CreatePostParams {
   contentIdea: string;
   brief: string;
-  postType: string;
+  postType: 'single' | 'carousel' | 'video';
   files: File[];
   scheduledDate?: Date;
   scheduledTime?: string;
+  // New AI-powered fields
+  aiPreference: 'generate_ai' | 'upload_media';
+  visualPrompt?: string;
+  referenceFile?: File;
 }
 
 const N8N_GENERATE_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-generate';
@@ -133,8 +137,10 @@ export function useSocialMediaPosts() {
 
   // Generate draft mutation (no date selected) - WITH LOUD DEBUGGING
   const generateDraftMutation = useMutation({
-    mutationFn: async ({ contentIdea, brief, postType, files }: CreatePostParams) => {
-      console.log("%c 🚀 STARTING DRAFT GENERATION...", "background: #222; color: #bada55", { contentIdea, brief, postType, filesCount: files.length });
+    mutationFn: async ({ contentIdea, brief, postType, files, aiPreference, visualPrompt, referenceFile }: CreatePostParams) => {
+      console.log("%c 🚀 STARTING DRAFT GENERATION...", "background: #222; color: #bada55", { 
+        contentIdea, brief, postType, filesCount: files.length, aiPreference, visualPrompt 
+      });
 
       // VALIDATION: Check required fields
       if (!contentIdea || contentIdea.trim() === '') {
@@ -142,12 +148,21 @@ export function useSocialMediaPosts() {
         throw new Error('Content idea is required');
       }
 
-      // Upload files first
+      // Upload files first (media files OR reference image)
       let mediaUrls: string[] = [];
-      if (files.length > 0) {
-        console.log("📤 Uploading", files.length, "files...");
+      let referenceUrl: string | null = null;
+
+      if (aiPreference === 'upload_media' && files.length > 0) {
+        console.log("📤 Uploading", files.length, "media files...");
         mediaUrls = await uploadFiles(files);
-        console.log("✅ Files uploaded:", mediaUrls);
+        console.log("✅ Media files uploaded:", mediaUrls);
+      }
+
+      if (aiPreference === 'generate_ai' && referenceFile) {
+        console.log("📤 Uploading reference image...");
+        const [refUrl] = await uploadFiles([referenceFile]);
+        referenceUrl = refUrl;
+        console.log("✅ Reference image uploaded:", referenceUrl);
       }
 
       // 1. INSERT INTO DATABASE FIRST
@@ -172,12 +187,18 @@ export function useSocialMediaPosts() {
 
       console.log("✅ Post saved to DB with ID:", newPost.id);
 
-      // 2. CONSTRUCT PAYLOAD WITH VALIDATION
+      // 2. CONSTRUCT THE EXACT PAYLOAD FOR N8N
       const payload = {
         post_id: newPost.id,
         idea: newPost.content_idea,
         brief: newPost.brief || "",
-        media_urls: newPost.media_urls || []
+        post_type: postType, // "single", "carousel", or "video"
+        ai_preference: aiPreference, // "generate_ai" or "upload_media"
+        // If uploading:
+        media_urls: mediaUrls,
+        // If generating:
+        visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || "") : null,
+        reference_image_url: referenceUrl,
       };
 
       // EXPLICIT DEBUG LOG - Print exact payload before sending
@@ -200,7 +221,6 @@ export function useSocialMediaPosts() {
           const errorText = await response.text();
           console.error(`❌ N8N Error (${response.status}):`, errorText);
           toast.error(`AI request failed: ${response.status}`);
-          // Don't throw - post is saved, n8n can retry
         } else {
           console.log("✅ N8N webhook triggered successfully!");
           toast.success("✨ AI is writing your caption...");
@@ -208,7 +228,6 @@ export function useSocialMediaPosts() {
       } catch (netError) {
         console.error("🚨 Network/Webhook Error:", netError);
         toast.error(`Draft saved, but AI failed: ${netError instanceof Error ? netError.message : 'Unknown error'}`);
-        // Don't throw - we still created the post
       }
 
       return newPost;
@@ -222,14 +241,20 @@ export function useSocialMediaPosts() {
     },
   });
 
-  // Schedule post mutation (date selected)
+  // Schedule post mutation (date selected) - skips AI generation
   const schedulePostMutation = useMutation({
-    mutationFn: async ({ contentIdea, brief, postType, files, scheduledDate, scheduledTime }: CreatePostParams) => {
-      // Upload files first
+    mutationFn: async ({ contentIdea, brief, postType, files, scheduledDate, scheduledTime, aiPreference, visualPrompt, referenceFile }: CreatePostParams) => {
+      console.log("📅 Scheduling post directly...", { postType, aiPreference });
+      
+      // Upload files first (media files OR reference image depending on mode)
       let mediaUrls: string[] = [];
-      if (files.length > 0) {
+      
+      if (aiPreference === 'upload_media' && files.length > 0) {
         mediaUrls = await uploadFiles(files);
       }
+      
+      // Note: If AI mode is selected but scheduling directly, we still save the visual prompt
+      // for potential future AI processing (or manual image creation)
 
       // Calculate scheduled datetime
       let scheduledFor: string | null = null;
@@ -244,7 +269,7 @@ export function useSocialMediaPosts() {
         .from('social_media_posts')
         .insert({
           content_idea: contentIdea,
-          brief: brief || null,
+          brief: aiPreference === 'generate_ai' ? `${brief || ''}\n\n[AI Visual: ${visualPrompt || 'No prompt'}]` : (brief || null),
           post_type: postType,
           media_urls: mediaUrls,
           scheduled_for: scheduledFor,

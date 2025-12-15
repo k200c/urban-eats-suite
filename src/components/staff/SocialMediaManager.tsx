@@ -2,36 +2,52 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { 
   Trash2, Upload, Calendar, Image, Film, Layers, Sparkles, 
-  AlertCircle, RefreshCw, Loader2, Check, Clock 
+  AlertCircle, RefreshCw, Loader2, Check, Clock, Wand2, ImagePlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useSocialMediaPosts, SocialMediaPost } from '@/hooks/useSocialMediaPosts';
 
-const POST_TYPES = [
-  { value: 'Single', label: 'Single Post', icon: Image },
-  { value: 'Carousel', label: 'Carousel', icon: Layers },
-  { value: 'Reel', label: 'Reel', icon: Film },
+type PostType = 'single' | 'carousel' | 'video';
+type AIPreference = 'generate_ai' | 'upload_media';
+
+const POST_TYPES: { value: PostType; label: string; icon: React.ElementType; emoji: string }[] = [
+  { value: 'single', label: 'Single Post', icon: Image, emoji: '📷' },
+  { value: 'carousel', label: 'Carousel', icon: Layers, emoji: '🎠' },
+  { value: 'video', label: 'Reel / Video', icon: Film, emoji: '🎥' },
 ];
 
+// File limits based on post type
+const FILE_LIMITS: Record<PostType, { min: number; max: number; label: string }> = {
+  single: { min: 1, max: 1, label: '1 image' },
+  carousel: { min: 2, max: 10, label: '2-10 images' },
+  video: { min: 1, max: 1, label: '1 video' },
+};
+
 export function SocialMediaManager() {
-  // Form state
+  // Form state - Strategy
   const [contentIdea, setContentIdea] = useState('');
   const [brief, setBrief] = useState('');
-  const [postType, setPostType] = useState<string>('Single');
+  
+  // Form state - Format & Assets
+  const [postType, setPostType] = useState<PostType>('single');
+  const [useAiVisuals, setUseAiVisuals] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [visualPrompt, setVisualPrompt] = useState('');
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  
+  // Scheduling
   const [scheduleForLater, setScheduleForLater] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [scheduledTime, setScheduledTime] = useState('12:00');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const {
@@ -56,18 +72,36 @@ export function SocialMediaManager() {
   const resetForm = () => {
     setContentIdea('');
     setBrief('');
-    setPostType('Single');
+    setPostType('single');
+    setUseAiVisuals(false);
+    setUploadedFiles([]);
+    setVisualPrompt('');
+    setReferenceFile(null);
     setScheduleForLater(false);
     setScheduledDate(undefined);
     setScheduledTime('12:00');
-    setUploadedFiles([]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setUploadedFiles(Array.from(e.target.files));
+      const files = Array.from(e.target.files);
+      const limits = FILE_LIMITS[postType];
+      
+      if (files.length > limits.max) {
+        setUploadedFiles(files.slice(0, limits.max));
+      } else {
+        setUploadedFiles(files);
+      }
     }
   };
+
+  const handleReferenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setReferenceFile(e.target.files[0]);
+    }
+  };
+
+  const aiPreference: AIPreference = useAiVisuals ? 'generate_ai' : 'upload_media';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +110,6 @@ export function SocialMediaManager() {
     setUploading(true);
     try {
       if (scheduleForLater && scheduledDate) {
-        // Schedule post directly
         await schedulePost({
           contentIdea,
           brief,
@@ -84,14 +117,19 @@ export function SocialMediaManager() {
           files: uploadedFiles,
           scheduledDate,
           scheduledTime,
+          aiPreference,
+          visualPrompt: useAiVisuals ? visualPrompt : undefined,
+          referenceFile: useAiVisuals ? referenceFile || undefined : undefined,
         });
       } else {
-        // Generate draft via AI
         await generateDraft({
           contentIdea,
           brief,
           postType,
           files: uploadedFiles,
+          aiPreference,
+          visualPrompt: useAiVisuals ? visualPrompt : undefined,
+          referenceFile: useAiVisuals ? referenceFile || undefined : undefined,
         });
       }
       resetForm();
@@ -101,6 +139,7 @@ export function SocialMediaManager() {
   };
 
   const isSubmitting = isGenerating || isScheduling || uploading;
+  const fileLimits = FILE_LIMITS[postType];
 
   // Error state UI
   if (draftsError && scheduledError) {
@@ -123,89 +162,182 @@ export function SocialMediaManager() {
 
   return (
     <div className="space-y-6">
-      {/* Creator Studio */}
-      <Card className="bg-card border-border">
-        <CardHeader>
+      {/* Smart Content Studio */}
+      <Card className="bg-card border-border overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent border-b border-border">
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Creator Studio
+            <Wand2 className="w-5 h-5 text-primary" />
+            Smart Content Studio
           </CardTitle>
+          <CardDescription>Create AI-powered social content in seconds</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Content Idea */}
-            <div className="space-y-2">
-              <Label htmlFor="content-idea">What's the hook?</Label>
-              <Textarea
-                id="content-idea"
-                placeholder="e.g., 🍔 The Urban Legend is BACK and better than ever..."
-                value={contentIdea}
-                onChange={(e) => setContentIdea(e.target.value)}
-                className="min-h-[100px] bg-secondary/30 border-border"
-              />
-            </div>
-
-            {/* Brief */}
-            <div className="space-y-2">
-              <Label htmlFor="brief">Key Details / Caption Notes</Label>
-              <Input
-                id="brief"
-                placeholder="e.g., Mention limited time offer, tag location..."
-                value={brief}
-                onChange={(e) => setBrief(e.target.value)}
-                className="bg-secondary/30 border-border"
-              />
-            </div>
-
-            {/* Post Type & Media Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Post Type */}
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* SECTION 1: Strategy */}
+            <div className="space-y-4 p-4 rounded-xl bg-secondary/10 border border-border">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs">1</span>
+                Strategy
+              </div>
+              
+              {/* Content Idea */}
               <div className="space-y-2">
-                <Label>Post Type</Label>
-                <Select value={postType} onValueChange={setPostType}>
-                  <SelectTrigger className="bg-secondary/30 border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {POST_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <type.icon className="w-4 h-4" />
-                          {type.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="content-idea" className="font-medium">What's the hook?</Label>
+                <Textarea
+                  id="content-idea"
+                  placeholder="e.g., 🍔 The Urban Legend is BACK and better than ever..."
+                  value={contentIdea}
+                  onChange={(e) => setContentIdea(e.target.value)}
+                  className="min-h-[100px] bg-background/50 border-border resize-none"
+                />
               </div>
 
-              {/* Media Upload */}
+              {/* Brief */}
               <div className="space-y-2">
-                <Label htmlFor="media">Media Files</Label>
-                <div className="relative">
-                  <Input
-                    id="media"
-                    type="file"
-                    multiple
-                    accept="image/*,video/*"
-                    onChange={handleFileChange}
-                    className="bg-secondary/30 border-border file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-primary file:text-primary-foreground"
-                  />
+                <Label htmlFor="brief" className="font-medium">Brief / Context</Label>
+                <Textarea
+                  id="brief"
+                  placeholder="e.g., Mention limited time offer, tag @streeteatzwaterford, use hashtags..."
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  className="min-h-[60px] bg-background/50 border-border resize-none"
+                />
+              </div>
+            </div>
+
+            {/* SECTION 2: Format & Assets */}
+            <div className="space-y-4 p-4 rounded-xl bg-secondary/10 border border-border">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs">2</span>
+                Format & Assets
+              </div>
+
+              {/* Post Type Segmented Control */}
+              <div className="space-y-2">
+                <Label className="font-medium">Post Type</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {POST_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => {
+                        setPostType(type.value);
+                        setUploadedFiles([]); // Clear files on type change
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all",
+                        postType === type.value
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background/50 text-muted-foreground hover:border-primary/50 hover:bg-primary/5"
+                      )}
+                    >
+                      <span className="text-xl">{type.emoji}</span>
+                      <span className="text-xs font-medium">{type.label}</span>
+                    </button>
+                  ))}
                 </div>
-                {uploadedFiles.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {uploadedFiles.length} file(s) selected
-                  </p>
-                )}
               </div>
+
+              {/* AI Magic Toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-violet-500/10 to-primary/10 border border-violet-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-primary flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ai-toggle" className="font-semibold cursor-pointer">✨ Use AI to Generate Visuals</Label>
+                    <p className="text-xs text-muted-foreground">Let AI create stunning images for your post</p>
+                  </div>
+                </div>
+                <Switch
+                  id="ai-toggle"
+                  checked={useAiVisuals}
+                  onCheckedChange={(checked) => {
+                    setUseAiVisuals(checked);
+                    setUploadedFiles([]);
+                    setVisualPrompt('');
+                    setReferenceFile(null);
+                  }}
+                />
+              </div>
+
+              {/* Dynamic Input Area */}
+              {!useAiVisuals ? (
+                /* UPLOAD MODE */
+                <div className="space-y-3">
+                  <Label htmlFor="media" className="font-medium flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    Upload Media
+                    <span className="text-xs text-muted-foreground font-normal">({fileLimits.label})</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="media"
+                      type="file"
+                      multiple={postType !== 'single' && postType !== 'video'}
+                      accept={postType === 'video' ? 'video/*' : 'image/*'}
+                      onChange={handleFileChange}
+                      className="bg-background/50 border-border file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-primary file:text-primary-foreground cursor-pointer"
+                    />
+                  </div>
+                  {uploadedFiles.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-success">
+                      <Check className="w-4 h-4" />
+                      {uploadedFiles.length} file(s) selected
+                      {uploadedFiles.length < fileLimits.min && (
+                        <span className="text-amber-500 ml-2">(Need at least {fileLimits.min})</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* AI GENERATION MODE */
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="visual-prompt" className="font-medium flex items-center gap-2">
+                      <Wand2 className="w-4 h-4 text-violet-500" />
+                      Visual Direction
+                    </Label>
+                    <Textarea
+                      id="visual-prompt"
+                      placeholder="Describe the vibe, lighting, and subject for the AI photographer...&#10;&#10;e.g., 'Close-up shot of a juicy smash burger with melting cheese, dramatic lighting, steam rising, dark moody background, food photography style'"
+                      value={visualPrompt}
+                      onChange={(e) => setVisualPrompt(e.target.value)}
+                      className="min-h-[100px] bg-background/50 border-violet-500/30 focus:border-violet-500 resize-none"
+                    />
+                  </div>
+                  
+                  {/* Optional Reference Image */}
+                  <div className="space-y-2">
+                    <Label htmlFor="reference" className="font-medium flex items-center gap-2 text-muted-foreground">
+                      <ImagePlus className="w-4 h-4" />
+                      Style Reference (Optional)
+                    </Label>
+                    <Input
+                      id="reference"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReferenceFileChange}
+                      className="bg-background/50 border-border/50 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-secondary file:text-secondary-foreground cursor-pointer"
+                    />
+                    {referenceFile && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Check className="w-4 h-4 text-success" />
+                        Reference: {referenceFile.name}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Scheduling */}
-            <div className="space-y-4 p-4 rounded-lg bg-secondary/20 border border-border">
+            {/* SECTION 3: Scheduling */}
+            <div className="space-y-4 p-4 rounded-xl bg-secondary/10 border border-border">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-primary" />
-                  <Label htmlFor="schedule-switch">Schedule for later?</Label>
+                <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs">3</span>
+                  Scheduling
                 </div>
                 <Switch
                   id="schedule-switch"
@@ -224,7 +356,7 @@ export function SocialMediaManager() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal bg-secondary/30",
+                            "w-full justify-start text-left font-normal bg-background/50",
                             !scheduledDate && "text-muted-foreground"
                           )}
                         >
@@ -253,22 +385,22 @@ export function SocialMediaManager() {
                       type="time"
                       value={scheduledTime}
                       onChange={(e) => setScheduledTime(e.target.value)}
-                      className="bg-secondary/30 border-border"
+                      className="bg-background/50 border-border"
                     />
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Submit Button - Conditional based on schedule */}
+            {/* Submit Button */}
             <Button
               type="submit"
               disabled={isSubmitting || !contentIdea.trim()}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6"
+              className="w-full bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-600/90 text-primary-foreground font-bold py-6 text-lg shadow-lg"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
-                  <Upload className="w-4 h-4 animate-pulse" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   {uploading ? 'Uploading...' : 'Processing...'}
                 </span>
               ) : scheduleForLater && scheduledDate ? (
@@ -277,7 +409,8 @@ export function SocialMediaManager() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  ✨ Generate Draft
+                  <Sparkles className="w-5 h-5" />
+                  Generate Draft
                 </span>
               )}
             </Button>
