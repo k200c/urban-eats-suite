@@ -135,10 +135,10 @@ export function useSocialMediaPosts() {
     return urls;
   };
 
-  // Generate draft mutation (no date selected) - WITH LOUD DEBUGGING
+  // Generate draft mutation (no date selected) - REFACTORED: Sequential Upload → Payload → Dispatch
   const generateDraftMutation = useMutation({
     mutationFn: async ({ contentIdea, brief, postType, files, aiPreference, visualPrompt, referenceFile }: CreatePostParams) => {
-      console.log("%c 🚀 STARTING DRAFT GENERATION...", "background: #222; color: #bada55", { 
+      console.log("%c 🚀 STARTING DRAFT GENERATION v2...", "background: #222; color: #bada55", { 
         contentIdea, brief, postType, filesCount: files.length, aiPreference, visualPrompt 
       });
 
@@ -148,44 +148,64 @@ export function useSocialMediaPosts() {
         throw new Error('Content idea is required');
       }
 
-      // 1. GENERATE UUID UPFRONT
-      const newId = crypto.randomUUID();
-      console.log("🆔 Generated UUID:", newId);
-
-      // 2. Upload files first (media files OR reference image)
-      let mediaUrls: string[] = [];
-      let referenceUrl: string | null = null;
+      // ═══════════════════════════════════════════════════════════════
+      // STEP 1: UPLOAD FILES FIRST (BLOCKING - Wait for completion)
+      // ═══════════════════════════════════════════════════════════════
+      let finalMediaUrls: string[] = [];
+      let finalReferenceUrl: string | null = null;
 
       if (aiPreference === 'upload_media' && files.length > 0) {
-        console.log("📤 Uploading", files.length, "media files...");
-        mediaUrls = await uploadFiles(files);
-        console.log("✅ Media files uploaded:", mediaUrls);
+        console.log("📤 STEP 1: Uploading", files.length, "media files...");
+        finalMediaUrls = await uploadFiles(files); // Direct assignment from upload result
+        console.log("✅ STEP 1 COMPLETE - finalMediaUrls:", JSON.stringify(finalMediaUrls));
       }
 
       if (aiPreference === 'generate_ai' && referenceFile) {
-        console.log("📤 Uploading reference image...");
-        const [refUrl] = await uploadFiles([referenceFile]);
-        referenceUrl = refUrl;
-        console.log("✅ Reference image uploaded:", referenceUrl);
+        console.log("📤 STEP 1: Uploading reference image...");
+        const uploadResult = await uploadFiles([referenceFile]);
+        finalReferenceUrl = uploadResult[0] || null;
+        console.log("✅ STEP 1 COMPLETE - finalReferenceUrl:", finalReferenceUrl);
       }
 
-      // 3. CONSTRUCT CLEAN DB PAYLOAD - Matches SQL schema exactly
+      // ═══════════════════════════════════════════════════════════════
+      // STEP 2: CONSTRUCT PAYLOADS (Only AFTER Step 1 completes)
+      // ═══════════════════════════════════════════════════════════════
+      const newId = crypto.randomUUID();
+      console.log("🆔 STEP 2: Generated UUID:", newId);
+
+      // DB Payload - uses finalMediaUrls from Step 1
       const dbPayload = {
         id: newId,
         idea: contentIdea.trim(),
-        content_idea: contentIdea.trim(), // Legacy field - keep populated
+        content_idea: contentIdea.trim(),
         brief: brief?.trim() || null,
         post_type: postType,
         ai_preference: aiPreference,
         visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || null) : null,
-        media_urls: mediaUrls,
+        media_urls: finalMediaUrls, // ← FROM STEP 1
         status: 'generating',
         created_at: new Date().toISOString(),
       };
 
-      console.log("%c 💾 DB PAYLOAD:", "background: #333; color: #00ffff", JSON.stringify(dbPayload, null, 2));
+      // Webhook Payload - uses finalMediaUrls from Step 1
+      const webhookPayload = {
+        post_id: newId,
+        idea: contentIdea.trim(),
+        brief: brief?.trim() || "",
+        post_type: postType,
+        ai_preference: aiPreference,
+        media_urls: finalMediaUrls, // ← FROM STEP 1
+        visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || "") : null,
+        reference_image_url: finalReferenceUrl, // ← FROM STEP 1
+      };
 
-      // 4. INSERT INTO DATABASE
+      console.log("%c 💾 STEP 2: DB PAYLOAD:", "background: #333; color: #00ffff", JSON.stringify(dbPayload, null, 2));
+      console.log("%c 📦 STEP 2: WEBHOOK PAYLOAD:", "background: #333; color: #00ff00", JSON.stringify(webhookPayload, null, 2));
+
+      // ═══════════════════════════════════════════════════════════════
+      // STEP 3: DUAL DISPATCH (DB Insert + Webhook)
+      // ═══════════════════════════════════════════════════════════════
+      console.log("🚀 STEP 3: Inserting to DB...");
       const { data: newPost, error: dbError } = await supabase
         .from('social_media_posts')
         .insert(dbPayload)
@@ -193,32 +213,20 @@ export function useSocialMediaPosts() {
         .single();
 
       if (dbError) {
-        console.error("❌ DB INSERT FAILED!");
+        console.error("❌ STEP 3 DB INSERT FAILED!");
         console.error("❌ Error Code:", dbError.code);
         console.error("❌ Error Message:", dbError.message);
         console.error("❌ Error Details:", dbError.details);
-        console.error("❌ Error Hint:", dbError.hint);
         toast.error(`DB Error: ${dbError.message}`);
         throw dbError;
       }
 
-      console.log("✅ Post saved to DB with ID:", newPost.id);
+      console.log("✅ STEP 3 DB SUCCESS - Post ID:", newPost.id);
 
-      // 5. CONSTRUCT WEBHOOK PAYLOAD (Different from DB payload)
-      const webhookPayload = {
-        post_id: newId, // n8n expects post_id
-        idea: contentIdea.trim(),
-        brief: brief?.trim() || "",
-        post_type: postType,
-        ai_preference: aiPreference,
-        media_urls: mediaUrls,
-        visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || "") : null,
-        reference_image_url: referenceUrl,
-      };
+      // CRITICAL DEBUG LOG - Verify media_urls right before fetch
+      console.log("🚀 FINAL Webhook Payload:", JSON.stringify(webhookPayload));
 
-      console.log("%c 📦 WEBHOOK PAYLOAD:", "background: #333; color: #00ff00", JSON.stringify(webhookPayload, null, 2));
-
-      // 6. TRIGGER N8N WEBHOOK
+      console.log("🚀 STEP 3: Triggering N8N webhook...");
       try {
         const response = await fetch(N8N_GENERATE_WEBHOOK, {
           method: "POST",
@@ -236,7 +244,7 @@ export function useSocialMediaPosts() {
           console.error(`❌ N8N Error (${response.status}):`, errorText);
           toast.error(`AI request failed: ${response.status}`);
         } else {
-          console.log("✅ N8N webhook triggered successfully!");
+          console.log("✅ STEP 3 WEBHOOK SUCCESS!");
           toast.success("✨ AI is writing your caption...");
         }
       } catch (netError) {
