@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -32,42 +32,75 @@ const N8N_GENERATE_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook-test/street
 
 export function useSocialMediaPosts() {
   const queryClient = useQueryClient();
-  const lastInvalidationRef = useRef<number>(0);
 
-  // Debounced invalidation function
-  const debouncedInvalidate = useCallback(() => {
-    const now = Date.now();
-    const MIN_INVALIDATION_INTERVAL = 2000;
-    
-    if (now - lastInvalidationRef.current > MIN_INVALIDATION_INTERVAL) {
-      lastInvalidationRef.current = now;
-      queryClient.invalidateQueries({ queryKey: ['social-media-drafts'] });
-      queryClient.invalidateQueries({ queryKey: ['social-media-scheduled'] });
-    }
-  }, [queryClient]);
-
-  // Realtime subscription
+  // Realtime subscription - LIVE updates for status changes
   useEffect(() => {
+    console.log("🔌 Setting up Supabase Realtime subscription for social_media_posts...");
+    
     const channel = supabase
-      .channel('social-media-posts-realtime')
+      .channel('social-media-posts-live')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'social_media_posts',
         },
         (payload) => {
-          console.log('[SocialMedia] Realtime update:', payload);
-          debouncedInvalidate();
+          console.log("🔔 Realtime UPDATE received:", payload);
+          
+          const newRecord = payload.new as SocialMediaPost;
+          const oldRecord = payload.old as Partial<SocialMediaPost>;
+          
+          // Detect status change from 'generating' to 'draft'
+          if (oldRecord.status === 'generating' && newRecord.status === 'draft') {
+            console.log("✨ Draft is READY! Post ID:", newRecord.id);
+            toast.success("✅ Your draft is ready!", {
+              description: "AI has generated your caption.",
+              duration: 5000,
+            });
+          }
+          
+          // Immediately invalidate queries (no debounce for status changes)
+          queryClient.invalidateQueries({ queryKey: ['social-media-drafts'] });
+          queryClient.invalidateQueries({ queryKey: ['social-media-scheduled'] });
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'social_media_posts',
+        },
+        (payload) => {
+          console.log("🔔 Realtime INSERT received:", payload);
+          queryClient.invalidateQueries({ queryKey: ['social-media-drafts'] });
+          queryClient.invalidateQueries({ queryKey: ['social-media-scheduled'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'social_media_posts',
+        },
+        (payload) => {
+          console.log("🔔 Realtime DELETE received:", payload);
+          queryClient.invalidateQueries({ queryKey: ['social-media-drafts'] });
+          queryClient.invalidateQueries({ queryKey: ['social-media-scheduled'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log("📡 Realtime subscription status:", status);
+      });
 
     return () => {
+      console.log("🔌 Cleaning up Realtime subscription...");
       supabase.removeChannel(channel);
     };
-  }, [debouncedInvalidate]);
+  }, [queryClient]);
 
   // Fetch drafts (status: 'draft' or 'generating')
   const draftsQuery = useQuery({
