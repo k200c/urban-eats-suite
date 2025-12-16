@@ -424,37 +424,46 @@ export type Database = {
       }
       social_media_posts: {
         Row: {
+          ai_preference: string | null
           brief: string | null
           content_idea: string
           created_at: string
           generated_caption: string | null
           id: string
+          idea: string | null
           media_urls: string[] | null
           post_type: string
           scheduled_for: string | null
           status: string
+          visual_prompt: string | null
         }
         Insert: {
+          ai_preference?: string | null
           brief?: string | null
           content_idea: string
           created_at?: string
           generated_caption?: string | null
           id?: string
+          idea?: string | null
           media_urls?: string[] | null
           post_type: string
           scheduled_for?: string | null
           status?: string
+          visual_prompt?: string | null
         }
         Update: {
+          ai_preference?: string | null
           brief?: string | null
           content_idea?: string
           created_at?: string
           generated_caption?: string | null
           id?: string
+          idea?: string | null
           media_urls?: string[] | null
           post_type?: string
           scheduled_for?: string | null
           status?: string
+          visual_prompt?: string | null
         }
         Relationships: []
       }
