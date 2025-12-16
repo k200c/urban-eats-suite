@@ -212,9 +212,11 @@ export function useSocialMediaPosts() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Accept": "application/json",
           },
-          body: payloadString
+          mode: "cors",
+          credentials: "omit",
+          body: payloadString,
         });
 
         if (!response.ok) {
