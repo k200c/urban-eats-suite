@@ -148,7 +148,11 @@ export function useSocialMediaPosts() {
         throw new Error('Content idea is required');
       }
 
-      // Upload files first (media files OR reference image)
+      // 1. GENERATE UUID UPFRONT
+      const newId = crypto.randomUUID();
+      console.log("🆔 Generated UUID:", newId);
+
+      // 2. Upload files first (media files OR reference image)
       let mediaUrls: string[] = [];
       let referenceUrl: string | null = null;
 
@@ -165,22 +169,23 @@ export function useSocialMediaPosts() {
         console.log("✅ Reference image uploaded:", referenceUrl);
       }
 
-      // 1. INSERT INTO DATABASE FIRST - Match DB columns exactly
-      console.log("💾 Inserting post into database...");
-      
+      // 3. CONSTRUCT CLEAN DB PAYLOAD - Matches SQL schema exactly
       const dbPayload = {
-        content_idea: contentIdea.trim(), // Legacy field, now nullable but we fill it
-        idea: contentIdea.trim(),         // New field for the content idea
+        id: newId,
+        idea: contentIdea.trim(),
+        content_idea: contentIdea.trim(), // Legacy field - keep populated
         brief: brief?.trim() || null,
         post_type: postType,
-        ai_preference: aiPreference,      // "generate_ai" or "upload_media"
+        ai_preference: aiPreference,
         visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || null) : null,
         media_urls: mediaUrls,
         status: 'generating',
+        created_at: new Date().toISOString(),
       };
-      
-      console.log("📦 DB Payload:", JSON.stringify(dbPayload, null, 2));
-      
+
+      console.log("%c 💾 DB PAYLOAD:", "background: #333; color: #00ffff", JSON.stringify(dbPayload, null, 2));
+
+      // 4. INSERT INTO DATABASE
       const { data: newPost, error: dbError } = await supabase
         .from('social_media_posts')
         .insert(dbPayload)
@@ -188,33 +193,32 @@ export function useSocialMediaPosts() {
         .single();
 
       if (dbError) {
-        console.error("❌ DB Error:", dbError);
-        toast.error(`Failed to save draft: ${dbError.message}`);
+        console.error("❌ DB INSERT FAILED!");
+        console.error("❌ Error Code:", dbError.code);
+        console.error("❌ Error Message:", dbError.message);
+        console.error("❌ Error Details:", dbError.details);
+        console.error("❌ Error Hint:", dbError.hint);
+        toast.error(`DB Error: ${dbError.message}`);
         throw dbError;
       }
 
       console.log("✅ Post saved to DB with ID:", newPost.id);
 
-      // 2. CONSTRUCT THE EXACT PAYLOAD FOR N8N
-      const payload = {
-        post_id: newPost.id,
-        idea: newPost.content_idea,
-        brief: newPost.brief || "",
-        post_type: postType, // "single", "carousel", or "video"
-        ai_preference: aiPreference, // "generate_ai" or "upload_media"
-        // If uploading:
+      // 5. CONSTRUCT WEBHOOK PAYLOAD (Different from DB payload)
+      const webhookPayload = {
+        post_id: newId, // n8n expects post_id
+        idea: contentIdea.trim(),
+        brief: brief?.trim() || "",
+        post_type: postType,
+        ai_preference: aiPreference,
         media_urls: mediaUrls,
-        // If generating:
         visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || "") : null,
         reference_image_url: referenceUrl,
       };
 
-      // EXPLICIT DEBUG LOG - Print exact payload before sending
-      const payloadString = JSON.stringify(payload);
-      console.log("📦 Payload:", payloadString);
-      console.log("%c 📦 PAYLOAD TO N8N:", "background: #333; color: #00ff00", JSON.stringify(payload, null, 2));
+      console.log("%c 📦 WEBHOOK PAYLOAD:", "background: #333; color: #00ff00", JSON.stringify(webhookPayload, null, 2));
 
-      // 3. TRIGGER WEBHOOK WITH EXPLICIT FETCH
+      // 6. TRIGGER N8N WEBHOOK
       try {
         const response = await fetch(N8N_GENERATE_WEBHOOK, {
           method: "POST",
@@ -224,7 +228,7 @@ export function useSocialMediaPosts() {
           },
           mode: "cors",
           credentials: "omit",
-          body: payloadString,
+          body: JSON.stringify(webhookPayload),
         });
 
         if (!response.ok) {
