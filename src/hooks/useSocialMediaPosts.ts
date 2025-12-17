@@ -182,31 +182,40 @@ export function useSocialMediaPosts() {
       }
 
       // ═══════════════════════════════════════════════════════════════
-      // STEP 1: UPLOAD FILES FIRST (BLOCKING - Wait for completion)
+      // STEP 1: INITIALIZE MEDIA VARIABLES (GUARANTEED ARRAYS)
       // ═══════════════════════════════════════════════════════════════
-      let finalMediaUrls: string[] = [];
+      let finalMediaUrls: string[] = []; // Always starts as empty array
       let finalReferenceUrl: string | null = null;
 
-      if (aiPreference === 'upload_media' && files.length > 0) {
-        console.log("📤 STEP 1: Uploading", files.length, "media files...");
-        finalMediaUrls = await uploadFiles(files); // Direct assignment from upload result
-        console.log("✅ STEP 1 COMPLETE - finalMediaUrls:", JSON.stringify(finalMediaUrls));
+      // ═══════════════════════════════════════════════════════════════
+      // STEP 2: CONDITIONAL FILE UPLOAD (Only if files exist)
+      // ═══════════════════════════════════════════════════════════════
+      if (aiPreference === 'upload_media' && files && files.length > 0) {
+        console.log("📤 STEP 2: Uploading", files.length, "media files...");
+        const uploadResult = await uploadFiles(files);
+        finalMediaUrls = Array.isArray(uploadResult) ? uploadResult : [];
+        console.log("✅ STEP 2 COMPLETE - finalMediaUrls:", JSON.stringify(finalMediaUrls));
+      } else {
+        console.log("⏭️ STEP 2: No files to upload, finalMediaUrls = []");
       }
 
       if (aiPreference === 'generate_ai' && referenceFile) {
-        console.log("📤 STEP 1: Uploading reference image...");
+        console.log("📤 STEP 2b: Uploading reference image...");
         const uploadResult = await uploadFiles([referenceFile]);
         finalReferenceUrl = uploadResult[0] || null;
-        console.log("✅ STEP 1 COMPLETE - finalReferenceUrl:", finalReferenceUrl);
+        console.log("✅ STEP 2b COMPLETE - finalReferenceUrl:", finalReferenceUrl);
       }
 
       // ═══════════════════════════════════════════════════════════════
-      // STEP 2: CONSTRUCT PAYLOADS (Only AFTER Step 1 completes)
+      // STEP 3: CONSTRUCT PAYLOADS (GUARANTEED ARRAY IN media_urls)
       // ═══════════════════════════════════════════════════════════════
       const newId = crypto.randomUUID();
-      console.log("🆔 STEP 2: Generated UUID:", newId);
+      console.log("🆔 STEP 3: Generated UUID:", newId);
 
-      // DB Payload - uses finalMediaUrls from Step 1
+      // SAFETY: Ensure finalMediaUrls is always an array (never null/undefined)
+      const safeMediaUrls: string[] = Array.isArray(finalMediaUrls) ? finalMediaUrls : [];
+
+      // DB Payload - uses safeMediaUrls
       const dbPayload = {
         id: newId,
         idea: contentIdea.trim(),
@@ -215,21 +224,21 @@ export function useSocialMediaPosts() {
         post_type: postType,
         ai_preference: aiPreference,
         visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || null) : null,
-        media_urls: finalMediaUrls, // ← FROM STEP 1
+        media_urls: safeMediaUrls, // ← GUARANTEED ARRAY
         status: 'generating',
         created_at: new Date().toISOString(),
       };
 
-      // Webhook Payload - uses finalMediaUrls from Step 1
+      // Webhook Payload - uses safeMediaUrls
       const webhookPayload = {
         post_id: newId,
         idea: contentIdea.trim(),
         brief: brief?.trim() || "",
         post_type: postType,
         ai_preference: aiPreference,
-        media_urls: finalMediaUrls, // ← FROM STEP 1
+        media_urls: safeMediaUrls, // ← GUARANTEED ARRAY (never null/undefined)
         visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || "") : null,
-        reference_image_url: finalReferenceUrl, // ← FROM STEP 1
+        reference_image_url: finalReferenceUrl,
       };
 
       console.log("%c 💾 STEP 2: DB PAYLOAD:", "background: #333; color: #00ffff", JSON.stringify(dbPayload, null, 2));
@@ -298,18 +307,21 @@ export function useSocialMediaPosts() {
 
   // Schedule post mutation (date selected) - skips AI generation
   const schedulePostMutation = useMutation({
-    mutationFn: async ({ contentIdea, brief, postType, files, scheduledDate, scheduledTime, aiPreference, visualPrompt, referenceFile }: CreatePostParams) => {
+    mutationFn: async ({ contentIdea, brief, postType, files, scheduledDate, scheduledTime, aiPreference, visualPrompt }: CreatePostParams) => {
       console.log("📅 Scheduling post directly...", { postType, aiPreference });
       
-      // Upload files first (media files OR reference image depending on mode)
+      // Initialize media array (GUARANTEED to be an array)
       let mediaUrls: string[] = [];
       
-      if (aiPreference === 'upload_media' && files.length > 0) {
-        mediaUrls = await uploadFiles(files);
+      // Conditional upload - only if files exist
+      if (aiPreference === 'upload_media' && files && files.length > 0) {
+        console.log("📤 Uploading", files.length, "files for scheduled post...");
+        const uploadResult = await uploadFiles(files);
+        mediaUrls = Array.isArray(uploadResult) ? uploadResult : [];
       }
       
-      // Note: If AI mode is selected but scheduling directly, we still save the visual prompt
-      // for potential future AI processing (or manual image creation)
+      // SAFETY: Ensure mediaUrls is always an array
+      const safeMediaUrls: string[] = Array.isArray(mediaUrls) ? mediaUrls : [];
 
       // Calculate scheduled datetime
       let scheduledFor: string | null = null;
@@ -326,7 +338,8 @@ export function useSocialMediaPosts() {
           content_idea: contentIdea,
           brief: aiPreference === 'generate_ai' ? `${brief || ''}\n\n[AI Visual: ${visualPrompt || 'No prompt'}]` : (brief || null),
           post_type: postType,
-          media_urls: mediaUrls,
+          ai_preference: aiPreference, // ← Added for payload consistency
+          media_urls: safeMediaUrls, // ← GUARANTEED ARRAY
           scheduled_for: scheduledFor,
           status: 'scheduled',
         });
