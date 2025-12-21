@@ -109,70 +109,57 @@ serve(async (req) => {
           );
         }
 
-        // Production: Get OAuth access token first
+        // Send payment request to n8n webhook
         try {
-          console.log('Getting Viva Wallet access token...');
-          const accessToken = await getVivaAccessToken(VIVA_CLIENT_ID, VIVA_CLIENT_SECRET);
-          console.log('Access token obtained successfully');
-
-          // Create payment order
-          const vivaResponse = await fetch('https://api.vivapayments.com/checkout/v2/orders', {
+          console.log('Sending payment request to n8n webhook...');
+          
+          const webhookResponse = await fetch('https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-payment', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              amount: Math.round(amount * 100), // Amount in cents
-              customerTrns: `StreetEatz Order`,
-              customer: {
-                email: customerEmail || undefined,
-                phone: customerPhone || undefined,
-              },
-              merchantTrns: orderId,
-              sourceCode: 'Default', // Use default payment source
-              disableExactAmount: false,
-              disableCash: true,
-              disableWallet: false,
+              orderId,
+              amount: Math.round(amount * 100), // Convert to cents
+              customerName: data.customerName,
+              customerPhone,
+              customerEmail,
             }),
           });
 
-          if (!vivaResponse.ok) {
-            const errorText = await vivaResponse.text();
-            console.error('Viva Wallet API error:', vivaResponse.status, errorText);
-            throw new Error(`Viva Wallet API error: ${vivaResponse.status} - ${errorText}`);
+          if (!webhookResponse.ok) {
+            const errorText = await webhookResponse.text();
+            console.error('n8n webhook error:', webhookResponse.status, errorText);
+            throw new Error(`Payment webhook error: ${webhookResponse.status}`);
           }
 
-          const vivaOrder: VivaOrderResponse = await vivaResponse.json();
-          const vivaOrderCode = vivaOrder.orderCode.toString();
-          const paymentUrl = `https://www.vivapayments.com/web/checkout?ref=${vivaOrderCode}`;
+          const webhookData = await webhookResponse.json();
+          console.log('n8n webhook response:', webhookData);
 
-          console.log(`Viva order created: ${vivaOrderCode}`);
-
-          // Update order with Viva order code
+          // Update order with payment info from n8n
           const { error: updateError } = await supabase
             .from('orders')
             .update({ 
               payment_status: 'processing',
-              viva_order_code: vivaOrderCode
+              viva_order_code: webhookData.orderCode || `N8N-${Date.now()}`
             })
             .eq('id', orderId);
 
           if (updateError) {
-            console.error('Error updating order with Viva code:', updateError);
+            console.error('Error updating order:', updateError);
           }
 
           return new Response(
             JSON.stringify({ 
-              paymentUrl, 
+              paymentUrl: webhookData.paymentUrl || webhookData.url,
               orderId,
-              vivaOrderCode 
+              orderCode: webhookData.orderCode
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
 
-        } catch (vivaError) {
-          console.error('Viva Wallet API call failed:', vivaError);
+        } catch (webhookError) {
+          console.error('n8n webhook call failed:', webhookError);
           
           // Update order status to failed
           await supabase
