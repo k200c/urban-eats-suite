@@ -4,9 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat } from 'lucide-react';
+import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CustomerCheckoutModalProps {
   open: boolean;
@@ -14,7 +16,7 @@ interface CustomerCheckoutModalProps {
   onSuccess: (orderNumber: number) => void;
 }
 
-type Step = 'details' | 'payment' | 'sending' | 'pending';
+type Step = 'details' | 'payment' | 'connecting' | 'sending' | 'pending';
 
 export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: CustomerCheckoutModalProps) {
   const { user, profile } = useAuth();
@@ -25,6 +27,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Auto-fill from profile if logged in
   useEffect(() => {
@@ -41,74 +44,111 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
       setTimeout(() => {
         setStep('details');
         setOrderNumber(null);
+        setIsProcessingPayment(false);
       }, 300);
     }
   }, [open]);
 
   const canProceed = customerName.trim() && customerPhone.trim();
+  const isButtonDisabled = isSubmitting || isProcessingPayment;
 
   const handlePayCard = async () => {
-    // Card payments DO NOT trigger the n8n webhook
-    // Proceed directly to Viva Wallet flow
-    initiateVivaWallet();
-  };
+    // Prevent duplicate submissions
+    if (isProcessingPayment) return;
+    setIsProcessingPayment(true);
 
-  const handlePayOnCollection = async () => {
-    // IMPORTANT: Save cart data BEFORE submitOrder clears the cart
-    const cartSnapshot = [...items];
-    const totalSnapshot = total;
+    try {
+      // Step 1: Show connecting spinner
+      setStep('connecting');
 
-    // Show "Sending to Kitchen" spinner
-    setStep('sending');
+      // Step 2: Create the order first
+      const orderResult = await submitOrder({
+        paymentMethod: 'card',
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim(),
+      });
 
-    const result = await submitOrder({
-      paymentMethod: 'cash',
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      customerEmail: customerEmail.trim(),
-    });
+      if (!orderResult) {
+        throw new Error('Failed to create order');
+      }
 
-    if (result) {
-      // Send to n8n webhook for cash/collection payments (marked as web order)
-      // Pass the saved cart data since cart is now cleared
-      await sendToKitchen(
-        result,
-        {
-          name: customerName.trim(),
-          phone: customerPhone.trim(),
-          email: customerEmail.trim(),
+      // Step 3: Call Viva Wallet edge function to get payment URL
+      const { data, error } = await supabase.functions.invoke('viva-wallet', {
+        body: {
+          action: 'create-checkout',
+          orderId: orderResult.orderId,
+          amount: total,
+          customerEmail: customerEmail.trim() || undefined,
+          customerPhone: customerPhone.trim(),
         },
-        cartSnapshot,
-        totalSnapshot,
-        'web'
-      );
+      });
 
-      setOrderNumber(result.orderNumber);
-      setStep('pending');
-    } else {
-      // If order failed, go back to payment step
+      if (error) {
+        throw new Error(error.message || 'Payment service error');
+      }
+
+      if (!data?.paymentUrl) {
+        throw new Error('No payment URL received');
+      }
+
+      // Step 4: Redirect to Viva Wallet payment page
+      console.log('Redirecting to Viva Wallet:', data.paymentUrl);
+      window.location.href = data.paymentUrl;
+
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      toast.error('Payment Error: Please try again or use cash.');
       setStep('payment');
+      setIsProcessingPayment(false);
     }
   };
 
-  // Placeholder for Viva Wallet integration
-  const initiateVivaWallet = async () => {
-    // Card payments - NO webhook trigger
-    const result = await submitOrder({
-      paymentMethod: 'card',
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      customerEmail: customerEmail.trim(),
-    });
+  const handlePayOnCollection = async () => {
+    // Prevent duplicate submissions
+    if (isProcessingPayment) return;
+    setIsProcessingPayment(true);
 
-    if (result) {
-      // In production, this would redirect to Viva Wallet
-      // For now, simulate successful payment
-      setOrderNumber(result.orderNumber);
-      setStep('pending');
-      
-      // Placeholder: Would redirect to Viva Wallet here
-      // window.location.href = `https://www.vivapayments.com/web/checkout?ref=${result.orderId}`;
+    try {
+      // IMPORTANT: Save cart data BEFORE submitOrder clears the cart
+      const cartSnapshot = [...items];
+      const totalSnapshot = total;
+
+      // Show "Sending to Kitchen" spinner
+      setStep('sending');
+
+      const result = await submitOrder({
+        paymentMethod: 'cash',
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim(),
+      });
+
+      if (result) {
+        // Send to n8n webhook for cash/collection payments (marked as web order)
+        await sendToKitchen(
+          result,
+          {
+            name: customerName.trim(),
+            phone: customerPhone.trim(),
+            email: customerEmail.trim(),
+          },
+          cartSnapshot,
+          totalSnapshot,
+          'web'
+        );
+
+        setOrderNumber(result.orderNumber);
+        setStep('pending');
+      } else {
+        throw new Error('Order submission failed');
+      }
+    } catch (error) {
+      console.error('Collection payment error:', error);
+      toast.error('Payment Error: Please try again or use cash.');
+      setStep('payment');
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -232,15 +272,15 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   </div>
                 </div>
 
-                {/* Pay Card - Viva Wallet (NO webhook) */}
+                {/* Pay Card - Viva Wallet */}
                 <Button
                   variant="glow"
                   size="lg"
                   className="w-full h-16"
                   onClick={handlePayCard}
-                  disabled={isSubmitting}
+                  disabled={isButtonDisabled}
                 >
-                  {isSubmitting ? (
+                  {isButtonDisabled ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
                   ) : (
                     <>
@@ -250,15 +290,15 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   )}
                 </Button>
 
-                {/* Pay on Collection (TRIGGERS webhook) */}
+                {/* Pay on Collection */}
                 <Button
                   variant="outline"
                   size="lg"
                   className="w-full h-16"
                   onClick={handlePayOnCollection}
-                  disabled={isSubmitting}
+                  disabled={isButtonDisabled}
                 >
-                  {isSubmitting ? (
+                  {isButtonDisabled ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
                   ) : (
                     <>
@@ -272,6 +312,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   variant="ghost"
                   className="w-full"
                   onClick={() => setStep('details')}
+                  disabled={isButtonDisabled}
                 >
                   Back
                 </Button>
@@ -279,7 +320,37 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
             </motion.div>
           )}
 
-          {/* Step 2.5: Sending to Kitchen (only for cash/collection) */}
+          {/* Step 2.5a: Connecting to Secure Payment */}
+          {step === 'connecting' && (
+            <motion.div
+              key="connecting"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="py-12"
+            >
+              <div className="text-center space-y-6">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto"
+                >
+                  <Shield className="w-10 h-10 text-primary" />
+                </motion.div>
+
+                <div>
+                  <p className="font-heading text-2xl text-foreground">CONNECTING TO SECURE PAYMENT...</p>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    You'll be redirected to our payment partner
+                  </p>
+                </div>
+
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 2.5b: Sending to Kitchen (only for cash/collection) */}
           {step === 'sending' && (
             <motion.div
               key="sending"

@@ -13,6 +13,10 @@ interface PaymentRequest {
   customerPhone?: string;
 }
 
+interface VivaOrderResponse {
+  orderCode: number;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -25,81 +29,213 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!VIVA_API_KEY || !MERCHANT_ID) {
-      console.error('Viva Wallet credentials not configured');
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Supabase credentials not configured');
       return new Response(
-        JSON.stringify({ error: 'Payment service not configured' }),
+        JSON.stringify({ error: 'Server configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { action, ...data } = await req.json();
+    console.log(`Viva Wallet action: ${action}`, data);
 
     switch (action) {
       case 'create-checkout': {
-        // Create a Viva Wallet Smart Checkout session
         const { orderId, amount, customerEmail, customerPhone } = data as PaymentRequest;
 
         console.log(`Creating checkout for order ${orderId}, amount: €${amount}`);
 
-        // TODO: Implement actual Viva Wallet API call
-        // Reference: https://developer.vivawallet.com/smart-checkout/
-        
-        /*
-        const response = await fetch('https://api.vivapayments.com/checkout/v2/orders', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${VIVA_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: Math.round(amount * 100), // Amount in cents
-            customerTrns: `Order #${orderId}`,
-            customer: {
-              email: customerEmail,
-              phone: customerPhone,
+        // Validate inputs
+        if (!orderId || !amount) {
+          return new Response(
+            JSON.stringify({ error: 'Missing orderId or amount' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Check if Viva Wallet is configured
+        if (!VIVA_API_KEY || !MERCHANT_ID) {
+          console.warn('Viva Wallet credentials not configured - using demo mode');
+          
+          // Update order with pending payment status
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({ 
+              payment_status: 'pending',
+              viva_order_code: `DEMO-${Date.now()}`
+            })
+            .eq('id', orderId);
+
+          if (updateError) {
+            console.error('Error updating order:', updateError);
+          }
+
+          // Return demo payment URL for testing
+          const demoUrl = `https://demo.vivapayments.com/web/checkout?demo=true&order=${orderId}&amount=${amount}`;
+          
+          return new Response(
+            JSON.stringify({ 
+              paymentUrl: demoUrl, 
+              orderId,
+              demo: true 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Production: Create Viva Wallet checkout session
+        try {
+          const vivaResponse = await fetch('https://api.vivapayments.com/checkout/v2/orders', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${VIVA_API_KEY}`,
+              'Content-Type': 'application/json',
             },
-            merchantTrns: orderId,
-            sourceCode: MERCHANT_ID,
-          }),
-        });
+            body: JSON.stringify({
+              amount: Math.round(amount * 100), // Amount in cents
+              customerTrns: `StreetEatz Order`,
+              customer: {
+                email: customerEmail || undefined,
+                phone: customerPhone || undefined,
+              },
+              merchantTrns: orderId,
+              sourceCode: MERCHANT_ID,
+              disableExactAmount: false,
+              disableCash: true,
+              disableWallet: false,
+            }),
+          });
 
-        const vivaOrder = await response.json();
-        const checkoutUrl = `https://www.vivapayments.com/web/checkout?ref=${vivaOrder.orderCode}`;
-        */
+          if (!vivaResponse.ok) {
+            const errorText = await vivaResponse.text();
+            console.error('Viva Wallet API error:', vivaResponse.status, errorText);
+            throw new Error(`Viva Wallet API error: ${vivaResponse.status}`);
+          }
 
-        // Placeholder response until API keys are provided
-        const checkoutUrl = `https://demo.vivapayments.com/web/checkout?demo=true&order=${orderId}`;
+          const vivaOrder: VivaOrderResponse = await vivaResponse.json();
+          const vivaOrderCode = vivaOrder.orderCode.toString();
+          const paymentUrl = `https://www.vivapayments.com/web/checkout?ref=${vivaOrderCode}`;
 
-        return new Response(
-          JSON.stringify({ checkoutUrl, orderId }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          console.log(`Viva order created: ${vivaOrderCode}`);
+
+          // Update order with Viva order code
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({ 
+              payment_status: 'processing',
+              viva_order_code: vivaOrderCode
+            })
+            .eq('id', orderId);
+
+          if (updateError) {
+            console.error('Error updating order with Viva code:', updateError);
+          }
+
+          return new Response(
+            JSON.stringify({ 
+              paymentUrl, 
+              orderId,
+              vivaOrderCode 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+
+        } catch (vivaError) {
+          console.error('Viva Wallet API call failed:', vivaError);
+          
+          // Update order status to failed
+          await supabase
+            .from('orders')
+            .update({ payment_status: 'failed' })
+            .eq('id', orderId);
+
+          return new Response(
+            JSON.stringify({ error: 'Payment service unavailable' }),
+            { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       case 'webhook': {
         // Handle Viva Wallet webhook for payment confirmation
         const { orderCode, transactionId, statusId } = data;
 
-        console.log(`Webhook received: orderCode=${orderCode}, status=${statusId}`);
+        console.log(`Webhook received: orderCode=${orderCode}, transactionId=${transactionId}, status=${statusId}`);
+
+        // Find order by viva_order_code
+        const { data: order, error: findError } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('viva_order_code', orderCode)
+          .single();
+
+        if (findError || !order) {
+          console.error('Order not found for viva_order_code:', orderCode);
+          return new Response(
+            JSON.stringify({ error: 'Order not found' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
         // Status 'F' = completed successfully
         if (statusId === 'F') {
-          // Update order status in database
-          const { error } = await supabase
+          const { error: updateError } = await supabase
             .from('orders')
-            .update({ status: 'pending', payment_method: 'card' })
-            .eq('id', orderCode);
+            .update({ 
+              status: 'pending', 
+              payment_method: 'card',
+              payment_status: 'completed',
+              viva_transaction_id: transactionId
+            })
+            .eq('id', order.id);
 
-          if (error) {
-            console.error('Error updating order:', error);
+          if (updateError) {
+            console.error('Error updating order:', updateError);
+            return new Response(
+              JSON.stringify({ error: 'Failed to update order' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
           }
+
+          console.log(`Order ${order.id} payment completed successfully`);
+        } else if (statusId === 'E' || statusId === 'X') {
+          // Payment failed or cancelled
+          await supabase
+            .from('orders')
+            .update({ payment_status: 'failed' })
+            .eq('id', order.id);
+
+          console.log(`Order ${order.id} payment failed/cancelled`);
         }
 
         return new Response(
           JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'verify': {
+        // Verify payment status for an order
+        const { orderId } = data;
+
+        const { data: order, error } = await supabase
+          .from('orders')
+          .select('id, payment_status, viva_order_code, viva_transaction_id')
+          .eq('id', orderId)
+          .single();
+
+        if (error || !order) {
+          return new Response(
+            JSON.stringify({ error: 'Order not found' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify(order),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

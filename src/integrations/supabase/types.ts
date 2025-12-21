@@ -237,10 +237,13 @@ export type Database = {
           customer_phone: string | null
           id: string
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_status: string | null
           status: Database["public"]["Enums"]["order_status"] | null
           total: number
           updated_at: string | null
           user_id: string | null
+          viva_order_code: string | null
+          viva_transaction_id: string | null
         }
         Insert: {
           cash_tendered?: number | null
@@ -250,10 +253,13 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_status?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           total: number
           updated_at?: string | null
           user_id?: string | null
+          viva_order_code?: string | null
+          viva_transaction_id?: string | null
         }
         Update: {
           cash_tendered?: number | null
@@ -263,10 +269,13 @@ export type Database = {
           customer_phone?: string | null
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_status?: string | null
           status?: Database["public"]["Enums"]["order_status"] | null
           total?: number
           updated_at?: string | null
           user_id?: string | null
+          viva_order_code?: string | null
+          viva_transaction_id?: string | null
         }
         Relationships: [
           {
