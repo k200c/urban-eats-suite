@@ -20,7 +20,7 @@ interface VivaOrderResponse {
 // Get OAuth2 access token from Viva Wallet
 async function getVivaAccessToken(clientId: string, clientSecret: string): Promise<string> {
   const credentials = btoa(`${clientId}:${clientSecret}`);
-  
+
   const response = await fetch('https://accounts.vivapayments.com/connect/token', {
     method: 'POST',
     headers: {
@@ -38,6 +38,14 @@ async function getVivaAccessToken(clientId: string, clientSecret: string): Promi
 
   const data = await response.json();
   return data.access_token;
+}
+
+function safeJsonParse(text: string): unknown | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -133,15 +141,41 @@ serve(async (req) => {
             throw new Error(`Payment webhook error: ${webhookResponse.status}`);
           }
 
-          const webhookData = await webhookResponse.json();
+          const webhookText = await webhookResponse.text();
+          const parsed = safeJsonParse(webhookText);
+
+          if (!parsed || typeof parsed !== 'object') {
+            console.error('n8n webhook returned non-JSON or empty body:', webhookText);
+            throw new Error('Payment webhook returned an invalid response');
+          }
+
+          const webhookData = parsed as Record<string, unknown>;
           console.log('n8n webhook response:', webhookData);
+
+          const paymentUrl =
+            typeof webhookData.paymentUrl === 'string'
+              ? webhookData.paymentUrl
+              : typeof webhookData.url === 'string'
+                ? webhookData.url
+                : null;
+
+          if (!paymentUrl) {
+            console.error('n8n webhook response missing paymentUrl/url:', webhookData);
+            throw new Error('Payment webhook did not return paymentUrl');
+          }
+
+          const orderCodeRaw = webhookData.orderCode;
+          const orderCode =
+            typeof orderCodeRaw === 'string' || typeof orderCodeRaw === 'number'
+              ? String(orderCodeRaw)
+              : `N8N-${Date.now()}`;
 
           // Update order with payment info from n8n
           const { error: updateError } = await supabase
             .from('orders')
-            .update({ 
+            .update({
               payment_status: 'processing',
-              viva_order_code: webhookData.orderCode || `N8N-${Date.now()}`
+              viva_order_code: orderCode,
             })
             .eq('id', orderId);
 
@@ -150,10 +184,10 @@ serve(async (req) => {
           }
 
           return new Response(
-            JSON.stringify({ 
-              paymentUrl: webhookData.paymentUrl || webhookData.url,
+            JSON.stringify({
+              paymentUrl,
               orderId,
-              orderCode: webhookData.orderCode
+              orderCode,
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
