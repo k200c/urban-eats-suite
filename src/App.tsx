@@ -17,6 +17,9 @@ import StaffPOS from "./pages/StaffPOS";
 import StaffPOSQuick from "./pages/StaffPOSQuick";
 import StaffDashboard from "./pages/StaffDashboard";
 import NotFound from "./pages/NotFound";
+import PaymentProcessing from "./pages/PaymentProcessing";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentError from "./pages/PaymentError";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient({
@@ -56,6 +59,9 @@ const App = () => {
             <Route path="/staff" element={<StaffPOS />} />
             <Route path="/staff/pos" element={<StaffPOSQuick />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />
+            <Route path="/processing/:orderCode" element={<PaymentProcessing />} />
+            <Route path="/success" element={<PaymentSuccess />} />
+            <Route path="/error" element={<PaymentError />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
