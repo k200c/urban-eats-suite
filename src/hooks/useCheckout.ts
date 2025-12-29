@@ -48,7 +48,12 @@ export function useCheckout() {
   const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
   const { items, getTotal, clearCart } = useCartStore();
 
-  const submitOrder = async (data: CheckoutData): Promise<OrderResult | null> => {
+  /**
+   * Submit order WITHOUT clearing the cart.
+   * For card payments: cart stays until PaymentSuccess confirms via ?s= param
+   * For cash payments: caller must explicitly call clearCart after sendToKitchen succeeds
+   */
+  const submitOrder = async (data: CheckoutData, shouldClearCart = false): Promise<OrderResult | null> => {
     if (items.length === 0) {
       toast.error("Cart is empty");
       return null;
@@ -97,7 +102,10 @@ export function useCheckout() {
       // Generate order number from timestamp (last 3 digits of epoch seconds)
       const orderNumber = Math.floor(new Date(result.created_at).getTime() / 1000) % 1000;
 
-      clearCart();
+      // Only clear cart if explicitly requested (cash payments after kitchen confirmation)
+      if (shouldClearCart) {
+        clearCart();
+      }
 
       return {
         orderId: result.order_id,
@@ -264,6 +272,7 @@ export function useCheckout() {
   return {
     submitOrder,
     sendToKitchen,
+    clearCart, // Expose for explicit clearing after success
     isSubmitting,
     isSendingToKitchen,
     total: getTotal(),

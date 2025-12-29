@@ -20,7 +20,7 @@ type Step = 'details' | 'payment' | 'connecting' | 'sending' | 'pending';
 
 export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: CustomerCheckoutModalProps) {
   const { user, profile } = useAuth();
-  const { submitOrder, sendToKitchen, isSubmitting, isSendingToKitchen, total, items } = useCheckout();
+  const { submitOrder, sendToKitchen, clearCart, isSubmitting, isSendingToKitchen, total, items } = useCheckout();
   
   const [step, setStep] = useState<Step>('details');
   const [customerName, setCustomerName] = useState('');
@@ -191,7 +191,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
     setIsProcessingPayment(true);
 
     try {
-      // IMPORTANT: Save cart data BEFORE submitOrder clears the cart
+      // IMPORTANT: Save cart data BEFORE submitOrder (cart won't be cleared now, but snapshot for safety)
       const cartSnapshot = [...items];
       const totalSnapshot = total;
 
@@ -207,7 +207,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
 
       if (result) {
         // Send to n8n webhook for cash/collection payments (marked as web order)
-        await sendToKitchen(
+        const kitchenSuccess = await sendToKitchen(
           result,
           {
             name: customerName.trim(),
@@ -218,6 +218,11 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
           totalSnapshot,
           'web'
         );
+
+        // Only clear cart AFTER kitchen confirmation
+        if (kitchenSuccess) {
+          clearCart();
+        }
 
         setOrderNumber(result.orderNumber);
         setStep('pending');
