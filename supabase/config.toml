@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.update-order-status]
 verify_jwt = false
+
+[functions.update-social-post]
+verify_jwt = false
