@@ -161,7 +161,7 @@ serve(async (req) => {
         
         console.log('Webhook payload:', JSON.stringify(webhookPayload));
         
-        const webhookResponse = await fetch('https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-payment', {
+        const webhookResponse = await fetch('https://kyle2000.app.n8n.cloud/webhook/street-eatz-payment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ serve(async (req) => {
         try {
           console.log('Sending payment request to n8n webhook...');
           
-          const webhookResponse = await fetch('https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-payment', {
+          const webhookResponse = await fetch('https://kyle2000.app.n8n.cloud/webhook/street-eatz-payment', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
