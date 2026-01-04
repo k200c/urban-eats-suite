@@ -35,6 +35,108 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcasts: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          message: string
+          open_rate: number | null
+          recipients_count: number | null
+          revenue_generated: number | null
+          sent_at: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message: string
+          open_rate?: number | null
+          recipients_count?: number | null
+          revenue_generated?: number | null
+          sent_at?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message?: string
+          open_rate?: number | null
+          recipients_count?: number | null
+          revenue_generated?: number | null
+          sent_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      community_votes: {
+        Row: {
+          closing_date: string
+          created_at: string
+          id: string
+          is_active: boolean
+          option_a: string
+          option_b: string
+          title: string
+          updated_at: string
+          votes_a: number
+          votes_b: number
+          winner: string | null
+        }
+        Insert: {
+          closing_date: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          option_a: string
+          option_b: string
+          title: string
+          updated_at?: string
+          votes_a?: number
+          votes_b?: number
+          winner?: string | null
+        }
+        Update: {
+          closing_date?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          option_a?: string
+          option_b?: string
+          title?: string
+          updated_at?: string
+          votes_a?: number
+          votes_b?: number
+          winner?: string | null
+        }
+        Relationships: []
+      }
+      customer_notes: {
+        Row: {
+          created_at: string
+          customer_phone: string
+          dietary_notes: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_phone: string
+          dietary_notes?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_phone?: string
+          dietary_notes?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, Clock, Package, ArrowLeft, Users, ChefHat, Share2, Bug } from 'lucide-react';
+import { Store, Clock, Package, ArrowLeft, Users, ChefHat, Share2, Bug, BarChart3, Megaphone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { useStoreStatus } from '@/hooks/useStoreStatus';
@@ -13,8 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KitchenDisplaySystem } from '@/components/staff/KitchenDisplaySystem';
-import { CustomerList } from '@/components/staff/CustomerList';
 import { SocialMediaManager } from '@/components/staff/SocialMediaManager';
+import { CRMDashboard } from '@/components/staff/CRMDashboard';
+import { MarketingHub } from '@/components/staff/MarketingHub';
+import { AnalyticsDashboard } from '@/components/staff/AnalyticsDashboard';
 import { AddProductDialog } from '@/components/staff/AddProductDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
@@ -158,22 +160,30 @@ export default function StaffDashboard() {
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         <Tabs defaultValue="kitchen" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-4xl overflow-x-auto">
             <TabsTrigger value="operations" className="flex items-center gap-2">
               <Store className="w-4 h-4" />
-              <span className="hidden sm:inline">Operations</span>
+              <span className="hidden sm:inline">Ops</span>
             </TabsTrigger>
             <TabsTrigger value="kitchen" className="flex items-center gap-2">
               <ChefHat className="w-4 h-4" />
-              <span className="hidden sm:inline">Kitchen (KDS)</span>
+              <span className="hidden sm:inline">Kitchen</span>
             </TabsTrigger>
             <TabsTrigger value="customers" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Customers</span>
+              <span className="hidden sm:inline">CRM</span>
+            </TabsTrigger>
+            <TabsTrigger value="marketing" className="flex items-center gap-2">
+              <Megaphone className="w-4 h-4" />
+              <span className="hidden sm:inline">Marketing</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="social" className="flex items-center gap-2">
               <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Social Media</span>
+              <span className="hidden sm:inline">Social</span>
             </TabsTrigger>
           </TabsList>
 
@@ -320,14 +330,42 @@ export default function StaffDashboard() {
             </motion.div>
           </TabsContent>
 
-          {/* Customers Tab */}
+          {/* CRM (Customers) Tab */}
           <TabsContent value="customers">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <CustomerList />
+              <ErrorBoundary>
+                <CRMDashboard />
+              </ErrorBoundary>
+            </motion.div>
+          </TabsContent>
+
+          {/* Marketing Tab */}
+          <TabsContent value="marketing">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ErrorBoundary>
+                <MarketingHub />
+              </ErrorBoundary>
+            </motion.div>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ErrorBoundary>
+                <AnalyticsDashboard />
+              </ErrorBoundary>
             </motion.div>
           </TabsContent>
 
