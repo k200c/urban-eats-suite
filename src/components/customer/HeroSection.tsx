@@ -58,7 +58,7 @@ export function HeroSection() {
       </div>
 
       {/* Content Container */}
-      <div className="relative z-10 flex flex-col items-center">
+      <div className="relative z-10 flex flex-col items-center" style={{ opacity: 1 }}>
         {/* Logo with Levitation Animation */}
         <motion.div
           className="mb-6 relative"

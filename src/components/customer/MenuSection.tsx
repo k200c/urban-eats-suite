@@ -71,7 +71,7 @@ function AnimatedCategorySection({
   });
   
   const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.3, 1, 1, 0.3]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [1, 1, 1, 0.9]);
 
   return (
     <motion.div
@@ -123,14 +123,7 @@ export function MenuSection() {
   const headerRef = useRef(null);
   const isHeaderInView = useInView(headerRef, { once: true });
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "start start"]
-  });
-
-  const headerScale = useTransform(scrollYProgress, [0, 0.5], [0.8, 1]);
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
-  const headerY = useTransform(scrollYProgress, [0, 0.5], [60, 0]);
+  // Removed scroll-based header transforms that caused invisible content on load
 
   const { data: products, isLoading, isError, refetch } = useProducts(selectedCategory);
   const { data: modifierGroups } = useProductModifiers(selectedProduct?.id);
@@ -167,15 +160,13 @@ export function MenuSection() {
       
       <section ref={sectionRef} id="menu" className="px-4 py-12 max-w-4xl mx-auto scroll-mt-20 relative">
         {/* Animated Section Header */}
-        <motion.div 
-          ref={headerRef}
-          className="text-center mb-8"
-          style={{ 
-            scale: headerScale, 
-            opacity: headerOpacity,
-            y: headerY
-          }}
-        >
+      <motion.div 
+        ref={headerRef}
+        className="text-center mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <motion.h2 
           className="font-heading text-3xl sm:text-4xl font-bold text-foreground mb-2"
           initial={{ opacity: 0, y: 30 }}
