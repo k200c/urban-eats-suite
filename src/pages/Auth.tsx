@@ -33,11 +33,21 @@ export default function Auth() {
   // Redirect based on role once authenticated
   useEffect(() => {
     if (!loading && user && role) {
+      console.log('[Auth] Redirecting user with role:', role);
       if (role === 'staff' || role === 'admin') {
         navigate('/staff/pos', { replace: true });
       } else {
         navigate('/menu', { replace: true });
       }
+    }
+    
+    // Fallback: if user is authenticated but role is still null after 3 seconds, redirect to menu
+    if (!loading && user && !role) {
+      const timeout = setTimeout(() => {
+        console.log('[Auth] Role not set after timeout, redirecting to menu');
+        navigate('/menu', { replace: true });
+      }, 3000);
+      return () => clearTimeout(timeout);
     }
   }, [user, role, loading, navigate]);
 

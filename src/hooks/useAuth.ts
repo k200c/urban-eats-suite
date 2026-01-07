@@ -68,19 +68,31 @@ export function useAuth() {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch role from user_roles table using has_role function
+      console.log('[Auth] Fetching user data for:', userId);
+      
       const [staffCheck, adminCheck, profileResult] = await Promise.all([
         supabase.rpc('has_role', { _user_id: userId, _role: 'staff' }),
         supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }),
         supabase.from('profiles').select('full_name, phone').eq('id', userId).single(),
       ]);
 
+      console.log('[Auth] Staff check:', staffCheck.data, staffCheck.error);
+      console.log('[Auth] Admin check:', adminCheck.data, adminCheck.error);
+
       let role: AppRole = 'customer';
-      if (adminCheck.data === true) {
+      if (adminCheck.error) {
+        console.error('[Auth] Admin role check error:', adminCheck.error);
+      } else if (adminCheck.data === true) {
         role = 'admin';
-      } else if (staffCheck.data === true) {
+      }
+      
+      if (staffCheck.error) {
+        console.error('[Auth] Staff role check error:', staffCheck.error);
+      } else if (role !== 'admin' && staffCheck.data === true) {
         role = 'staff';
       }
+
+      console.log('[Auth] Determined role:', role);
 
       setState(prev => ({
         ...prev,
@@ -89,7 +101,7 @@ export function useAuth() {
         loading: false,
       }));
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('[Auth] Error fetching user data:', error);
       setState(prev => ({
         ...prev,
         role: 'customer',
