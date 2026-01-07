@@ -80,7 +80,7 @@ function BroadcastsTab() {
   if (broadcastStats.totalSent > 0) broadcastStats.avgOpenRate = broadcastStats.avgOpenRate / broadcastStats.totalSent;
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
