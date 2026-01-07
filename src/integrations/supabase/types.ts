@@ -19,18 +19,24 @@ export type Database = {
           current_wait_time: string
           id: number
           is_store_open: boolean
+          marketing_banner_enabled: boolean | null
+          marketing_banner_text: string | null
           updated_at: string | null
         }
         Insert: {
           current_wait_time?: string
           id?: number
           is_store_open?: boolean
+          marketing_banner_enabled?: boolean | null
+          marketing_banner_text?: string | null
           updated_at?: string | null
         }
         Update: {
           current_wait_time?: string
           id?: number
           is_store_open?: boolean
+          marketing_banner_enabled?: boolean | null
+          marketing_banner_text?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -181,6 +187,7 @@ export type Database = {
       customers: {
         Row: {
           created_at: string
+          email: string | null
           last_order_date: string | null
           name: string | null
           phone_number: string
@@ -190,6 +197,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email?: string | null
           last_order_date?: string | null
           name?: string | null
           phone_number: string
@@ -199,6 +207,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email?: string | null
           last_order_date?: string | null
           name?: string | null
           phone_number?: string
@@ -574,6 +583,48 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      promotions: {
+        Row: {
+          code: string
+          created_at: string | null
+          discount_type: string
+          discount_value: number
+          expiry_date: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          min_order_value: number | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          discount_type: string
+          discount_value: number
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_order_value?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          discount_type?: string
+          discount_value?: number
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          min_order_value?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
         }
         Relationships: []
       }

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { BottomNav } from './BottomNav';
+import { MarketingBanner } from '@/components/customer/MarketingBanner';
 
 interface CustomerLayoutProps {
   children: ReactNode;
@@ -8,6 +9,7 @@ interface CustomerLayoutProps {
 export function CustomerLayout({ children }: CustomerLayoutProps) {
   return (
     <div className="min-h-screen bg-background pb-20">
+      <MarketingBanner />
       <main className="max-w-lg mx-auto">
         {children}
       </main>

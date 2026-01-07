@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Crown, Clock, Sparkles, User, Phone, TrendingUp, Heart, X, Edit2, Save } from 'lucide-react';
+import { Search, Filter, Crown, Clock, Sparkles, User, Phone, TrendingUp, Heart, X, Edit2, Save, MessageSquare, Package, Loader2 } from 'lucide-react';
 import { useCRMCustomers, useCustomerFavoriteItem, useUpdateDietaryNotes, CustomerWithStats } from '@/hooks/useCRMData';
+import { useCustomerOrders, CustomerOrder } from '@/hooks/useCustomerOrders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 type FilterType = 'all' | 'vip' | 'lapsed' | 'new';
 
@@ -22,13 +27,39 @@ const tierColors = {
 
 function GuestCard({ customer, onClose }: { customer: CustomerWithStats; onClose: () => void }) {
   const { data: favoriteItem } = useCustomerFavoriteItem(customer.phone_number);
+  const { data: orders, isLoading: ordersLoading } = useCustomerOrders(customer.phone_number);
   const updateNotes = useUpdateDietaryNotes();
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState(customer.dietary_notes || '');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const handleSaveNotes = async () => {
     await updateNotes.mutateAsync({ phone: customer.phone_number, notes });
     setIsEditingNotes(false);
+  };
+
+  const handleSendMessage = async () => {
+    setIsSendingMessage(true);
+    try {
+      const response = await fetch('https://n8n.lovable.dev/webhook/send-customer-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'personalized_message',
+          phone: customer.phone_number,
+          name: customer.name || 'Valued Customer',
+        }),
+      });
+      if (response.ok) {
+        toast.success('Message sent successfully');
+      } else {
+        toast.error('Failed to send message');
+      }
+    } catch (error) {
+      toast.error('Failed to send message');
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
   const nextTier = customer.loyalty_tier === 'Platinum' ? null : 
@@ -156,6 +187,56 @@ function GuestCard({ customer, onClose }: { customer: CustomerWithStats; onClose
               )}
             </div>
           </div>
+
+          {/* Order History */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Order History
+            </h4>
+            <ScrollArea className="h-[150px]">
+              {ordersLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : orders && orders.length > 0 ? (
+                <div className="space-y-2">
+                  {orders.map((order: CustomerOrder) => (
+                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
+                      <div>
+                        <p className="font-medium text-sm">#{String(order.display_id).padStart(4, '0')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(order.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-sm text-primary">€{order.total.toFixed(2)}</p>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {order.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground text-sm py-4">No orders found</p>
+              )}
+            </ScrollArea>
+          </div>
+
+          {/* Send Message Button */}
+          <Button 
+            className="w-full gap-2" 
+            onClick={handleSendMessage}
+            disabled={isSendingMessage}
+          >
+            {isSendingMessage ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <MessageSquare className="w-4 h-4" />
+            )}
+            {isSendingMessage ? 'Sending...' : 'Send Message'}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -164,9 +245,32 @@ function GuestCard({ customer, onClose }: { customer: CustomerWithStats; onClose
 
 export function CRMDashboard() {
   const { data: customers, isLoading } = useCRMCustomers();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null);
+
+  // Real-time subscription for customers
+  useEffect(() => {
+    const channel = supabase
+      .channel('crm-customers-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'customers',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['crm-customers'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const filteredCustomers = useMemo(() => {
     if (!customers) return [];
