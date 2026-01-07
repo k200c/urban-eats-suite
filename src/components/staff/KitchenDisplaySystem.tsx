@@ -1,14 +1,17 @@
 import React, { useState, DragEvent, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Clock, Volume2, VolumeX, GripVertical, Play, CheckCircle, PackageCheck, RefreshCw, Bug } from 'lucide-react';
+import { ChefHat, Clock, Volume2, VolumeX, GripVertical, Play, CheckCircle, PackageCheck, RefreshCw, Bug, ShoppingBag } from 'lucide-react';
 import { useKitchenOrders, KitchenOrder } from '@/hooks/useKitchenOrders';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { PickupOrderCard } from './PickupOrderCard';
+import { StaffPaymentModal } from './StaffPaymentModal';
 
-type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed';
+type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed' | 'pending_payment';
 
 interface ColumnConfig {
   status: OrderStatus;
@@ -61,6 +64,11 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
     const timeAgo = order.created_at 
       ? formatDistanceToNow(new Date(order.created_at), { addSuffix: true })
       : 'Unknown';
+
+    // Format display_id as 4-digit number
+    const displayNumber = order.display_id 
+      ? String(order.display_id).padStart(4, '0')
+      : order.id.slice(-4).toUpperCase();
 
     // Extract modifier info from order items
     const parseModifiers = (modifiers: unknown): string[] => {
@@ -201,7 +209,7 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
               <div className="flex items-center gap-2">
                 <GripVertical className="w-4 h-4 text-muted-foreground" />
                 <span className="font-bold text-lg">
-                  #{order.id.slice(-6).toUpperCase()}
+                  #{displayNumber}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-muted-foreground text-sm">
@@ -355,10 +363,13 @@ export function KitchenDisplaySystem() {
   } = useKitchenOrders();
   
   const [showDebug, setShowDebug] = useState(false);
+  const [activeTab, setActiveTab] = useState<'kitchen' | 'pickup'>('kitchen');
+  const [selectedPickupOrder, setSelectedPickupOrder] = useState<KitchenOrder | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // Find full order data by ID
   const findOrderById = (orderId: string): KitchenOrder | undefined => {
-    return [...ordersByStatus.pending, ...ordersByStatus.cooking, ...ordersByStatus.ready]
+    return [...ordersByStatus.pending, ...ordersByStatus.cooking, ...ordersByStatus.ready, ...ordersByStatus.pending_payment]
       .find(order => order.id === orderId);
   };
 
@@ -410,17 +421,19 @@ export function KitchenDisplaySystem() {
           });
       }
 
-      // Update status in database
+      // Update status in database (exclude pending_payment from the mutation type)
+      const validStatus = newStatus === 'pending_payment' ? 'pending' : newStatus;
       await updateOrderStatus.mutateAsync({ 
         orderId, 
-        status: newStatus as 'pending' | 'cooking' | 'ready' | 'completed' 
+        status: validStatus as 'pending' | 'cooking' | 'ready' | 'completed' 
       });
       
-      const statusLabels: Record<OrderStatus, string> = {
+      const statusLabels: Record<string, string> = {
         pending: 'Pending',
         cooking: 'Cooking',
         ready: 'Ready',
-        completed: 'Completed'
+        completed: 'Completed',
+        pending_payment: 'Awaiting Payment'
       };
       
       const label = skipWebhook && newStatus === 'completed' ? 'Archived' : statusLabels[newStatus];
@@ -444,10 +457,22 @@ export function KitchenDisplaySystem() {
     }
   };
 
+  const handleTakePayment = (order: KitchenOrder) => {
+    setSelectedPickupOrder(order);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setSelectedPickupOrder(null);
+    forceRefresh();
+  };
+
   const totalOrders = 
     ordersByStatus.pending.length + 
     ordersByStatus.cooking.length + 
     ordersByStatus.ready.length;
+
+  const pickupCount = ordersByStatus.pending_payment.length;
 
   return (
     <Card className="bg-card border-border">
@@ -462,54 +487,111 @@ export function KitchenDisplaySystem() {
               </span>
             )}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="gap-2"
-          >
-            {soundEnabled ? (
-              <>
-                <Volume2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Sound On</span>
-              </>
-            ) : (
-              <>
-                <VolumeX className="w-4 h-4" />
-                <span className="hidden sm:inline">Sound Off</span>
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="gap-2"
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sound On</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sound Off</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-64 bg-secondary/30 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {columns.map((column) => (
-              <KanbanColumn
-                key={column.status}
-                config={column}
-                orders={ordersByStatus[column.status]}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onStatusChange={handleStatusChange}
-              />
-            ))}
-          </div>
-        )}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'kitchen' | 'pickup')}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="kitchen" className="gap-2">
+              <ChefHat className="w-4 h-4" />
+              Kitchen
+              {totalOrders > 0 && (
+                <span className="bg-primary/20 text-primary px-1.5 py-0.5 rounded-full text-xs">
+                  {totalOrders}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="pickup" className="gap-2">
+              <ShoppingBag className="w-4 h-4" />
+              Pending Pickup
+              {pickupCount > 0 && (
+                <span className="bg-orange-500/20 text-orange-500 px-1.5 py-0.5 rounded-full text-xs font-bold">
+                  {pickupCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        {!isLoading && totalOrders === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <ChefHat className="w-12 h-12 mx-auto mb-2 opacity-30" />
-            <p>No active orders. New orders will appear here in real-time.</p>
-          </div>
-        )}
+          {/* Kitchen Tab - Kanban Board */}
+          <TabsContent value="kitchen">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-64 bg-secondary/30 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {columns.map((column) => (
+                  <KanbanColumn
+                    key={column.status}
+                    config={column}
+                    orders={ordersByStatus[column.status]}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!isLoading && totalOrders === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <ChefHat className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p>No active orders. New orders will appear here in real-time.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Pending Pickup Tab */}
+          <TabsContent value="pickup">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-64 bg-secondary/30 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : pickupCount > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <AnimatePresence>
+                  {ordersByStatus.pending_payment.map((order) => (
+                    <PickupOrderCard
+                      key={order.id}
+                      order={order}
+                      onTakePayment={handleTakePayment}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <ShoppingBag className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                <p className="text-lg">No orders awaiting payment</p>
+                <p className="text-sm mt-1">Pay-on-collection orders will appear here</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
       
       {/* Debug Footer */}
@@ -547,10 +629,22 @@ export function KitchenDisplaySystem() {
             className="gap-1"
           >
             <RefreshCw className="w-4 h-4" />
-            Force Refresh
+            Refresh
           </Button>
         </div>
       </CardFooter>
+
+      {/* Payment Modal */}
+      {selectedPickupOrder && (
+        <StaffPaymentModal
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+          orderId={selectedPickupOrder.id}
+          displayId={selectedPickupOrder.display_id || 0}
+          total={Number(selectedPickupOrder.total)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </Card>
   );
 }

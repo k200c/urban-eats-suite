@@ -378,6 +378,7 @@ export type Database = {
           created_at: string | null
           customer_name: string | null
           customer_phone: string | null
+          display_id: number
           id: string
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: string | null
@@ -394,6 +395,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          display_id?: number
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: string | null
@@ -410,6 +412,7 @@ export type Database = {
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          display_id?: number
           id?: string
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: string | null
@@ -656,7 +659,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "customer"
-      order_status: "pending" | "cooking" | "ready" | "completed"
+      order_status:
+        | "pending"
+        | "cooking"
+        | "ready"
+        | "completed"
+        | "pending_payment"
       payment_method: "card" | "cash" | "split"
       post_platform: "Instagram" | "SMS"
       post_status: "draft" | "published"
@@ -795,7 +803,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "customer"],
-      order_status: ["pending", "cooking", "ready", "completed"],
+      order_status: [
+        "pending",
+        "cooking",
+        "ready",
+        "completed",
+        "pending_payment",
+      ],
       payment_method: ["card", "cash", "split"],
       post_platform: ["Instagram", "SMS"],
       post_status: ["draft", "published"],

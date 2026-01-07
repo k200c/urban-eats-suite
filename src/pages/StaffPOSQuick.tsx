@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '@/hooks/useProducts';
-import { useCartStore } from '@/stores/cartStore';
+import { useStaffCartStore } from '@/stores/staffCartStore';
 import { useAuth } from '@/hooks/useAuth';
 import { Product, ProductCategory } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,9 @@ export default function StaffPOSQuick() {
   const [lastOrderNumber, setLastOrderNumber] = useState<number | null>(null);
 
   const { data: products = [], isLoading } = useProducts(activeCategory);
-  const { items, addItem, removeItem, updateQuantity, clearCart, getTotal, getItemCount } = useCartStore();
+  
+  // Use isolated staff cart store - completely separate from customer cart
+  const { items, addItem, removeItem, updateQuantity, clearCart, getTotal, getItemCount } = useStaffCartStore();
 
   const total = getTotal();
   const itemCount = getItemCount();

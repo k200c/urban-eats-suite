@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, Banknote, Check, Loader2, Smartphone, ChefHat } from 'lucide-react';
-import { useCheckout } from '@/hooks/useCheckout';
+import { useStaffCheckout } from '@/hooks/useStaffCheckout';
 import { toast } from 'sonner';
 
 interface StaffCheckoutModalProps {
@@ -15,7 +15,7 @@ interface StaffCheckoutModalProps {
 }
 
 // n8n Terminal Webhook URL
-const N8N_TERMINAL_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook-test/viva-payment';
+const N8N_TERMINAL_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook/viva-payment';
 
 export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
@@ -24,7 +24,9 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
   const [customerPhone, setCustomerPhone] = useState('');
   const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
   const [isTerminalActive, setIsTerminalActive] = useState(false);
-  const { submitOrder, sendToKitchen, isSubmitting, total, items } = useCheckout();
+  
+  // Use the isolated staff checkout hook
+  const { submitOrder, sendToKitchen, clearCart, isSubmitting, total, items } = useStaffCheckout();
 
   const tenderedValue = parseFloat(amountTendered) || 0;
   const remaining = total - tenderedValue;
@@ -48,9 +50,10 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
       });
 
       if (result) {
+        clearCart(); // Clear the staff cart after successful order
         resetForm();
         onOpenChange(false);
-        onSuccess(result.orderNumber);
+        onSuccess(result.displayId);
       } else {
         throw new Error('Order creation failed');
       }
@@ -73,10 +76,9 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
     if (isSubmitting) return;
 
     try {
-      // IMPORTANT: Save cart data BEFORE submitOrder clears the cart
+      // Save cart snapshot before clearing
       const cartSnapshot = [...items];
-      const totalSnapshot = total;
-
+      
       // Show "Sending to Kitchen" state
       setIsSendingToKitchen(true);
 
@@ -88,19 +90,17 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
       });
 
       if (result) {
-        // Send to n8n webhook for cash payments (marked as staff order)
-        await sendToKitchen(
-          result,
-          { name: customerName, phone: customerPhone, email: '' },
-          cartSnapshot,
-          totalSnapshot,
-          'staff'
-        );
+        // Send to kitchen webhook
+        await sendToKitchen(result, { 
+          name: customerName, 
+          phone: customerPhone 
+        });
 
+        clearCart(); // Clear the staff cart
         resetForm();
         setIsSendingToKitchen(false);
         onOpenChange(false);
-        onSuccess(result.orderNumber);
+        onSuccess(result.displayId);
       } else {
         throw new Error('Order creation failed');
       }

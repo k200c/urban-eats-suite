@@ -16,7 +16,8 @@ export interface KitchenOrder extends Order {
 
 // Map any "new order" status variants to 'pending' for display
 const PENDING_STATUSES = ['pending', 'received', 'created'];
-const ACTIVE_STATUSES = ['pending', 'received', 'created', 'cooking', 'ready'];
+const PENDING_PAYMENT_STATUSES = ['pending_payment'];
+const ACTIVE_STATUSES = ['pending', 'received', 'created', 'cooking', 'ready', 'pending_payment'];
 
 export function useKitchenOrders() {
   const queryClient = useQueryClient();
@@ -221,7 +222,8 @@ export function useKitchenOrders() {
   const ordersByStatus = {
     pending: orders?.filter(o => PENDING_STATUSES.includes(o.status || '')) || [],
     cooking: orders?.filter(o => o.status === 'cooking') || [],
-    ready: orders?.filter(o => o.status === 'ready') || []
+    ready: orders?.filter(o => o.status === 'ready') || [],
+    pending_payment: orders?.filter(o => PENDING_PAYMENT_STATUSES.includes(o.status || '')) || []
   };
 
   // Debug info
@@ -231,7 +233,8 @@ export function useKitchenOrders() {
     byStatus: {
       pending: ordersByStatus.pending.length,
       cooking: ordersByStatus.cooking.length,
-      ready: ordersByStatus.ready.length
+      ready: ordersByStatus.ready.length,
+      pending_payment: ordersByStatus.pending_payment.length
     }
   };
 
