@@ -1,6 +1,6 @@
 import { Product } from '@/types/database';
-import { Button } from '@/components/ui/button';
 import { Plus, Settings2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useCartStore } from '@/stores/cartStore';
 import { toast } from 'sonner';
 
@@ -11,8 +11,8 @@ import drinks from '@/assets/drinks.jpg';
 
 const categoryImages: Record<string, string> = {
   Burgers: heroBurger,
-  Fries: loadedFries,
   Flatbreads: flatbread,
+  Fries: loadedFries,
   Drinks: drinks,
   Specials: heroBurger,
 };
@@ -23,90 +23,98 @@ interface ProductCardHorizontalProps {
   onClick: () => void;
 }
 
-export function ProductCardHorizontal({ product, hasModifiers, onClick }: ProductCardHorizontalProps) {
+export function ProductCardHorizontal({
+  product,
+  hasModifiers,
+  onClick,
+}: ProductCardHorizontalProps) {
   const addItem = useCartStore((state) => state.addItem);
   const imageUrl = product.image_url || categoryImages[product.category] || heroBurger;
+  const isSoldOut = !product.is_available;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isSoldOut) return;
+    
+    // Add with all defaults (no modifiers, no removed ingredients)
     addItem(product, 1, [], []);
     toast.success('Added to Cart', {
-      description: `${product.name} has been added to your order`,
+      description: `${product.name} added to your order`,
     });
   };
 
-  const isSoldOut = !product.is_available;
+  const handleCustomize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isSoldOut) return;
+    onClick();
+  };
 
   return (
     <div
-      className={`product-card-horizontal flex gap-4 group ${isSoldOut ? 'pointer-events-none' : ''}`}
-      onClick={isSoldOut ? undefined : onClick}
+      className={cn(
+        'street-card p-3 flex gap-3 relative overflow-hidden',
+        isSoldOut && 'opacity-50'
+      )}
     >
-      {/* Image */}
-      <div className={`w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 rounded-lg overflow-hidden ${isSoldOut ? 'grayscale opacity-60' : ''}`}>
+      {/* Product Image */}
+      <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
         <img
           src={imageUrl}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          className="w-full h-full object-cover"
         />
+        {isSoldOut && (
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+            <span className="text-xs font-bold text-muted-foreground">SOLD OUT</span>
+          </div>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col justify-between py-1">
+      {/* Product Info */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
         <div>
-          <h4 className={`font-heading text-base sm:text-lg font-bold line-clamp-1 ${isSoldOut ? 'text-muted-foreground' : 'text-foreground'}`}>
+          <h3 className="font-heading text-base text-foreground line-clamp-1">
             {product.name}
-          </h4>
-          {product.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-              {product.description}
-            </p>
-          )}
+          </h3>
+          <p className="text-muted-foreground text-xs line-clamp-2 mt-0.5">
+            {product.description || 'Delicious street food'}
+          </p>
         </div>
 
         <div className="flex items-center justify-between mt-2">
-          {/* Price Badge */}
-          <span className={`price-badge text-sm ${isSoldOut ? 'opacity-50' : ''}`}>
-            €{product.price.toFixed(2)}
-          </span>
-
-          {/* Action Button */}
-          {hasModifiers ? (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs font-semibold tracking-wider"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
+          <span className="price-badge">€{product.price.toFixed(2)}</span>
+          
+          {/* Dual Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Customize Button */}
+            <button
+              onClick={handleCustomize}
               disabled={isSoldOut}
+              className={cn(
+                'h-8 px-3 rounded-full text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 transition-all',
+                'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+                isSoldOut && 'cursor-not-allowed opacity-50'
+              )}
             >
-              <Settings2 className="w-3 h-3 mr-1" />
-              CUSTOMIZE
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              className="text-xs font-semibold tracking-wider"
+              <Settings2 className="w-3.5 h-3.5" />
+              Customize
+            </button>
+            
+            {/* Quick Add Button */}
+            <button
               onClick={handleQuickAdd}
               disabled={isSoldOut}
+              className={cn(
+                'h-8 w-8 rounded-full flex items-center justify-center transition-all',
+                'bg-primary text-primary-foreground hover:scale-110',
+                isSoldOut && 'cursor-not-allowed opacity-50'
+              )}
             >
-              <Plus className="w-3 h-3 mr-1" />
-              ADD
-            </Button>
-          )}
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Out of Stock Overlay - clearly visible but unclickable */}
-      {isSoldOut && (
-        <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center pointer-events-auto">
-          <span className="bg-red-500/90 text-white font-bold uppercase tracking-wider text-xs px-3 py-1.5 rounded-full">
-            Sold Out
-          </span>
-        </div>
-      )}
     </div>
   );
 }

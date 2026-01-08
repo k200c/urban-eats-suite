@@ -148,23 +148,30 @@ export default function Cart() {
                     {item.product.name}
                   </h3>
                   
-                  {/* Customizations */}
-                  <div className="mt-1 space-y-0.5">
-                    {/* Removed Ingredients - Red */}
-                    {hasRemovedIngredients && (
-                      <p className="text-xs text-destructive">
-                        {item.removedIngredients.map((ing) => `No ${ing.name}`).join(', ')}
-                      </p>
-                    )}
-                    
-                    {/* Added Extras - Green */}
-                    {hasExtras && (
-                      <p className="text-xs text-success">
-                        {item.selectedModifiers.map((m) => `+ ${m.name}`).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                  
+                  {/* Customizations - Clear Summary */}
+                  {(hasRemovedIngredients || hasExtras) && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {/* Removed Ingredients - Red badges */}
+                      {item.removedIngredients.map((ing) => (
+                        <span 
+                          key={ing.id} 
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/20 text-destructive border border-destructive/30"
+                        >
+                          - {ing.name}
+                        </span>
+                      ))}
+                      
+                      {/* Added Extras - Green badges */}
+                      {item.selectedModifiers.map((m) => (
+                        <span 
+                          key={m.id} 
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/20 text-green-400 border border-green-500/30"
+                        >
+                          + {m.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-3">
                     <span className="price-badge">
                       €{item.totalPrice.toFixed(2)}
