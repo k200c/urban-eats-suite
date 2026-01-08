@@ -9,6 +9,7 @@ interface CheckoutData {
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
+  specialNotes?: string;
 }
 
 interface OrderResult {
@@ -93,6 +94,7 @@ export function useCheckout() {
           customer_phone: data.customerPhone || null,
           cash_tendered: data.paymentMethod === "cash" ? data.amountTendered : null,
           change_due: changeDue,
+          special_notes: data.specialNotes || null,
         },
       });
 

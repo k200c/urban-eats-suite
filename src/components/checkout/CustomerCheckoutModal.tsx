@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield, MessageSquare } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +27,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [specialNotes, setSpecialNotes] = useState('');
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
@@ -45,6 +47,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         setStep('details');
         setOrderNumber(null);
         setIsProcessingPayment(false);
+        setSpecialNotes('');
       }, 300);
     }
   }, [open]);
@@ -130,6 +133,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         customerName: trimmedName,
         customerPhone: trimmedPhone,
         customerEmail: trimmedEmail,
+        specialNotes: specialNotes.trim() || undefined,
       });
 
       if (!orderResult) {
@@ -203,6 +207,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim(),
+        specialNotes: specialNotes.trim() || undefined,
       });
 
       if (result) {
@@ -313,6 +318,25 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                     placeholder="you@example.com"
                     className="h-12 bg-secondary"
                   />
+                </div>
+
+                {/* Special Request / Notes */}
+                <div className="space-y-2">
+                  <Label htmlFor="specialNotes" className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Special Request <span className="text-muted-foreground text-xs">(optional)</span>
+                  </Label>
+                  <Textarea
+                    id="specialNotes"
+                    value={specialNotes}
+                    onChange={(e) => setSpecialNotes(e.target.value)}
+                    placeholder="e.g., Allergies, extra napkins, specific timing..."
+                    className="bg-secondary min-h-[80px] resize-none"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">
+                    {specialNotes.length}/500
+                  </p>
                 </div>
 
                 <Button

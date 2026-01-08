@@ -22,6 +22,7 @@ interface CreateOrderRequest {
   customer_phone?: string;
   cash_tendered?: number;
   change_due?: number;
+  special_notes?: string;
 }
 
 serve(async (req) => {
@@ -142,6 +143,7 @@ serve(async (req) => {
         customer_phone: orderData.customer_phone || null,
         cash_tendered: orderData.cash_tendered || null,
         change_due: orderData.change_due || null,
+        special_notes: orderData.special_notes || null,
       })
       .select()
       .single();
