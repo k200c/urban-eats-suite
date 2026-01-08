@@ -131,6 +131,11 @@ serve(async (req) => {
       userId = user?.id || null;
     }
 
+    // Determine payment_status based on payment method
+    // Card payments need to be verified via Viva Wallet callback
+    // Cash/collection payments are unpaid until staff confirms
+    const paymentStatus = orderData.payment_method === 'card' ? 'pending' : 'unpaid';
+
     // Create the order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -138,6 +143,7 @@ serve(async (req) => {
         user_id: userId,
         status: 'pending',
         payment_method: orderData.payment_method,
+        payment_status: paymentStatus,
         total: orderData.total,
         customer_name: orderData.customer_name || null,
         customer_phone: orderData.customer_phone || null,
