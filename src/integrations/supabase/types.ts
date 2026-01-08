@@ -450,6 +450,7 @@ export type Database = {
           created_at: string
           id: string
           ingredient_id: string | null
+          is_addable: boolean
           is_default: boolean
           is_removable: boolean
           product_id: string | null
@@ -458,6 +459,7 @@ export type Database = {
           created_at?: string
           id?: string
           ingredient_id?: string | null
+          is_addable?: boolean
           is_default?: boolean
           is_removable?: boolean
           product_id?: string | null
@@ -466,6 +468,7 @@ export type Database = {
           created_at?: string
           id?: string
           ingredient_id?: string | null
+          is_addable?: boolean
           is_default?: boolean
           is_removable?: boolean
           product_id?: string | null
