@@ -5,6 +5,7 @@ import { Ingredient } from '@/types/database';
 export interface ProductIngredientWithDetails extends Ingredient {
   is_default: boolean;
   is_removable: boolean;
+  is_addable: boolean;
 }
 
 export function useProductIngredients(productId?: string) {
@@ -18,6 +19,7 @@ export function useProductIngredients(productId?: string) {
         .select(`
           is_default,
           is_removable,
+          is_addable,
           ingredients:ingredient_id (
             id,
             name,
@@ -36,6 +38,7 @@ export function useProductIngredients(productId?: string) {
           ...(item.ingredients as unknown as Ingredient),
           is_default: item.is_default,
           is_removable: item.is_removable,
+          is_addable: item.is_addable,
         }));
 
       return ingredients;

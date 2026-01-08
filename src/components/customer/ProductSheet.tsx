@@ -215,6 +215,7 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
                     const isRemoved = state === 'removed';
                     const isExtra = state === 'extra';
                     const isRemovable = ingredient.is_removable !== false;
+                    const isAddable = ingredient.is_addable !== false;
                     
                     return (
                       <div
@@ -254,17 +255,19 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
                             </button>
                           )}
                           
-                          {/* Plus Button (Extra) */}
-                          <button
-                            onClick={() => handleAddExtra(ingredient.id, ingredient.name)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                              isExtra 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-secondary text-secondary-foreground hover:bg-green-500/20 hover:text-green-400'
-                            }`}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                          {/* Plus Button (Extra) - only show if is_addable */}
+                          {isAddable && (
+                            <button
+                              onClick={() => handleAddExtra(ingredient.id, ingredient.name)}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                isExtra 
+                                  ? 'bg-green-500 text-white' 
+                                  : 'bg-secondary text-secondary-foreground hover:bg-green-500/20 hover:text-green-400'
+                              }`}
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
