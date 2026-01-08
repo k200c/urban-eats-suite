@@ -35,13 +35,15 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
     });
   };
 
+  const isSoldOut = !product.is_available;
+
   return (
     <div
-      className="product-card-horizontal flex gap-4 group"
-      onClick={onClick}
+      className={`product-card-horizontal flex gap-4 group ${isSoldOut ? 'pointer-events-none' : ''}`}
+      onClick={isSoldOut ? undefined : onClick}
     >
       {/* Image */}
-      <div className="w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 rounded-lg overflow-hidden">
+      <div className={`w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 rounded-lg overflow-hidden ${isSoldOut ? 'grayscale opacity-60' : ''}`}>
         <img
           src={imageUrl}
           alt={product.name}
@@ -52,7 +54,7 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
       {/* Content */}
       <div className="flex-1 flex flex-col justify-between py-1">
         <div>
-          <h4 className="font-heading text-base sm:text-lg font-bold text-foreground line-clamp-1">
+          <h4 className={`font-heading text-base sm:text-lg font-bold line-clamp-1 ${isSoldOut ? 'text-muted-foreground' : 'text-foreground'}`}>
             {product.name}
           </h4>
           {product.description && (
@@ -64,7 +66,7 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
 
         <div className="flex items-center justify-between mt-2">
           {/* Price Badge */}
-          <span className="price-badge text-sm">
+          <span className={`price-badge text-sm ${isSoldOut ? 'opacity-50' : ''}`}>
             €{product.price.toFixed(2)}
           </span>
 
@@ -78,6 +80,7 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
                 e.stopPropagation();
                 onClick();
               }}
+              disabled={isSoldOut}
             >
               <Settings2 className="w-3 h-3 mr-1" />
               CUSTOMIZE
@@ -87,7 +90,7 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
               size="sm"
               className="text-xs font-semibold tracking-wider"
               onClick={handleQuickAdd}
-              disabled={!product.is_available}
+              disabled={isSoldOut}
             >
               <Plus className="w-3 h-3 mr-1" />
               ADD
@@ -96,10 +99,10 @@ export function ProductCardHorizontal({ product, hasModifiers, onClick }: Produc
         </div>
       </div>
 
-      {/* Out of Stock Overlay */}
-      {!product.is_available && (
-        <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center">
-          <span className="text-muted-foreground font-semibold uppercase tracking-wider text-sm">
+      {/* Out of Stock Overlay - clearly visible but unclickable */}
+      {isSoldOut && (
+        <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center pointer-events-auto">
+          <span className="bg-red-500/90 text-white font-bold uppercase tracking-wider text-xs px-3 py-1.5 rounded-full">
             Sold Out
           </span>
         </div>
