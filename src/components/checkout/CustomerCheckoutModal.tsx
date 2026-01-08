@@ -510,7 +510,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
             </motion.div>
           )}
 
-          {/* Step 3: Order Pending */}
+          {/* Step 3: Order Pending - Pay on Collection */}
           {step === 'pending' && (
             <motion.div
               key="pending"
@@ -533,15 +533,21 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   <p className="font-heading text-5xl text-primary mt-2">#{orderNumber}</p>
                 </div>
 
-                <div className="p-4 bg-secondary rounded-lg">
-                  <p className="text-lg font-heading text-foreground">ORDER PENDING</p>
-                  <p className="text-muted-foreground text-sm mt-1">
+                <div className="p-4 bg-secondary rounded-lg space-y-2">
+                  <p className="text-lg font-heading text-foreground">ORDER RECEIVED</p>
+                  <p className="text-muted-foreground text-sm">
                     Estimated pickup: <span className="text-foreground font-medium">10-15 minutes</span>
                   </p>
+                  <div className="pt-2 border-t border-border mt-2">
+                    <p className="text-sm font-medium text-orange-500 flex items-center justify-center gap-2">
+                      <ShoppingBag className="w-4 h-4" />
+                      Pay on Collection - €{total.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  We'll send a notification when your order is ready!
+                  We'll send you a notification when your order is ready!
                 </p>
 
                 <Button
