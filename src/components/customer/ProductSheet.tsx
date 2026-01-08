@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Minus, Plus, X, MinusCircle, PlusCircle } from 'lucide-react';
+import { Minus, Plus, X } from 'lucide-react';
 import { Product, Modifier, SelectedModifier, RemovedIngredient } from '@/types/database';
 import { ModifierGroupWithModifiers } from '@/hooks/useProductModifiers';
 import { ProductIngredientWithDetails } from '@/hooks/useProductIngredients';
@@ -133,8 +133,7 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
   };
 
   const defaultIngredients = ingredients?.filter((ing) => ing.is_default) || [];
-  const removableIngredients = defaultIngredients.filter((ing) => (ing as any).is_removable !== false);
-  const addableIngredients = defaultIngredients; // All ingredients can have "Extra" option
+  const removableIngredients = defaultIngredients.filter((ing) => ing.is_removable !== false);
   
   const hasIngredients = defaultIngredients.length > 0;
   const hasModifiers = modifierGroups && modifierGroups.length > 0;
@@ -215,7 +214,7 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
                     const state = ingredientStates[ingredient.id] || 'included';
                     const isRemoved = state === 'removed';
                     const isExtra = state === 'extra';
-                    const isRemovable = (ingredient as any).is_removable !== false;
+                    const isRemovable = ingredient.is_removable !== false;
                     
                     return (
                       <div
@@ -225,63 +224,47 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
                             ? 'border-destructive/50 bg-destructive/10'
                             : isExtra
                             ? 'border-green-500/50 bg-green-500/10'
-                            : 'border-white/10 bg-transparent hover:border-white/20'
+                            : 'border-white/10 bg-transparent'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium ${
-                            isRemoved 
-                              ? 'text-muted-foreground line-through' 
-                              : isExtra
-                              ? 'text-green-400'
-                              : 'text-foreground'
-                          }`}>
-                            {ingredient.name}
-                          </span>
-                          {isRemoved && (
-                            <Badge variant="outline" className="text-[10px] text-destructive border-destructive/50">
-                              No {ingredient.name}
-                            </Badge>
-                          )}
-                          {isExtra && (
-                            <Badge variant="outline" className="text-[10px] text-green-400 border-green-500/50">
-                              Extra
-                            </Badge>
-                          )}
-                        </div>
+                        {/* Ingredient Name */}
+                        <span className={`font-medium flex-1 ${
+                          isRemoved 
+                            ? 'text-muted-foreground line-through' 
+                            : isExtra
+                            ? 'text-green-400'
+                            : 'text-foreground'
+                        }`}>
+                          {isRemoved && 'No '}{isExtra && 'Extra '}{ingredient.name}
+                        </span>
                         
-                        <div className="flex items-center gap-2">
-                          {/* Remove Button */}
+                        {/* +/- Button Controls */}
+                        <div className="flex items-center gap-1">
+                          {/* Minus Button (Remove) */}
                           {isRemovable && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={`h-8 px-3 text-xs gap-1.5 ${
-                                isRemoved 
-                                  ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' 
-                                  : 'hover:bg-destructive/10 hover:text-destructive'
-                              }`}
+                            <button
                               onClick={() => handleRemoveIngredient(ingredient.id, ingredient.name)}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                isRemoved 
+                                  ? 'bg-destructive text-destructive-foreground' 
+                                  : 'bg-secondary text-secondary-foreground hover:bg-destructive/20 hover:text-destructive'
+                              }`}
                             >
-                              <MinusCircle className="w-3.5 h-3.5" />
-                              {isRemoved ? 'Undo' : 'Remove'}
-                            </Button>
+                              <Minus className="w-4 h-4" />
+                            </button>
                           )}
                           
-                          {/* Add Extra Button */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={`h-8 px-3 text-xs gap-1.5 ${
-                              isExtra 
-                                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                                : 'hover:bg-green-500/10 hover:text-green-400'
-                            }`}
+                          {/* Plus Button (Extra) */}
+                          <button
                             onClick={() => handleAddExtra(ingredient.id, ingredient.name)}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              isExtra 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-secondary text-secondary-foreground hover:bg-green-500/20 hover:text-green-400'
+                            }`}
                           >
-                            <PlusCircle className="w-3.5 h-3.5" />
-                            {isExtra ? 'Undo' : 'Extra'}
-                          </Button>
+                            <Plus className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     );

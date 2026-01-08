@@ -148,9 +148,9 @@ export function MenuSection() {
     }
   };
 
+  // All products can now be customized
   const hasModifiers = (productId: string) => {
-    const product = products?.find(p => p.id === productId);
-    return product?.category === 'Burgers' || product?.category === 'Flatbreads';
+    return true;
   };
 
   return (
