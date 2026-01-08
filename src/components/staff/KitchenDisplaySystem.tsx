@@ -70,27 +70,77 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
       ? String(order.display_id).padStart(4, '0')
       : order.id.slice(-4).toUpperCase();
 
-    // Extract modifier info from order items
-    const parseModifiers = (modifiers: unknown): string[] => {
-      if (!modifiers) return [];
-      if (Array.isArray(modifiers)) {
-        return modifiers.map((m: unknown) => {
-          if (typeof m === 'string') return m;
-          if (m && typeof m === 'object' && 'name' in m) return (m as { name: string }).name;
-          return '';
-        }).filter(Boolean);
-      }
-      return [];
-    };
+    // Parse modifiers from the structured payload
+    interface ParsedModifiers {
+      regularModifiers: Array<{ name: string; price_adjustment?: number }>;
+      removedIngredients: string[];
+      addedExtras: string[];
+    }
 
-    // Check if modifier indicates removal or allergy
-    const isHighlightedModifier = (mod: string): boolean => {
-      const lowered = mod.toLowerCase();
-      return lowered.startsWith('no ') || 
-             lowered.includes('allergy') || 
-             lowered.includes('allergies') ||
-             lowered.includes('gluten') ||
-             lowered.includes('dairy');
+    const parseModifiers = (modifiers: unknown): ParsedModifiers => {
+      const result: ParsedModifiers = {
+        regularModifiers: [],
+        removedIngredients: [],
+        addedExtras: [],
+      };
+
+      if (!modifiers) return result;
+
+      // Handle structured object format
+      if (typeof modifiers === 'object' && !Array.isArray(modifiers)) {
+        const mod = modifiers as Record<string, unknown>;
+        
+        // Extract regular modifiers
+        if (Array.isArray(mod.modifiers)) {
+          result.regularModifiers = mod.modifiers.map((m: unknown) => {
+            if (typeof m === 'string') return { name: m };
+            if (m && typeof m === 'object' && 'name' in m) {
+              const modObj = m as { name: string; price_adjustment?: number };
+              return { name: modObj.name, price_adjustment: modObj.price_adjustment };
+            }
+            return { name: '' };
+          }).filter(m => m.name);
+        }
+
+        // Extract removed ingredients
+        if (Array.isArray(mod.removed_ingredients)) {
+          result.removedIngredients = mod.removed_ingredients.filter((i): i is string => typeof i === 'string');
+        }
+        // Also check legacy format
+        if (Array.isArray(mod.removedIngredients)) {
+          const legacy = mod.removedIngredients.map((i: unknown) => {
+            if (typeof i === 'string') return i;
+            if (i && typeof i === 'object' && 'name' in i) return (i as { name: string }).name;
+            return '';
+          }).filter(Boolean);
+          result.removedIngredients = [...result.removedIngredients, ...legacy];
+        }
+
+        // Extract added extras
+        if (Array.isArray(mod.added_extras)) {
+          result.addedExtras = mod.added_extras.filter((i): i is string => typeof i === 'string');
+        }
+      }
+
+      // Handle legacy array format
+      if (Array.isArray(modifiers)) {
+        modifiers.forEach((m: unknown) => {
+          if (typeof m === 'string') {
+            if (m.toLowerCase().startsWith('no ')) {
+              result.removedIngredients.push(m.replace(/^no /i, ''));
+            } else if (m.toLowerCase().startsWith('extra ')) {
+              result.addedExtras.push(m.replace(/^extra /i, ''));
+            } else {
+              result.regularModifiers.push({ name: m });
+            }
+          } else if (m && typeof m === 'object' && 'name' in m) {
+            const modObj = m as { name: string; price_adjustment?: number };
+            result.regularModifiers.push(modObj);
+          }
+        });
+      }
+
+      return result;
     };
 
     const handleAction = async () => {
@@ -228,7 +278,10 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
             {/* Order Items */}
             <div className="space-y-2">
               {order.order_items.map((item, idx) => {
-                const modifiers = parseModifiers(item.selected_modifiers);
+                const parsed = parseModifiers(item.selected_modifiers);
+                const hasCustomizations = parsed.removedIngredients.length > 0 || 
+                                          parsed.addedExtras.length > 0 || 
+                                          parsed.regularModifiers.length > 0;
                 return (
                   <div key={item.id || idx} className="border-l-2 border-primary/30 pl-2">
                     <div className="flex items-center gap-2">
@@ -239,18 +292,33 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
                         {item.product_name || 'Unknown Item'}
                       </span>
                     </div>
-                    {modifiers.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {modifiers.map((mod, modIdx) => (
+                    {hasCustomizations && (
+                      <div className="flex flex-col gap-1 mt-1 ml-2">
+                        {/* Removed Ingredients - Red/Strikethrough */}
+                        {parsed.removedIngredients.map((ing, i) => (
                           <span
-                            key={modIdx}
-                            className={`text-xs px-1.5 py-0.5 rounded ${
-                              isHighlightedModifier(mod)
-                                ? 'bg-red-500/30 text-red-300 font-bold'
-                                : 'bg-secondary text-muted-foreground'
-                            }`}
+                            key={`removed-${i}`}
+                            className="text-xs px-1.5 py-0.5 rounded bg-red-500/30 text-red-300 font-bold line-through"
                           >
-                            {mod}
+                            NO {ing.toUpperCase()}
+                          </span>
+                        ))}
+                        {/* Added Extras - Green/Bold */}
+                        {parsed.addedExtras.map((extra, i) => (
+                          <span
+                            key={`extra-${i}`}
+                            className="text-xs px-1.5 py-0.5 rounded bg-green-500/30 text-green-300 font-bold"
+                          >
+                            + EXTRA {extra.toUpperCase()}
+                          </span>
+                        ))}
+                        {/* Regular Modifiers */}
+                        {parsed.regularModifiers.map((mod, i) => (
+                          <span
+                            key={`mod-${i}`}
+                            className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground"
+                          >
+                            {mod.name}
                           </span>
                         ))}
                       </div>
@@ -259,6 +327,14 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
                 );
               })}
             </div>
+
+            {/* Special Notes */}
+            {order.special_notes && (
+              <div className="mt-3 p-2 bg-yellow-500/20 border border-yellow-500/40 rounded">
+                <p className="text-xs font-bold text-yellow-300 uppercase mb-1">Special Request:</p>
+                <p className="text-sm text-yellow-100">{order.special_notes}</p>
+              </div>
+            )}
 
             {/* Total */}
             <div className="mt-3 pt-2 border-t border-border flex justify-between items-center">

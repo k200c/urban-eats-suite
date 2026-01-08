@@ -68,21 +68,31 @@ export function useCheckout() {
       const changeDue = data.paymentMethod === "cash" && data.amountTendered ? data.amountTendered - total : null;
 
       // Build order items for the Edge Function
-      const orderItems = items.map((item) => ({
-        product_id: item.product.id,
-        product_name: item.product.name,
-        quantity: item.quantity,
-        unit_price: item.totalPrice / item.quantity, // Use calculated price with modifiers
-        selected_modifiers: {
-          modifiers: item.selectedModifiers.map((m) => ({
-            name: m.name,
-            price_adjustment: m.price_adjustment,
-          })),
-          removedIngredients: item.removedIngredients.map((i) => ({
-            name: i.name,
-          })),
-        },
-      }));
+      const orderItems = items.map((item) => {
+        // Separate regular modifiers from "Extra X" items
+        const regularModifiers = item.selectedModifiers.filter(
+          (m) => !m.name.startsWith("Extra ")
+        );
+        const addedExtras = item.selectedModifiers
+          .filter((m) => m.name.startsWith("Extra "))
+          .map((m) => m.name.replace("Extra ", ""));
+        const removedIngredients = item.removedIngredients.map((i) => i.name);
+
+        return {
+          product_id: item.product.id,
+          product_name: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.totalPrice / item.quantity, // Use calculated price with modifiers
+          selected_modifiers: {
+            modifiers: regularModifiers.map((m) => ({
+              name: m.name,
+              price_adjustment: m.price_adjustment,
+            })),
+            removed_ingredients: removedIngredients,
+            added_extras: addedExtras,
+          },
+        };
+      });
 
       // Use the secure Edge Function for order creation
       const { data: result, error } = await supabase.functions.invoke("create-order", {
@@ -172,20 +182,23 @@ export function useCheckout() {
           total: totalAmount,
         },
         items: cartItems.map((item) => {
-          // Ensure modifiers is strictly an array of strings, default to []
+          // Build modifiers array with proper formatting for kitchen display
           const modifiers: string[] = [];
 
-          // Add removed ingredients
+          // Add removed ingredients (prefixed with "No ")
           if (item.removedIngredients && Array.isArray(item.removedIngredients)) {
             item.removedIngredients.forEach((ing) => {
               if (ing?.name) modifiers.push(`No ${ing.name}`);
             });
           }
 
-          // Add selected modifiers
+          // Add extra ingredients and regular modifiers
           if (item.selectedModifiers && Array.isArray(item.selectedModifiers)) {
             item.selectedModifiers.forEach((mod) => {
-              if (mod?.name) modifiers.push(mod.name);
+              if (mod?.name) {
+                // Keep "Extra X" format for extras
+                modifiers.push(mod.name);
+              }
             });
           }
 
