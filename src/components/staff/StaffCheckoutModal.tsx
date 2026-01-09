@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { 
   Banknote, 
-  Check, 
   CreditCard, 
   Loader2, 
   ChefHat, 
@@ -17,9 +16,10 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { KitchenOrder } from '@/hooks/useKitchenOrders';
+import { useAuth } from '@/hooks/useAuth';
 
-// n8n Webhook URLs
-const N8N_POS_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-pos';
+// n8n Webhook URL for payment processing
+const N8N_PAYMENT_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-payment';
 
 interface StaffCheckoutModalProps {
   open: boolean;
@@ -40,6 +40,7 @@ export function StaffCheckoutModal({
   order,
   onSuccess 
 }: StaffCheckoutModalProps) {
+  const { user } = useAuth();
   const [amountTendered, setAmountTendered] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingType, setProcessingType] = useState<'cash' | 'card' | 'link' | null>(null);
@@ -121,36 +122,66 @@ export function StaffCheckoutModal({
     return result;
   };
 
+  // Build formatted items array with modifications
+  const buildItemsPayload = () => {
+    return order.order_items.map(item => {
+      const parsed = parseModifiers(item.selected_modifiers);
+      const modifications: string[] = [];
+      
+      parsed.removedIngredients.forEach(ing => modifications.push(`No ${ing}`));
+      parsed.addedExtras.forEach(extra => modifications.push(`Extra ${extra}`));
+      parsed.regularModifiers.forEach(mod => modifications.push(mod.name));
+      
+      const itemName = modifications.length > 0 
+        ? `${item.product_name} - ${modifications.join(', ')}`
+        : item.product_name || 'Unknown Item';
+      
+      return {
+        name: itemName,
+        quantity: item.quantity || 1,
+        unit_price: item.unit_price,
+        modifiers: modifications
+      };
+    });
+  };
+
   const handleCashPayment = async () => {
     if (!canPayCash || isProcessing) return;
     setIsProcessing(true);
     setProcessingType('cash');
 
     try {
-      // Send to n8n webhook for receipt printing
-      await fetch(N8N_POS_WEBHOOK, {
+      // Build the n8n webhook payload
+      const webhookPayload = {
+        order_id: order.id,
+        payment_method: 'cash',
+        total_amount: total,
+        staff_id: user?.id || 'unknown',
+        items: buildItemsPayload(),
+        timestamp: new Date().toISOString(),
+        display_id: displayId,
+        amount_tendered: tenderedValue,
+        change_due: changeDue,
+        customer_name: order.customer_name || null,
+        customer_phone: order.customer_phone || null,
+      };
+
+      // Send to n8n webhook for payment processing
+      const response = await fetch(N8N_PAYMENT_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'POSCash',
-          orderId: order.id,
-          displayId,
-          total,
-          amountTendered: tenderedValue,
-          changeDue,
-          items: order.order_items.map(item => ({
-            name: item.product_name,
-            quantity: item.quantity,
-            price: item.unit_price
-          }))
-        }),
-      }).catch(console.error);
+        body: JSON.stringify(webhookPayload),
+      });
 
-      // Update order status
+      if (!response.ok) {
+        throw new Error(`Webhook failed with status ${response.status}`);
+      }
+
+      // Update order status in database
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status: 'pending', // Ready for kitchen
+          status: 'pending',
           payment_method: 'cash',
           payment_status: 'paid',
           cash_tendered: tenderedValue,
@@ -160,8 +191,8 @@ export function StaffCheckoutModal({
 
       if (error) throw error;
 
-      toast.success(`Order #${displayNumber} paid with cash!`, {
-        description: `Change due: €${changeDue.toFixed(2)}`
+      toast.success('Payment Recorded', {
+        description: `Order #${displayNumber} paid with cash. Change: €${changeDue.toFixed(2)}`
       });
       
       resetForm();
@@ -169,7 +200,9 @@ export function StaffCheckoutModal({
       onSuccess();
     } catch (error) {
       console.error('Cash payment error:', error);
-      toast.error('Payment failed. Please try again.');
+      toast.error('Error sending to server', {
+        description: 'Please retry the payment'
+      });
     } finally {
       setIsProcessing(false);
       setProcessingType(null);
@@ -182,29 +215,35 @@ export function StaffCheckoutModal({
     setProcessingType('card');
 
     try {
-      // Send to n8n webhook for terminal/receipt
-      await fetch(N8N_POS_WEBHOOK, {
+      // Build the n8n webhook payload
+      const webhookPayload = {
+        order_id: order.id,
+        payment_method: 'card',
+        total_amount: total,
+        staff_id: user?.id || 'unknown',
+        items: buildItemsPayload(),
+        timestamp: new Date().toISOString(),
+        display_id: displayId,
+        customer_name: order.customer_name || null,
+        customer_phone: order.customer_phone || null,
+      };
+
+      // Send to n8n webhook for payment processing
+      const response = await fetch(N8N_PAYMENT_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'POSCard',
-          orderId: order.id,
-          displayId,
-          total,
-          amountInCents: Math.round(total * 100),
-          items: order.order_items.map(item => ({
-            name: item.product_name,
-            quantity: item.quantity,
-            price: item.unit_price
-          }))
-        }),
-      }).catch(console.error);
+        body: JSON.stringify(webhookPayload),
+      });
 
-      // Update order status
+      if (!response.ok) {
+        throw new Error(`Webhook failed with status ${response.status}`);
+      }
+
+      // Update order status in database
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status: 'pending', // Ready for kitchen
+          status: 'pending',
           payment_method: 'card',
           payment_status: 'paid',
         })
@@ -212,8 +251,8 @@ export function StaffCheckoutModal({
 
       if (error) throw error;
 
-      toast.success(`Order #${displayNumber} paid via card!`, {
-        description: 'Order sent to kitchen'
+      toast.success('Payment Recorded', {
+        description: `Order #${displayNumber} paid via card`
       });
       
       resetForm();
@@ -221,7 +260,9 @@ export function StaffCheckoutModal({
       onSuccess();
     } catch (error) {
       console.error('Card payment error:', error);
-      toast.error('Payment failed. Please try again.');
+      toast.error('Error sending to server', {
+        description: 'Please retry the payment'
+      });
     } finally {
       setIsProcessing(false);
       setProcessingType(null);
@@ -235,18 +276,25 @@ export function StaffCheckoutModal({
 
     try {
       // Send to n8n webhook to resend payment link
-      await fetch(N8N_POS_WEBHOOK, {
+      const response = await fetch(N8N_PAYMENT_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'ResendPaymentLink',
-          orderId: order.id,
-          displayId,
-          total,
-          customerPhone: order.customer_phone,
-          customerName: order.customer_name
+          order_id: order.id,
+          payment_method: 'resend_link',
+          total_amount: total,
+          staff_id: user?.id || 'unknown',
+          items: buildItemsPayload(),
+          timestamp: new Date().toISOString(),
+          display_id: displayId,
+          customer_phone: order.customer_phone,
+          customer_name: order.customer_name
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Webhook failed with status ${response.status}`);
+      }
 
       toast.success(`Payment link sent to ${order.customer_phone}!`);
     } catch (error) {
@@ -522,7 +570,7 @@ export function StaffCheckoutModal({
                         onClick={handleCashPayment}
                         disabled={!canPayCash || isProcessing}
                       >
-                        <Check className="w-5 h-5 mr-2" />
+                        <Banknote className="w-5 h-5 mr-2" />
                         COMPLETE
                       </Button>
                     </div>
