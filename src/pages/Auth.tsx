@@ -30,26 +30,22 @@ export default function Auth() {
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect based on role once authenticated
+  const { profileLoading } = useAuth();
+
+  // Redirect based on role once authenticated and profile is loaded
   useEffect(() => {
-    if (!loading && user && role) {
-      console.log('[Auth] Redirecting user with role:', role);
+    // Wait for both auth and profile to finish loading
+    if (loading || profileLoading) return;
+    
+    if (user) {
       if (role === 'staff' || role === 'admin') {
         navigate('/staff/pos', { replace: true });
       } else {
+        // Role is either 'customer' or null (default to menu)
         navigate('/menu', { replace: true });
       }
     }
-    
-    // Fallback: if user is authenticated but role is still null after 3 seconds, redirect to menu
-    if (!loading && user && !role) {
-      const timeout = setTimeout(() => {
-        console.log('[Auth] Role not set after timeout, redirecting to menu');
-        navigate('/menu', { replace: true });
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [user, role, loading, navigate]);
+  }, [user, role, loading, profileLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
