@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Product } from '@/types/database';
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onClick }: ProductCardProps) {
-  const imageUrl = product.image_url || categoryImages[product.category] || heroBurger;
+  const [imgError, setImgError] = useState(false);
+  const fallbackImage = categoryImages[product.category] || heroBurger;
+  const imageUrl = imgError ? fallbackImage : (product.image_url || fallbackImage);
 
   return (
     <div
@@ -36,6 +39,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
           src={imageUrl}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          onError={() => setImgError(true)}
         />
         {!product.is_available && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
