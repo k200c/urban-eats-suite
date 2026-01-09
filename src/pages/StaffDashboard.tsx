@@ -27,7 +27,7 @@ const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '1 hour'];
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
-  const { isStaff, loading } = useAuth();
+  const { isAdmin, loading } = useAuth();
   const { data: settings, isLoading: settingsLoading } = useAppSettings();
   const { devModeEnabled, toggleDevMode, dbStoreOpen } = useStoreStatus();
   const { data: products, isLoading: productsLoading, refetch: refetchProducts } = useProducts();
@@ -38,10 +38,10 @@ export default function StaffDashboard() {
   const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
-    if (!loading && !isStaff) {
+    if (!loading && !isAdmin) {
       navigate('/auth', { replace: true });
     }
-  }, [loading, isStaff, navigate]);
+  }, [loading, isAdmin, navigate]);
 
   const handleStoreToggle = async (isOpen: boolean) => {
     try {
@@ -84,7 +84,7 @@ export default function StaffDashboard() {
     );
   }
 
-  if (!isStaff) return null;
+  if (!isAdmin) return null;
 
   // Use effective store status (considers dev mode bypass)
   const isStoreOpen = devModeEnabled ? true : (settings?.is_store_open ?? true);
@@ -191,7 +191,7 @@ export default function StaffDashboard() {
       <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/staff/pos')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pos')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <h1 className="font-heading text-xl font-bold">COMMAND CENTER</h1>

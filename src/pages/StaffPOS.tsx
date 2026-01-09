@@ -41,7 +41,7 @@ const bundles = [
 
 export default function StaffPOS() {
   const navigate = useNavigate();
-  const { user, isStaff, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   
   // ALL hooks must be called before any conditional returns
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('Burgers');
@@ -53,13 +53,13 @@ export default function StaffPOS() {
 
   const { data: products, isLoading } = useProducts(selectedCategory);
 
-  // Redirect non-staff users
+  // Redirect non-admin users
   useEffect(() => {
-    if (!loading && (!user || !isStaff)) {
-      toast.error('Access denied. Staff only.');
+    if (!loading && (!user || !isAdmin)) {
+      toast.error('Access denied. Admin only.');
       navigate('/auth', { replace: true });
     }
-  }, [user, isStaff, loading, navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
   // Derived values
   const total = cart.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -68,7 +68,7 @@ export default function StaffPOS() {
     : 0;
 
   // Show loading while checking auth
-  if (loading || !user || !isStaff) {
+  if (loading || !user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />

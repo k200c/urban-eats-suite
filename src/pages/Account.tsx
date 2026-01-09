@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 
 export default function Account() {
   const navigate = useNavigate();
-  const { user, profile, loading, signOut, isStaff } = useAuth();
+  const { user, profile, loading, signOut, isAdmin } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -76,15 +76,15 @@ export default function Account() {
           </button>
         </div>
 
-        {/* Staff/Admin Link */}
-        {isStaff && (
+        {/* Admin Link */}
+        {isAdmin && (
           <div className="text-center">
             <Button
               variant="outline"
-              onClick={() => navigate('/staff/pos')}
+              onClick={() => navigate('/admin/pos')}
               className="text-primary"
             >
-              Open Staff POS →
+              Open Admin Dashboard →
             </Button>
           </div>
         )}

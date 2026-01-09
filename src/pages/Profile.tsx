@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, signOut, isStaff } = useAuth();
+  const { user, profile, loading: authLoading, signOut, isAdmin } = useAuth();
   const { activeOrders, completedOrders, completedOrderCount, isLoading: ordersLoading, refetch } = useUserOrders();
   const [showSettings, setShowSettings] = useState(false);
 
@@ -181,13 +181,13 @@ export default function Profile() {
           transition={{ delay: 0.3 }}
           className="glass-card overflow-hidden divide-y divide-border"
         >
-          {isStaff && (
+          {isAdmin && (
             <button 
-              onClick={() => navigate('/staff/pos')}
+              onClick={() => navigate('/admin/pos')}
               className="w-full p-4 flex items-center gap-3 hover:bg-secondary/50 transition-colors"
             >
               <ShieldCheck className="w-5 h-5 text-primary" />
-              <span className="text-foreground flex-1 text-left">Staff Dashboard</span>
+              <span className="text-foreground flex-1 text-left">Admin Dashboard</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
           )}

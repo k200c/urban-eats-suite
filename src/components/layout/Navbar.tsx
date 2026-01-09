@@ -23,7 +23,7 @@ export function Navbar() {
   const itemCount = useCartStore((state) => state.getItemCount());
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, signOut, isStaff } = useAuth();
+  const { user, profile, signOut, isAdmin } = useAuth();
 
   const scrollToSection = (sectionId: string) => {
     // If not on home page, navigate first
@@ -110,12 +110,12 @@ export function Navbar() {
                     <History className="w-4 h-4 mr-2" />
                     Order History
                   </DropdownMenuItem>
-                  {isStaff && (
+                  {isAdmin && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => navigate('/staff/pos')}>
+                      <DropdownMenuItem onClick={() => navigate('/admin/pos')}>
                         <Settings className="w-4 h-4 mr-2" />
-                        Staff Dashboard
+                        Admin Dashboard
                       </DropdownMenuItem>
                     </>
                   )}
@@ -206,12 +206,12 @@ export function Navbar() {
                     <User className="w-4 h-4" />
                     PROFILE
                   </button>
-                  {isStaff && (
+                  {isAdmin && (
                     <button
-                      onClick={() => { navigate('/staff/pos'); setIsOpen(false); }}
+                      onClick={() => { navigate('/admin/pos'); setIsOpen(false); }}
                       className="text-sm font-medium text-primary hover:text-primary/80 transition-colors tracking-wider text-left"
                     >
-                      STAFF DASHBOARD
+                      ADMIN DASHBOARD
                     </button>
                   )}
                   <button

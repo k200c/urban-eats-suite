@@ -38,10 +38,10 @@ export default function Auth() {
     if (loading || profileLoading) return;
     
     if (user) {
-      if (role === 'staff' || role === 'admin') {
-        navigate('/staff/pos', { replace: true });
+      if (role === 'admin') {
+        navigate('/admin/pos', { replace: true });
       } else {
-        // Role is either 'customer' or null (default to menu)
+        // Role is 'customer' or null (default to menu)
         navigate('/menu', { replace: true });
       }
     }

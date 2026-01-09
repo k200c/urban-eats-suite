@@ -16,7 +16,7 @@ const categories: ProductCategory[] = ['Burgers', 'Flatbreads', 'Fries', 'Drinks
 
 export default function StaffPOSQuick() {
   const navigate = useNavigate();
-  const { user, isStaff, loading, signOut } = useAuth();
+  const { user, isAdmin, loading, signOut } = useAuth();
   const [activeCategory, setActiveCategory] = useState<ProductCategory>('Burgers');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -30,13 +30,13 @@ export default function StaffPOSQuick() {
   const total = getTotal();
   const itemCount = getItemCount();
 
-  // Redirect non-staff users
+  // Redirect non-admin users
   useEffect(() => {
-    if (!loading && (!user || !isStaff)) {
-      toast.error('Access denied. Staff only.');
+    if (!loading && (!user || !isAdmin)) {
+      toast.error('Access denied. Admin only.');
       navigate('/auth', { replace: true });
     }
-  }, [user, isStaff, loading, navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
   // One-tap add to cart
   const handleQuickAdd = useCallback((product: Product) => {
@@ -69,7 +69,7 @@ export default function StaffPOSQuick() {
     );
   }
 
-  if (!isStaff) {
+  if (!isAdmin) {
     return null;
   }
 
@@ -100,7 +100,7 @@ export default function StaffPOSQuick() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate('/staff/dashboard')}
+                onClick={() => navigate('/admin/dashboard')}
                 className="flex-shrink-0"
                 title="Command Center"
               >

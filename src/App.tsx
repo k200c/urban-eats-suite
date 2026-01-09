@@ -66,9 +66,9 @@ const App = () => {
                 <Route path="/account" element={<Account />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/details" element={<Details />} />
-                <Route path="/staff" element={<StaffPOS />} />
-                <Route path="/staff/pos" element={<StaffPOSQuick />} />
-                <Route path="/staff/dashboard" element={<StaffDashboard />} />
+                <Route path="/admin" element={<StaffPOS />} />
+                <Route path="/admin/pos" element={<StaffPOSQuick />} />
+                <Route path="/admin/dashboard" element={<StaffDashboard />} />
                 <Route path="/processing/:orderCode" element={<PaymentProcessing />} />
                 <Route path="/success" element={<PaymentSuccess />} />
                 <Route path="/error" element={<PaymentError />} />

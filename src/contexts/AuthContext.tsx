@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, ty
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
-type AppRole = 'admin' | 'staff' | 'customer';
+type AppRole = 'admin' | 'customer';
 
 interface AuthState {
   user: User | null;
@@ -20,7 +20,6 @@ interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string, phone?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  isStaff: boolean;
   isAdmin: boolean;
   isAuthenticated: boolean;
 }
@@ -45,20 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, profileLoading: true }));
     
     try {
-      const [staffCheck, adminCheck, profileResult] = await Promise.all([
-        supabase.rpc('has_role', { _user_id: userId, _role: 'staff' }),
+      const [adminCheck, profileResult] = await Promise.all([
         supabase.rpc('has_role', { _user_id: userId, _role: 'admin' }),
         supabase.from('profiles').select('full_name, phone').eq('id', userId).maybeSingle(),
       ]);
 
       if (!isMounted.current) return;
 
-      let role: AppRole = 'customer';
-      if (!adminCheck.error && adminCheck.data === true) {
-        role = 'admin';
-      } else if (!staffCheck.error && staffCheck.data === true) {
-        role = 'staff';
-      }
+      const role: AppRole = (!adminCheck.error && adminCheck.data === true) ? 'admin' : 'customer';
 
       setState(prev => ({
         ...prev,
@@ -158,7 +151,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
-  const isStaff = state.role === 'staff' || state.role === 'admin';
   const isAdmin = state.role === 'admin';
   const isAuthenticated = !!state.session;
 
@@ -167,7 +159,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
-    isStaff,
     isAdmin,
     isAuthenticated,
   };
