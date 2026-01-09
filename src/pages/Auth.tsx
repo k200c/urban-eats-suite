@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { User, Mail, Lock, Phone, ArrowRight } from 'lucide-react';
 import { z } from 'zod';
+import streetEatzLogo from '@/assets/street-eatz-logo.png';
 
 // Validation schemas
 const signInSchema = z.object({
@@ -102,12 +103,9 @@ export default function Auth() {
       {/* Header */}
       <header className="p-4 flex justify-center">
         <img 
-          src="/lovable-uploads/street-eatz-logo.png" 
+          src={streetEatzLogo} 
           alt="Street Eatz" 
           className="h-12 w-auto"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
         />
       </header>
 

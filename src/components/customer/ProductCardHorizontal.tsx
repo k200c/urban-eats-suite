@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Product } from '@/types/database';
 import { Plus, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,9 @@ export function ProductCardHorizontal({
   onClick,
 }: ProductCardHorizontalProps) {
   const addItem = useCartStore((state) => state.addItem);
-  const imageUrl = product.image_url || categoryImages[product.category] || heroBurger;
+  const [imgError, setImgError] = useState(false);
+  const fallbackImage = categoryImages[product.category] || heroBurger;
+  const imageUrl = imgError ? fallbackImage : (product.image_url || fallbackImage);
   const isSoldOut = !product.is_available;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
@@ -62,6 +65,7 @@ export function ProductCardHorizontal({
           src={imageUrl}
           alt={product.name}
           className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
         />
         {isSoldOut && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
