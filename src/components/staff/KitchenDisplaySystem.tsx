@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PickupOrderCard } from './PickupOrderCard';
 import { StaffPaymentModal } from './StaffPaymentModal';
 import { PaymentStatusBadge } from './PaymentStatusBadge';
-import { QuickPayModal } from './QuickPayModal';
+import { StaffCheckoutModal } from './StaffCheckoutModal';
 
 type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed' | 'pending_payment';
 
@@ -467,8 +467,8 @@ export function KitchenDisplaySystem() {
   const [activeTab, setActiveTab] = useState<'kitchen' | 'pickup'>('kitchen');
   const [selectedPickupOrder, setSelectedPickupOrder] = useState<KitchenOrder | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [quickPayOrder, setQuickPayOrder] = useState<KitchenOrder | null>(null);
-  const [quickPayModalOpen, setQuickPayModalOpen] = useState(false);
+  const [checkoutOrder, setCheckoutOrder] = useState<KitchenOrder | null>(null);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [showUnpaidOnly, setShowUnpaidOnly] = useState(false);
 
   // Find full order data by ID
@@ -579,9 +579,9 @@ export function KitchenDisplaySystem() {
     setPaymentModalOpen(true);
   };
 
-  const handleQuickPay = (order: KitchenOrder) => {
-    setQuickPayOrder(order);
-    setQuickPayModalOpen(true);
+  const handleCheckout = (order: KitchenOrder) => {
+    setCheckoutOrder(order);
+    setCheckoutModalOpen(true);
   };
 
   const handlePaymentSuccess = () => {
@@ -589,8 +589,8 @@ export function KitchenDisplaySystem() {
     forceRefresh();
   };
 
-  const handleQuickPaySuccess = () => {
-    setQuickPayOrder(null);
+  const handleCheckoutSuccess = () => {
+    setCheckoutOrder(null);
     forceRefresh();
   };
 
@@ -705,7 +705,7 @@ export function KitchenDisplaySystem() {
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                     onStatusChange={handleStatusChange}
-                    onQuickPay={handleQuickPay}
+                    onQuickPay={handleCheckout}
                   />
                 ))}
               </div>
@@ -802,17 +802,13 @@ export function KitchenDisplaySystem() {
         />
       )}
 
-      {/* Quick Pay Modal for Order Cards */}
-      {quickPayOrder && (
-        <QuickPayModal
-          open={quickPayModalOpen}
-          onOpenChange={setQuickPayModalOpen}
-          orderId={quickPayOrder.id}
-          displayId={quickPayOrder.display_id || 0}
-          total={Number(quickPayOrder.total)}
-          onSuccess={handleQuickPaySuccess}
-        />
-      )}
+      {/* Staff Checkout Modal for Unpaid Orders */}
+      <StaffCheckoutModal
+        open={checkoutModalOpen}
+        onOpenChange={setCheckoutModalOpen}
+        order={checkoutOrder}
+        onSuccess={handleCheckoutSuccess}
+      />
     </Card>
   );
 }

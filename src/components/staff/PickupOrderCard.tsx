@@ -54,6 +54,7 @@ export function PickupOrderCard({ order, onTakePayment }: PickupOrderCardProps) 
               <PaymentStatusBadge 
                 paymentStatus={order.payment_status}
                 size="md"
+                onClick={isUnpaid ? () => onTakePayment(order) : undefined}
               />
               <div className="flex items-center gap-1 text-muted-foreground text-sm">
                 <Clock className="w-3 h-3" />
