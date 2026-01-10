@@ -209,26 +209,25 @@ export function StaffCheckoutModal({
     }
   };
 
-  const handleCardPayment = async () => {
+  const handleTerminalPayment = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     setProcessingType('card');
 
     try {
-      // Build the n8n webhook payload
+      // Build the n8n webhook payload with exact structure for terminal payments
       const webhookPayload = {
         order_id: order.id,
         payment_method: 'card',
+        paymenttype: 'terminal',
         total_amount: total,
-        staff_id: user?.id || 'unknown',
+        order_source: 'staff',
         items: buildItemsPayload(),
         timestamp: new Date().toISOString(),
         display_id: displayId,
-        customer_name: order.customer_name || null,
-        customer_phone: order.customer_phone || null,
       };
 
-      // Send to n8n webhook for payment processing
+      // Send to n8n webhook for terminal payment processing
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -236,7 +235,7 @@ export function StaffCheckoutModal({
       });
 
       if (!response.ok) {
-        throw new Error(`Webhook failed with status ${response.status}`);
+        throw new Error(`Terminal webhook failed with status ${response.status}`);
       }
 
       // Update order status in database
@@ -252,16 +251,16 @@ export function StaffCheckoutModal({
       if (error) throw error;
 
       toast.success('Payment Recorded', {
-        description: `Order #${displayNumber} paid via card`
+        description: `Order #${displayNumber} paid via terminal`
       });
       
       resetForm();
       onOpenChange(false);
       onSuccess();
     } catch (error) {
-      console.error('Card payment error:', error);
-      toast.error('Error sending to server', {
-        description: 'Please retry the payment'
+      console.error('Terminal payment error:', error);
+      toast.error('Terminal Error: Please check connection or try Cash', {
+        description: 'Failed to process terminal payment'
       });
     } finally {
       setIsProcessing(false);
@@ -337,16 +336,27 @@ export function StaffCheckoutModal({
                 >
                   {processingType === 'link' ? (
                     <Send className="w-10 h-10 text-primary" />
+                  ) : processingType === 'card' ? (
+                    <CreditCard className="w-10 h-10 text-primary" />
                   ) : (
                     <ChefHat className="w-10 h-10 text-green-500" />
                   )}
                 </motion.div>
                 <div>
                   <p className="font-heading text-2xl text-foreground">
-                    {processingType === 'link' ? 'SENDING LINK...' : 'PROCESSING PAYMENT...'}
+                    {processingType === 'link' 
+                      ? 'SENDING LINK...' 
+                      : processingType === 'card'
+                        ? 'TAP CARD ON TERMINAL'
+                        : 'PROCESSING PAYMENT...'}
                   </p>
+                  {processingType === 'card' && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Waiting for customer to tap their card...
+                    </p>
+                  )}
                 </div>
-                <Loader2 className="w-8 h-8 animate-spin text-green-500 mx-auto" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
               </div>
             </motion.div>
           ) : (
@@ -455,11 +465,11 @@ export function StaffCheckoutModal({
                         size="lg"
                         variant="outline"
                         className="h-20 flex-col gap-2 text-base border-2 hover:border-primary hover:bg-primary/10"
-                        onClick={handleCardPayment}
+                        onClick={handleTerminalPayment}
                         disabled={isProcessing}
                       >
                         <CreditCard className="w-8 h-8" />
-                        CARD
+                        TERMINAL
                       </Button>
                       
                       <Button
