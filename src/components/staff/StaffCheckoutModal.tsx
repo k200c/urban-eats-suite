@@ -145,28 +145,36 @@ export function StaffCheckoutModal({
     });
   };
 
+  // Build unified payload for both payment types
+  const buildUnifiedPayload = (paymentMethod: 'card' | 'cash', paymentType: 'terminal' | 'POSCash') => ({
+    order_id: order.id,
+    display_id: displayId,
+    total_amount: total,
+    payment_method: paymentMethod,
+    paymenttype: paymentType,
+    payment_status: paymentType === 'POSCash' ? 'paid' : 'pending',
+    customer_name: order.customer_name || null,
+    customer_phone: order.customer_phone || null,
+    staff_id: user?.id || 'unknown',
+    items: buildItemsPayload(),
+    order_source: 'staff',
+    timestamp: new Date().toISOString(),
+    ...(paymentType === 'POSCash' && {
+      amount_tendered: tenderedValue,
+      change_due: changeDue,
+    }),
+  });
+
   const handleCashPayment = async () => {
     if (!canPayCash || isProcessing) return;
     setIsProcessing(true);
     setProcessingType('cash');
 
     try {
-      // Build the n8n webhook payload
-      const webhookPayload = {
-        order_id: order.id,
-        payment_method: 'cash',
-        total_amount: total,
-        staff_id: user?.id || 'unknown',
-        items: buildItemsPayload(),
-        timestamp: new Date().toISOString(),
-        display_id: displayId,
-        amount_tendered: tenderedValue,
-        change_due: changeDue,
-        customer_name: order.customer_name || null,
-        customer_phone: order.customer_phone || null,
-      };
+      // Build unified payload for cash payment
+      const webhookPayload = buildUnifiedPayload('cash', 'POSCash');
 
-      // Send to n8n webhook for payment processing
+      // Send to n8n webhook - async fetch with immediate acknowledgment
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,8 +208,8 @@ export function StaffCheckoutModal({
       onSuccess();
     } catch (error) {
       console.error('Cash payment error:', error);
-      toast.error('Error sending to server', {
-        description: 'Please retry the payment'
+      toast.error('System Error: Payment not recorded', {
+        description: 'Please check internet or try manual entry'
       });
     } finally {
       setIsProcessing(false);
@@ -215,19 +223,10 @@ export function StaffCheckoutModal({
     setProcessingType('card');
 
     try {
-      // Build the n8n webhook payload with exact structure for terminal payments
-      const webhookPayload = {
-        order_id: order.id,
-        payment_method: 'card',
-        paymenttype: 'terminal',
-        total_amount: total,
-        order_source: 'staff',
-        items: buildItemsPayload(),
-        timestamp: new Date().toISOString(),
-        display_id: displayId,
-      };
+      // Build unified payload for terminal payment
+      const webhookPayload = buildUnifiedPayload('card', 'terminal');
 
-      // Send to n8n webhook for terminal payment processing
+      // Send to n8n webhook - async fetch with immediate acknowledgment
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,7 +237,7 @@ export function StaffCheckoutModal({
         throw new Error(`Terminal webhook failed with status ${response.status}`);
       }
 
-      // Update order status in database
+      // Update order status in database - payment_status pending until terminal handshake
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -259,8 +258,8 @@ export function StaffCheckoutModal({
       onSuccess();
     } catch (error) {
       console.error('Terminal payment error:', error);
-      toast.error('Terminal Error: Please check connection or try Cash', {
-        description: 'Failed to process terminal payment'
+      toast.error('System Error: Payment not recorded', {
+        description: 'Please check internet or try manual entry'
       });
     } finally {
       setIsProcessing(false);
