@@ -14,7 +14,7 @@ export function HeroSection() {
   return (
     <section className="min-h-screen flex flex-col items-center justify-center text-center px-4 pt-16 pb-20 relative overflow-hidden">
       {/* Background with Vignette */}
-      <div className="absolute inset-0 bg-[#0A0A0A]" />
+      <div className="absolute inset-0 bg-[#0A0A0A] pointer-events-none" />
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
