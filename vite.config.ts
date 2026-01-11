@@ -56,32 +56,6 @@ export default defineConfig(({ mode }) => ({
         // Cache strategies for different asset types
       runtimeCaching: [
           {
-            // CRITICAL: Force network-first for app bundle to prevent stale code
-            urlPattern: /\/assets\/.*\.(js|css)$/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "app-bundle",
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60, // 1 hour
-              },
-              networkTimeoutSeconds: 3,
-            },
-          },
-          {
-            // Cache API requests for menu/products
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/products.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "menu-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60, // 1 hour
-              },
-              networkTimeoutSeconds: 5,
-            },
-          },
-          {
             // Cache images
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
             handler: "CacheFirst",
