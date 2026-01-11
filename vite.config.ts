@@ -55,6 +55,21 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         // Cache strategies for different asset types
       runtimeCaching: [
+          // CRITICAL: Never cache backend API calls - prevents stale payment states
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+            handler: "NetworkOnly",
+          },
+          // CRITICAL: Never cache n8n webhook calls
+          {
+            urlPattern: /^https:\/\/.*\.n8n\.cloud\/.*/i,
+            handler: "NetworkOnly",
+          },
+          // CRITICAL: Never cache Edge Function calls
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/.*/i,
+            handler: "NetworkOnly",
+          },
           {
             // Cache images
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,

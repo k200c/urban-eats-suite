@@ -15,6 +15,7 @@ interface CheckoutData {
 interface OrderResult {
   orderId: string;
   orderNumber: number;
+  displayId: number;
   createdAt: string;
 }
 
@@ -111,8 +112,9 @@ export function useCheckout() {
       if (error) throw error;
       if (result.error) throw new Error(result.error);
 
-      // Generate order number from timestamp (last 3 digits of epoch seconds)
-      const orderNumber = Math.floor(new Date(result.created_at).getTime() / 1000) % 1000;
+      // Use display_id from response, fallback to timestamp-based calculation
+      const displayId = result.display_id || Math.floor(new Date(result.created_at).getTime() / 1000) % 10000;
+      const orderNumber = result.display_id || Math.floor(new Date(result.created_at).getTime() / 1000) % 1000;
 
       // Only clear cart if explicitly requested (cash payments after kitchen confirmation)
       if (shouldClearCart) {
@@ -122,6 +124,7 @@ export function useCheckout() {
       return {
         orderId: result.order_id,
         orderNumber,
+        displayId,
         createdAt: result.created_at,
       };
     } catch (error) {

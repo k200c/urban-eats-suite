@@ -124,7 +124,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
     setIsProcessingPayment(true);
 
     try {
-      // Step 1: Show connecting spinner
+      // Step 1: Show connecting/redirecting spinner
       setStep('connecting');
 
       // Step 2: Create the order first
@@ -140,48 +140,92 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         throw new Error('Failed to create order');
       }
 
-      // Step 3: Prepare payload with EXACT structure required by edge function
-      const formattedPhone = formatPhoneWithCountryCode(trimmedPhone);
-      const amountInCents = Math.round(total * 100); // Convert to cents, avoid floating point issues
+      // Step 3: Build items array with removed_ingredients and modifiers for KDS
+      const formattedItems = items.map((item) => {
+        const modifiers: string[] = [];
+        
+        // Add removed ingredients (prefixed with "No ")
+        if (item.removedIngredients && Array.isArray(item.removedIngredients)) {
+          item.removedIngredients.forEach((ing) => {
+            if (ing?.name) modifiers.push(`No ${ing.name}`);
+          });
+        }
 
-      const paymentPayload = {
-        type: 'online' as const,              // CRITICAL: Must include this
-        orderId: orderResult.orderId,         // UUID from orders table
-        amount: amountInCents,                // Amount in CENTS
-        customerEmail: trimmedEmail,
-        customerPhone: formattedPhone,
-        customerName: trimmedName,
-      };
+        // Add extra ingredients and regular modifiers
+        if (item.selectedModifiers && Array.isArray(item.selectedModifiers)) {
+          item.selectedModifiers.forEach((mod) => {
+            if (mod?.name) modifiers.push(mod.name);
+          });
+        }
 
-      console.log('Sending payment payload:', paymentPayload);
-
-      // Step 4: Call Viva Wallet edge function to get payment URL
-      const { data, error } = await supabase.functions.invoke('viva-wallet', {
-        body: paymentPayload,
+        return {
+          name: item.product?.name || 'Unknown Item',
+          quantity: item.quantity || 1,
+          price: item.totalPrice / item.quantity,
+          modifiers: modifiers,
+          removed_ingredients: item.removedIngredients?.map((i) => i.name) || [],
+        };
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Payment service error');
+      // Step 4: Build EXACT payload structure for n8n webhook
+      const formattedPhone = formatPhoneWithCountryCode(trimmedPhone);
+      const payload = {
+        order_id: orderResult.orderId,           // UUID
+        display_id: orderResult.displayId,       // 4-digit number
+        total_amount: total,                     // Number in euros (NOT cents)
+        payment_method: 'card',
+        paymenttype: 'online',                   // Triggers 'Online' branch in n8n
+        payment_status: 'pending',
+        customer_name: trimmedName,
+        customer_email: trimmedEmail,
+        customer_phone: formattedPhone,
+        items: formattedItems,
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log('🚀 Direct n8n payment request:', JSON.stringify(payload, null, 2));
+
+      // Step 5: POST directly to n8n webhook (bypass Edge Function)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      const response = await fetch('https://kyle2000.app.n8n.cloud/webhook/street-eatz-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('📡 n8n response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('n8n error response:', errorText);
+        throw new Error(`Payment service error: ${response.status}`);
       }
 
-      if (!data?.paymentUrl) {
+      // Parse response - support both paymentUrl and url keys
+      const data = await response.json();
+      const paymentUrl = data.paymentUrl || data.url;
+
+      if (!paymentUrl) {
         console.error('Response missing paymentUrl:', data);
         throw new Error('No payment URL received');
       }
 
-      // Step 5: Store the order code for tracking (if returned)
-      if (data.orderCode) {
-        console.log('Order code received:', data.orderCode);
-      }
-
-      // Step 6: Redirect to Viva Wallet payment page
-      console.log('Redirecting to Viva Wallet:', data.paymentUrl);
-      window.location.href = data.paymentUrl;
+      // Step 6: Immediately redirect to Viva Wallet payment page
+      console.log('✅ Redirecting to Viva Wallet:', paymentUrl);
+      window.location.href = paymentUrl;
 
     } catch (error) {
       console.error('Payment initiation error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
+      const errorMessage = error instanceof Error 
+        ? (error.name === 'AbortError' ? 'Payment request timed out' : error.message)
+        : 'Payment failed';
       setPaymentError(errorMessage);
       toast.error('Payment Error: ' + errorMessage);
       setStep('payment');
@@ -469,7 +513,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                 </motion.div>
 
                 <div>
-                  <p className="font-heading text-2xl text-foreground">CONNECTING TO SECURE PAYMENT...</p>
+                  <p className="font-heading text-2xl text-foreground">REDIRECTING TO SECURE PAYMENT...</p>
                   <p className="text-muted-foreground text-sm mt-2">
                     You'll be redirected to our payment partner
                   </p>

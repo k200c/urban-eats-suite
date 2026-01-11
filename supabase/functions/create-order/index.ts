@@ -186,12 +186,13 @@ serve(async (req) => {
       );
     }
 
-    console.log('Order created successfully:', order.id);
+    console.log('Order created successfully:', order.id, 'display_id:', order.display_id);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         order_id: order.id,
+        display_id: order.display_id,
         created_at: order.created_at
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
