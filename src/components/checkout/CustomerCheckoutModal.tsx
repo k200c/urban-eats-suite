@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield, MessageSquare } from 'lucide-react';
+import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield, MessageSquare, RefreshCw } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { hardResetApp } from '@/lib/resetApp';
 
 interface CustomerCheckoutModalProps {
   open: boolean;
@@ -30,6 +30,8 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
   const [specialNotes, setSpecialNotes] = useState('');
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showRetryButton, setShowRetryButton] = useState(false);
+  const [mountTime] = useState(() => Date.now());
 
   // Auto-fill from profile if logged in
   useEffect(() => {
@@ -48,9 +50,39 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         setOrderNumber(null);
         setIsProcessingPayment(false);
         setSpecialNotes('');
+        setShowRetryButton(false);
       }, 300);
     }
   }, [open]);
+
+  // Recovery effect: detect stuck loading state after redirect return (5 second timeout)
+  useEffect(() => {
+    if (step === 'connecting' || (step === 'payment' && isProcessingPayment)) {
+      const stuckTimeout = setTimeout(() => {
+        const elapsedTime = Date.now() - mountTime;
+        if (elapsedTime > 5000) {
+          console.log('Payment flow appears stuck, resetting state...');
+          setStep('payment');
+          setIsProcessingPayment(false);
+        }
+      }, 5000);
+      
+      return () => clearTimeout(stuckTimeout);
+    }
+  }, [step, mountTime, isProcessingPayment]);
+
+  // Show retry button after 10 seconds of loading
+  useEffect(() => {
+    if (isProcessingPayment || step === 'connecting' || step === 'sending') {
+      const retryTimeout = setTimeout(() => {
+        setShowRetryButton(true);
+      }, 10000);
+      
+      return () => clearTimeout(retryTimeout);
+    } else {
+      setShowRetryButton(false);
+    }
+  }, [isProcessingPayment, step]);
 
   const canProceed = customerName.trim() && customerPhone.trim();
   const isButtonDisabled = isSubmitting || isProcessingPayment;
@@ -520,6 +552,25 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                 </div>
 
                 <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+
+                {/* Retry button appears after 10 seconds */}
+                {showRetryButton && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-muted-foreground text-sm mb-3">
+                      Taking too long?
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        await hardResetApp();
+                      }}
+                      className="text-primary border-primary hover:bg-primary/10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Tap here to retry
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -550,6 +601,25 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                 </div>
 
                 <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+
+                {/* Retry button appears after 10 seconds */}
+                {showRetryButton && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-muted-foreground text-sm mb-3">
+                      Taking too long?
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        await hardResetApp();
+                      }}
+                      className="text-primary border-primary hover:bg-primary/10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Tap here to retry
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

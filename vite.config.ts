@@ -55,9 +55,15 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         // Cache strategies for different asset types
       runtimeCaching: [
-          // CRITICAL: Never cache backend API calls - prevents stale payment states
+          // ===== NETWORK ONLY - Never cache dynamic/auth data =====
+          // CRITICAL: Never cache Supabase REST API calls
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+            handler: "NetworkOnly",
+          },
+          // CRITICAL: Never cache Supabase Auth API calls
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/v1\/.*/i,
             handler: "NetworkOnly",
           },
           // CRITICAL: Never cache n8n webhook calls
@@ -70,6 +76,7 @@ export default defineConfig(({ mode }) => ({
             urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/.*/i,
             handler: "NetworkOnly",
           },
+          // ===== CACHE FIRST - Static assets only =====
           {
             // Cache images
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
