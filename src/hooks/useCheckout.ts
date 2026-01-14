@@ -44,6 +44,14 @@ export function useCheckout() {
     const total = getTotal();
 
     try {
+      // Verify session before attempting insert (prevents 403 RLS errors)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user) {
+        console.error("Session verification failed:", sessionError);
+        toast.error("Session expired. Please log in again.");
+        return null;
+      }
+
       // Calculate change due for cash payments
       const changeDue = data.paymentMethod === "cash" && data.amountTendered 
         ? data.amountTendered - total 
@@ -56,6 +64,7 @@ export function useCheckout() {
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
+          user_id: session.user.id, // Required for RLS policy
           status: "pending",
           payment_method: data.paymentMethod,
           payment_status: paymentStatus,
@@ -71,6 +80,12 @@ export function useCheckout() {
 
       if (orderError) {
         console.error("Order insert error:", orderError);
+        // Handle 403/RLS errors specifically
+        if (orderError.code === '42501' || orderError.message?.includes('row-level security')) {
+          toast.error("Session expired. Please log in again.");
+        } else {
+          toast.error("Failed to create order. Please try again.");
+        }
         throw orderError;
       }
 
