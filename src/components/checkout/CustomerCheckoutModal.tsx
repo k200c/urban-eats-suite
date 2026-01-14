@@ -205,6 +205,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         order_id: orderResult.orderId,           // UUID
         display_id: orderResult.displayId,       // 4-digit number
         total_amount: total,                     // Number in euros (NOT cents)
+        user_id: user?.id || null,               // Supabase auth.uid() for customer tracking
         payment_method: 'card',
         paymenttype: 'online',                   // Triggers 'Online' branch in n8n
         payment_status: 'pending',

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCartStore } from "@/stores/cartStore";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 interface CheckoutData {
@@ -26,6 +27,7 @@ export function useCheckout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
   const { items, getTotal, clearCart } = useCartStore();
+  const { user } = useAuth();
 
   /**
    * Submit order via DIRECT Supabase insert (bypasses Edge Function)
@@ -192,9 +194,10 @@ export function useCheckout() {
         order_id: orderResult.orderId,
         display_id: orderResult.orderNumber,
         total_amount: totalAmount,
+        user_id: user?.id || null,             // Supabase auth.uid() for customer tracking
         payment_method: "cash",
-        paymenttype: "collection",         // Triggers 'Collection' branch in n8n
-        payment_status: "unpaid",          // Customer pays on pickup
+        paymenttype: "collection",             // Triggers 'Collection' branch in n8n
+        payment_status: "unpaid",              // Customer pays on pickup
         customer_name: customerData.name || "",
         customer_phone: customerData.phone || "",
         customer_email: customerData.email || "",

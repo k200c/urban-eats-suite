@@ -4,10 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
-import { OfflineBanner } from "@/components/pwa/OfflineBanner";
-import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { useCartSync } from "@/hooks/useCartSync";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
 import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
@@ -44,8 +43,6 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <CartSyncProvider>
-            <OfflineBanner />
-            <InstallPrompt />
             <Toaster />
             <Sonner 
               theme="dark" 
@@ -59,19 +56,27 @@ const App = () => {
             />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Routes>
+                {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/menu" element={<Menu />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/account" element={<Account />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/details" element={<Details />} />
-                <Route path="/admin" element={<StaffPOS />} />
-                <Route path="/admin/pos" element={<StaffPOSQuick />} />
-                <Route path="/admin/dashboard" element={<StaffDashboard />} />
-                <Route path="/processing/:orderCode" element={<PaymentProcessing />} />
+                
+                {/* Customer routes - require auth */}
+                <Route path="/cart" element={<AuthGuard><Cart /></AuthGuard>} />
+                <Route path="/account" element={<AuthGuard><Account /></AuthGuard>} />
+                <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+                <Route path="/details" element={<AuthGuard><Details /></AuthGuard>} />
+                
+                {/* Staff routes - require admin role */}
+                <Route path="/admin" element={<AuthGuard allowedRoles={['admin']}><StaffPOS /></AuthGuard>} />
+                <Route path="/admin/pos" element={<AuthGuard allowedRoles={['admin']}><StaffPOSQuick /></AuthGuard>} />
+                <Route path="/admin/dashboard" element={<AuthGuard allowedRoles={['admin']}><StaffDashboard /></AuthGuard>} />
+                
+                {/* Payment routes - require auth */}
+                <Route path="/processing/:orderCode" element={<AuthGuard><PaymentProcessing /></AuthGuard>} />
                 <Route path="/success" element={<PaymentSuccess />} />
                 <Route path="/error" element={<PaymentError />} />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

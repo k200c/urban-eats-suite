@@ -19,7 +19,10 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string, phone?: string) => Promise<{ error: Error | null }>;
+  signInWithOtp: (email: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  updateProfile: (data: { full_name?: string; phone?: string }) => Promise<{ error: Error | null }>;
   isAdmin: boolean;
   isAuthenticated: boolean;
 }
@@ -147,8 +150,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  const signInWithOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/menu`,
+        shouldCreateUser: true,
+      },
+    });
+    return { error };
+  };
+
+  const verifyOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const updateProfile = async (data: { full_name?: string; phone?: string }) => {
+    if (!state.user) {
+      return { error: new Error('Not authenticated') };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: state.user.id,
+        ...data,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (!error) {
+      // Refresh profile data
+      fetchUserData(state.user.id);
+    }
+
+    return { error };
   };
 
   const isAdmin = state.role === 'admin';
@@ -158,7 +202,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ...state,
     signIn,
     signUp,
+    signInWithOtp,
+    verifyOtp,
     signOut,
+    updateProfile,
     isAdmin,
     isAuthenticated,
   };
