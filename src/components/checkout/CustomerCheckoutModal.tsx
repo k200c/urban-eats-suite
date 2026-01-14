@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield, MessageSquare, RefreshCw } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { hardResetApp } from '@/lib/resetApp';
 
@@ -126,6 +127,14 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
     
     // Clear previous errors
     setPaymentError(null);
+
+    // Verify session before proceeding
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setPaymentError('Session expired. Please log in again.');
+      toast.error('Session expired. Please log in again.');
+      return;
+    }
 
     // Validation before attempting payment
     const trimmedName = customerName.trim();
@@ -270,6 +279,14 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
   const handlePayOnCollection = async () => {
     // Prevent duplicate submissions
     if (isProcessingPayment) return;
+
+    // Verify session before proceeding
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error('Session expired. Please log in again.');
+      return;
+    }
+
     setIsProcessingPayment(true);
 
     try {
@@ -342,6 +359,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
             >
               <DialogHeader>
                 <DialogTitle className="font-heading text-2xl text-center">YOUR DETAILS</DialogTitle>
+                <DialogDescription className="sr-only">Enter your contact details for order pickup</DialogDescription>
               </DialogHeader>
 
               <div className="mt-6 space-y-4">
@@ -441,6 +459,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
             >
               <DialogHeader>
                 <DialogTitle className="font-heading text-2xl text-center">PAYMENT</DialogTitle>
+                <DialogDescription className="sr-only">Choose your payment method</DialogDescription>
               </DialogHeader>
 
               <div className="mt-6 space-y-4">
