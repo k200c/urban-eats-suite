@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.get-order]
 verify_jwt = false
+
+[functions.get-menu]
+verify_jwt = false
+
+[functions.get-order-status]
+verify_jwt = false
