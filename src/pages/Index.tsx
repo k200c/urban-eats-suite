@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { FooterInfoBar } from "@/components/layout/FooterInfoBar";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { HeroSection } from "@/components/customer/HeroSection";
 import { MenuSection } from "@/components/customer/MenuSection";
 import { FloatingCartButton } from "@/components/customer/FloatingCartButton";
@@ -31,11 +32,12 @@ function AboutSection() {
 
 export default function Index() {
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative flex flex-col">
       <Navbar />
       <HeroSection />
       <MenuSection />
       <AboutSection />
+      <SiteFooter />
       <FloatingCartButton />
       <FooterInfoBar />
     </div>

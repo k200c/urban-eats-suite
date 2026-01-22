@@ -21,6 +21,11 @@ import NotFound from "./pages/NotFound";
 import PaymentProcessing from "./pages/PaymentProcessing";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentError from "./pages/PaymentError";
+import Processing from "./pages/Processing";
+import OrderSuccess from "./pages/OrderSuccess";
+import OrderFailed from "./pages/OrderFailed";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
 
 // Component to initialize cart sync within the app
 const CartSyncProvider = ({ children }: { children: React.ReactNode }) => {
@@ -76,6 +81,15 @@ const App = () => {
                 <Route path="/processing/:orderCode" element={<AuthGuard><PaymentProcessing /></AuthGuard>} />
                 <Route path="/success" element={<PaymentSuccess />} />
                 <Route path="/error" element={<PaymentError />} />
+                
+                {/* NEW: Viva Wallet redirect routes (public) */}
+                <Route path="/processing" element={<Processing />} />
+                <Route path="/order-success" element={<OrderSuccess />} />
+                <Route path="/order-failed" element={<OrderFailed />} />
+                
+                {/* Legal pages (public) */}
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
