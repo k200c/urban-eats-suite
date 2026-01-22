@@ -60,7 +60,12 @@ const App = () => {
               }}
             />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <Routes>
+            <Routes>
+                {/* CRITICAL: Viva Wallet redirect routes MUST be first - public, no auth */}
+                <Route path="/processing" element={<Processing />} />
+                <Route path="/order-success" element={<OrderSuccess />} />
+                <Route path="/order-failed" element={<OrderFailed />} />
+                
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
@@ -77,15 +82,10 @@ const App = () => {
                 <Route path="/admin/pos" element={<AuthGuard allowedRoles={['admin']}><StaffPOSQuick /></AuthGuard>} />
                 <Route path="/admin/dashboard" element={<AuthGuard allowedRoles={['admin']}><StaffDashboard /></AuthGuard>} />
                 
-                {/* Payment routes - require auth */}
+                {/* Legacy payment routes - require auth */}
                 <Route path="/processing/:orderCode" element={<AuthGuard><PaymentProcessing /></AuthGuard>} />
                 <Route path="/success" element={<PaymentSuccess />} />
                 <Route path="/error" element={<PaymentError />} />
-                
-                {/* NEW: Viva Wallet redirect routes (public) */}
-                <Route path="/processing" element={<Processing />} />
-                <Route path="/order-success" element={<OrderSuccess />} />
-                <Route path="/order-failed" element={<OrderFailed />} />
                 
                 {/* Legal pages (public) */}
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
