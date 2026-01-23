@@ -41,8 +41,8 @@ const Processing = () => {
 
         if (!mountedRef.current) return;
 
-        // Check for success: either status=paid OR payment_status=completed
-        if (data.status === "paid" || data.payment_status === "completed") {
+        // payment_status is our source of truth for the redirect
+        if (data.payment_status === "completed") {
           if (pollingRef.current) clearInterval(pollingRef.current);
           // Pass display_id if returned by n8n for faster display
           const displayId = data.display_id ? `&display_id=${data.display_id}` : "";
