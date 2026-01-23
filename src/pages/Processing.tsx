@@ -41,9 +41,12 @@ const Processing = () => {
 
         if (!mountedRef.current) return;
 
-        if (data.status === "paid") {
+        // Check for success: either status=paid OR payment_status=completed
+        if (data.status === "paid" || data.payment_status === "completed") {
           if (pollingRef.current) clearInterval(pollingRef.current);
-          navigate(`/order-success?s=${orderCode}`, { replace: true });
+          // Pass display_id if returned by n8n for faster display
+          const displayId = data.display_id ? `&display_id=${data.display_id}` : "";
+          navigate(`/order-success?s=${orderCode}${displayId}`, { replace: true });
           return;
         }
 
@@ -131,7 +134,7 @@ const Processing = () => {
         </div>
 
         <h1 className="text-2xl font-heading text-foreground mb-3">
-          Verifying your Blaa order... 🍔
+          Verifying your order... 🍔
         </h1>
 
         <p className="text-muted-foreground text-sm mb-6">

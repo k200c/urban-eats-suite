@@ -17,11 +17,16 @@ interface OrderDetails {
 const OrderSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(30);
 
   const orderCode = searchParams.get("s");
+  const urlDisplayId = searchParams.get("display_id");
+
+  // Use URL display_id immediately for instant order number display
+  const [order, setOrder] = useState<OrderDetails | null>(
+    urlDisplayId ? { display_id: parseInt(urlDisplayId), total: 0, customer_name: null, status: null } : null
+  );
 
   useEffect(() => {
     const fetchOrder = async () => {
