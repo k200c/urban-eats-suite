@@ -7,6 +7,7 @@ interface ActiveOrderCardProps {
   order: {
     id: string;
     status: 'pending' | 'cooking' | 'ready' | 'completed';
+    payment_status?: string | null;
     total: number;
     created_at: string;
     items: {
@@ -83,9 +84,22 @@ export function ActiveOrderCard({ order }: ActiveOrderCardProps) {
               <StatusIcon className={cn("w-5 h-5", config.textColor)} />
             </div>
             <div>
-              <h3 className="font-heading text-lg text-foreground">
-                Order #{orderNumber}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading text-lg text-foreground">
+                  Order #{orderNumber}
+                </h3>
+                {/* Payment Status Badge */}
+                {order.payment_status && (
+                  <span className={cn(
+                    "px-2 py-0.5 rounded text-xs font-medium",
+                    order.payment_status === 'completed' 
+                      ? "bg-green-500/20 text-green-500" 
+                      : "bg-yellow-500/20 text-yellow-500"
+                  )}>
+                    {order.payment_status === 'completed' ? 'PAID' : 'Payment Pending'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">{timeAgo}</p>
             </div>
           </div>

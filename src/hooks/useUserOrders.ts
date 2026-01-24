@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export interface OrderWithItems {
   id: string;
   status: 'pending' | 'cooking' | 'ready' | 'completed';
+  payment_status: string | null;
   total: number;
   created_at: string;
   items: {
@@ -29,6 +31,7 @@ export function useUserOrders() {
         .select(`
           id,
           status,
+          payment_status,
           total,
           created_at,
           order_items (
@@ -55,6 +58,32 @@ export function useUserOrders() {
     enabled: !!user?.id,
     staleTime: 1000 * 30, // 30 seconds
   });
+
+  // Real-time subscription for order updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`user-orders-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Order updated:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetch]);
 
   // Active orders (pending, cooking, ready)
   const activeOrders = orders?.filter(o => 
