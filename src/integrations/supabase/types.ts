@@ -734,6 +734,7 @@ export type Database = {
         | "Fries"
         | "Drinks"
         | "Specials"
+        | "Sauces"
       user_role: "customer" | "staff" | "admin"
     }
     CompositeTypes: {
@@ -879,6 +880,7 @@ export const Constants = {
         "Fries",
         "Drinks",
         "Specials",
+        "Sauces",
       ],
       user_role: ["customer", "staff", "admin"],
     },

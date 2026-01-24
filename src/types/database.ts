@@ -1,4 +1,4 @@
-export type ProductCategory = 'Burgers' | 'Flatbreads' | 'Fries' | 'Drinks' | 'Specials';
+export type ProductCategory = 'Burgers' | 'Flatbreads' | 'Fries' | 'Drinks' | 'Specials' | 'Sauces';
 export type UserRole = 'customer' | 'staff' | 'admin';
 export type OrderStatus = 'pending' | 'cooking' | 'ready' | 'completed' | 'pending_payment';
 export type PaymentMethod = 'card' | 'cash' | 'split';

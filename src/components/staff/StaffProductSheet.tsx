@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Minus, Plus, X } from 'lucide-react';
-import { Product, Modifier, SelectedModifier, RemovedIngredient } from '@/types/database';
-import { useProductModifiers, ModifierGroupWithModifiers } from '@/hooks/useProductModifiers';
-import { useProductIngredients, ProductIngredientWithDetails } from '@/hooks/useProductIngredients';
+import { Minus, Plus, X, Flame } from 'lucide-react';
+import { Product, SelectedModifier, RemovedIngredient } from '@/types/database';
+import { useProductModifiers } from '@/hooks/useProductModifiers';
+import { useProductIngredients } from '@/hooks/useProductIngredients';
+import { useLoadedFries, useDrinks, useSauces } from '@/hooks/useProductsByCategory';
 import { useStaffCartStore } from '@/stores/staffCartStore';
-import { getExtraPrice, formatExtraPrice } from '@/lib/pricingRules';
+import { getExtraPrice } from '@/lib/pricingRules';
 import { toast } from 'sonner';
 
 import heroBurger from '@/assets/hero-burger.jpg';
@@ -33,11 +34,21 @@ interface StaffProductSheetProps {
 // Track ingredient customization state
 type IngredientState = 'included' | 'removed' | 'extra';
 
+// Standalone add-on items with fixed prices
+const STANDALONE_ADDONS = [
+  { id: 'extra-chicken', name: 'Extra Chicken', price: 2.00 },
+  { id: 'smoked-applewood', name: 'Smoked Applewood Cheese', price: 1.50 },
+  { id: 'handcut-chips', name: 'Handcut Chips', price: 3.00 },
+];
+
 export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedModifiers, setSelectedModifiers] = useState<SelectedModifier[]>([]);
   const [ingredientStates, setIngredientStates] = useState<Record<string, IngredientState>>({});
-  const [selectedSide, setSelectedSide] = useState<string | null>(null);
+  const [standaloneAddons, setStandaloneAddons] = useState<Set<string>>(new Set());
+  const [selectedLoadedFries, setSelectedLoadedFries] = useState<string | null>(null);
+  const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
+  const [selectedSauce, setSelectedSauce] = useState<string | null>(null);
   
   const addItem = useStaffCartStore((state) => state.addItem);
   
@@ -45,16 +56,20 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
   const { data: ingredients } = useProductIngredients(product?.id);
   const { data: modifierGroups } = useProductModifiers(product?.id);
 
-  // Separate sides group from other modifiers
-  const sidesGroup = modifierGroups?.find(g => g.name === 'Add a Side');
-  const addOnGroups = modifierGroups?.filter(g => g.name !== 'Add a Side' && g.name !== 'Drinks');
+  // Fetch dynamic products for dropdowns
+  const { data: loadedFriesProducts } = useLoadedFries();
+  const { data: drinksProducts } = useDrinks();
+  const { data: saucesProducts } = useSauces();
 
   // Reset state when product changes
   useEffect(() => {
     if (product) {
       setQuantity(1);
       setSelectedModifiers([]);
-      setSelectedSide(null);
+      setStandaloneAddons(new Set());
+      setSelectedLoadedFries(null);
+      setSelectedDrink(null);
+      setSelectedSauce(null);
       // Initialize all default ingredients as 'included'
       const initialStates: Record<string, IngredientState> = {};
       ingredients?.forEach((ing) => {
@@ -70,29 +85,19 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
 
   const imageUrl = product.image_url || categoryImages[product.category] || heroBurger;
 
-  const toggleModifier = (modifier: Modifier) => {
-    setSelectedModifiers((prev) => {
-      const exists = prev.find((m) => m.id === modifier.id);
-      if (exists) {
-        return prev.filter((m) => m.id !== modifier.id);
-      }
-      return [
-        ...prev,
-        {
-          id: modifier.id,
-          name: modifier.name,
-          price_adjustment: modifier.price_adjustment || 0,
-        },
-      ];
-    });
-  };
+  // Visibility: Show "Make It Epic" for everything EXCEPT Fries and Drinks
+  const showMakeItEpic = product.category !== 'Fries' && product.category !== 'Drinks' && product.category !== 'Sauces';
 
-  const handleSideChange = (value: string) => {
-    if (value === 'none') {
-      setSelectedSide(null);
-    } else {
-      setSelectedSide(value);
-    }
+  const toggleStandaloneAddon = (addonId: string) => {
+    setStandaloneAddons(prev => {
+      const next = new Set(prev);
+      if (next.has(addonId)) {
+        next.delete(addonId);
+      } else {
+        next.add(addonId);
+      }
+      return next;
+    });
   };
 
   const handleRemoveIngredient = (ingredientId: string) => {
@@ -129,38 +134,77 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
       .map((ing) => ({ 
         id: ing.id, 
         name: `Extra ${ing.name}`,
-        price_adjustment: getExtraPrice(ing.name) // Dynamic pricing!
+        price_adjustment: getExtraPrice(ing.name)
       }));
   };
 
-  // Get selected side as modifier
-  const getSelectedSideModifier = (): SelectedModifier | null => {
-    if (!selectedSide || !sidesGroup) return null;
-    const sideModifier = sidesGroup.modifiers.find(m => m.id === selectedSide);
-    if (!sideModifier) return null;
-    return {
-      id: sideModifier.id,
-      name: sideModifier.name,
-      price_adjustment: sideModifier.price_adjustment || 0,
-    };
+  // Build all modifiers for cart
+  const buildAllModifiers = (): SelectedModifier[] => {
+    const allMods: SelectedModifier[] = [...selectedModifiers, ...getExtraIngredients()];
+
+    // Add standalone add-ons
+    STANDALONE_ADDONS.forEach(addon => {
+      if (standaloneAddons.has(addon.id)) {
+        allMods.push({
+          id: addon.id,
+          name: addon.name,
+          price_adjustment: addon.price,
+        });
+      }
+    });
+
+    // Add loaded fries selection
+    if (selectedLoadedFries && loadedFriesProducts) {
+      const fry = loadedFriesProducts.find(p => p.id === selectedLoadedFries);
+      if (fry) {
+        allMods.push({
+          id: fry.id,
+          name: `Side: ${fry.name}`,
+          price_adjustment: fry.price,
+        });
+      }
+    }
+
+    // Add drink selection
+    if (selectedDrink && drinksProducts) {
+      const drink = drinksProducts.find(p => p.id === selectedDrink);
+      if (drink) {
+        allMods.push({
+          id: drink.id,
+          name: `Drink: ${drink.name}`,
+          price_adjustment: drink.price,
+        });
+      }
+    }
+
+    // Add sauce selection
+    if (selectedSauce && saucesProducts) {
+      const sauce = saucesProducts.find(p => p.id === selectedSauce);
+      if (sauce) {
+        allMods.push({
+          id: sauce.id,
+          name: `Sauce: ${sauce.name}`,
+          price_adjustment: sauce.price,
+        });
+      }
+    }
+
+    return allMods;
   };
 
   // Calculate totals with dynamic pricing
-  const extraIngredients = getExtraIngredients();
-  const selectedSideModifier = getSelectedSideModifier();
-  const extrasTotal = extraIngredients.reduce((sum, e) => sum + e.price_adjustment, 0);
+  const standaloneTotal = STANDALONE_ADDONS.filter(a => standaloneAddons.has(a.id)).reduce((sum, a) => sum + a.price, 0);
+  const extrasTotal = getExtraIngredients().reduce((sum, e) => sum + e.price_adjustment, 0);
   const modifiersTotal = selectedModifiers.reduce((sum, m) => sum + m.price_adjustment, 0);
-  const sideTotal = selectedSideModifier?.price_adjustment || 0;
-  const totalPrice = (product.price + extrasTotal + modifiersTotal + sideTotal) * quantity;
+  const loadedFriesPrice = loadedFriesProducts?.find(p => p.id === selectedLoadedFries)?.price || 0;
+  const drinkPrice = drinksProducts?.find(p => p.id === selectedDrink)?.price || 0;
+  const saucePrice = saucesProducts?.find(p => p.id === selectedSauce)?.price || 0;
+  
+  const totalPrice = (product.price + standaloneTotal + extrasTotal + modifiersTotal + loadedFriesPrice + drinkPrice + saucePrice) * quantity;
 
   const handleAddToOrder = () => {
     const removedIngredients = getRemovedIngredients();
-    // Combine paid modifiers, extra ingredients, and selected side
-    const allModifiers = [
-      ...selectedModifiers, 
-      ...extraIngredients,
-      ...(selectedSideModifier ? [selectedSideModifier] : [])
-    ];
+    const allModifiers = buildAllModifiers();
     
     addItem(product, quantity, allModifiers, removedIngredients);
     toast.success('Added to Order', {
@@ -172,8 +216,6 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
 
   const defaultIngredients = ingredients?.filter((ing) => ing.is_default) || [];
   const hasIngredients = defaultIngredients.length > 0;
-  const hasAddOns = addOnGroups && addOnGroups.length > 0 && addOnGroups.some(g => g.modifiers.length > 0);
-  const hasSides = sidesGroup && sidesGroup.modifiers.length > 0;
 
   // Count customizations
   const removedCount = Object.values(ingredientStates).filter(s => s === 'removed').length;
@@ -223,68 +265,116 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
               )}
             </SheetHeader>
 
-            {/* SECTION 1: Make it Epic (Paid Extras + Sides) */}
-            {(hasAddOns || hasSides) && (
-              <div className="space-y-4 mb-6">
-                <h4 className="font-heading text-xs uppercase tracking-wider text-muted-foreground">
+            {/* SECTION 1: Make it Epic (Premium Upsell Section) */}
+            {showMakeItEpic && (
+              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 relative overflow-hidden">
+                {/* Decorative flame */}
+                <div className="absolute top-2 right-2 text-primary/30">
+                  <Flame className="w-8 h-8" />
+                </div>
+                
+                <h4 className="font-heading text-sm uppercase tracking-wider text-primary flex items-center gap-2 mb-4">
+                  <Flame className="w-4 h-4" />
                   Make it Epic
                 </h4>
 
-                {/* Protein & Cheese Add-ons (Checkboxes) */}
-                {addOnGroups?.map((group) => (
-                  group.modifiers.length > 0 && (
-                    <div key={group.id} className="space-y-1.5">
-                      <h5 className="text-xs text-muted-foreground mb-2">
-                        {group.name}
-                      </h5>
-                      
-                      {group.modifiers.map((modifier) => {
-                        const isSelected = selectedModifiers.some((m) => m.id === modifier.id);
-                        return (
-                          <label
-                            key={modifier.id}
-                            className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                              isSelected
-                                ? 'border-primary bg-primary/10'
-                                : 'border-border hover:border-primary/50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => toggleModifier(modifier)}
-                                className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                              />
-                              <span className="text-sm text-foreground">{modifier.name}</span>
-                            </div>
-                            {modifier.price_adjustment && modifier.price_adjustment > 0 && (
-                              <span className="text-primary font-semibold text-sm">
-                                +€{modifier.price_adjustment.toFixed(2)}
-                              </span>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )
-                ))}
+                {/* Standalone Add-on Checkboxes */}
+                <div className="space-y-2 mb-4">
+                  {STANDALONE_ADDONS.map((addon) => {
+                    const isSelected = standaloneAddons.has(addon.id);
+                    return (
+                      <label
+                        key={addon.id}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
+                            : 'border-border bg-secondary/30 hover:border-primary/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleStandaloneAddon(addon.id)}
+                            className="border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <span className="text-sm text-foreground font-medium">{addon.name}</span>
+                        </div>
+                        <span className="text-primary font-bold text-sm">
+                          +€{addon.price.toFixed(2)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
 
-                {/* Sides Dropdown */}
-                {hasSides && (
-                  <div className="space-y-2">
-                    <h5 className="text-xs text-muted-foreground">Add a Side</h5>
+                {/* Dropdown 1: Loaded Fries */}
+                {loadedFriesProducts && loadedFriesProducts.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    <label className="text-xs text-muted-foreground font-medium">
+                      Add Small Loaded Fries
+                    </label>
                     <Select 
-                      value={selectedSide || 'none'} 
-                      onValueChange={handleSideChange}
+                      value={selectedLoadedFries || 'none'} 
+                      onValueChange={(v) => setSelectedLoadedFries(v === 'none' ? null : v)}
                     >
-                      <SelectTrigger className="w-full bg-secondary border-border hover:border-primary/50">
-                        <SelectValue placeholder="No Side" />
+                      <SelectTrigger className="w-full bg-secondary/50 border-border hover:border-primary/40">
+                        <SelectValue placeholder="No Loaded Fries" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border z-50">
-                        <SelectItem value="none">No Side (€0.00)</SelectItem>
-                        {sidesGroup.modifiers.map((modifier) => (
-                          <SelectItem key={modifier.id} value={modifier.id}>
-                            {modifier.name} (+€{(modifier.price_adjustment || 0).toFixed(2)})
+                        <SelectItem value="none">No Loaded Fries (€0.00)</SelectItem>
+                        {loadedFriesProducts.map(fry => (
+                          <SelectItem key={fry.id} value={fry.id}>
+                            {fry.name} (+€{fry.price.toFixed(2)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Dropdown 2: Drinks */}
+                {drinksProducts && drinksProducts.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    <label className="text-xs text-muted-foreground font-medium">
+                      Add a Drink
+                    </label>
+                    <Select 
+                      value={selectedDrink || 'none'} 
+                      onValueChange={(v) => setSelectedDrink(v === 'none' ? null : v)}
+                    >
+                      <SelectTrigger className="w-full bg-secondary/50 border-border hover:border-primary/40">
+                        <SelectValue placeholder="No Drink" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        <SelectItem value="none">No Drink (€0.00)</SelectItem>
+                        {drinksProducts.map(drink => (
+                          <SelectItem key={drink.id} value={drink.id}>
+                            {drink.name} (+€{drink.price.toFixed(2)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Dropdown 3: Sauces */}
+                {saucesProducts && saucesProducts.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground font-medium">
+                      Add a Sauce
+                    </label>
+                    <Select 
+                      value={selectedSauce || 'none'} 
+                      onValueChange={(v) => setSelectedSauce(v === 'none' ? null : v)}
+                    >
+                      <SelectTrigger className="w-full bg-secondary/50 border-border hover:border-primary/40">
+                        <SelectValue placeholder="No Sauce" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        <SelectItem value="none">No Sauce (€0.00)</SelectItem>
+                        {saucesProducts.map(sauce => (
+                          <SelectItem key={sauce.id} value={sauce.id}>
+                            {sauce.name} (+€{sauce.price.toFixed(2)})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -431,13 +521,12 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
         </div>
 
         {/* Sticky Add to Order Button */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-card via-card to-transparent pt-8">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-card via-card/95 to-transparent pt-8">
           <Button
+            className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
             onClick={handleAddToOrder}
-            disabled={!product.is_available}
-            className="w-full h-12 btn-glow text-base font-semibold tracking-wider"
           >
-            SAVE TO ORDER - €{totalPrice.toFixed(2)}
+            SAVE TO ORDER · €{totalPrice.toFixed(2)}
           </Button>
         </div>
       </SheetContent>
