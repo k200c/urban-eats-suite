@@ -9,7 +9,7 @@ export const EXTRA_PRICING = {
   meatPrice: 2.50,
   
   // Cheese-related ingredients - €1.00 extra
-  cheeseKeywords: ['cheese', 'cheddar', 'american', 'applewood', 'mozzarella', 'gouda', 'swiss', 'brie'],
+  cheeseKeywords: ['cheese', 'cheddar', 'american', 'applewood', 'mozzarella', 'gouda', 'swiss', 'brie', 'smoked applewood'],
   cheesePrice: 1.00,
   
   // Default price for other extras (currently free)

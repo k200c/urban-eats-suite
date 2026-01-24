@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Minus, Plus, X } from 'lucide-react';
 import { Product, Modifier, SelectedModifier, RemovedIngredient } from '@/types/database';
 import { ModifierGroupWithModifiers } from '@/hooks/useProductModifiers';
@@ -38,13 +39,19 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
   const [quantity, setQuantity] = useState(1);
   const [selectedModifiers, setSelectedModifiers] = useState<SelectedModifier[]>([]);
   const [ingredientStates, setIngredientStates] = useState<Record<string, IngredientState>>({});
+  const [selectedSide, setSelectedSide] = useState<string | null>(null);
   const addItem = useCartStore((state) => state.addItem);
+
+  // Separate sides group from other modifiers
+  const sidesGroup = modifierGroups?.find(g => g.name === 'Add a Side');
+  const addOnGroups = modifierGroups?.filter(g => g.name !== 'Add a Side' && g.name !== 'Drinks');
 
   // Reset state when product changes
   useEffect(() => {
     if (product) {
       setQuantity(1);
       setSelectedModifiers([]);
+      setSelectedSide(null);
       // Initialize all default ingredients as 'included'
       const initialStates: Record<string, IngredientState> = {};
       ingredients?.forEach((ing) => {
@@ -75,6 +82,14 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
         },
       ];
     });
+  };
+
+  const handleSideChange = (value: string) => {
+    if (value === 'none') {
+      setSelectedSide(null);
+    } else {
+      setSelectedSide(value);
+    }
   };
 
   const handleRemoveIngredient = (ingredientId: string, ingredientName: string) => {
@@ -117,16 +132,34 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
       }));
   };
 
+  // Get selected side as modifier
+  const getSelectedSideModifier = (): SelectedModifier | null => {
+    if (!selectedSide || !sidesGroup) return null;
+    const sideModifier = sidesGroup.modifiers.find(m => m.id === selectedSide);
+    if (!sideModifier) return null;
+    return {
+      id: sideModifier.id,
+      name: sideModifier.name,
+      price_adjustment: sideModifier.price_adjustment || 0,
+    };
+  };
+
   // Calculate total price with dynamic extras pricing
   const extraIngredients = getExtraIngredients();
+  const selectedSideModifier = getSelectedSideModifier();
   const extrasTotal = extraIngredients.reduce((sum, e) => sum + e.price_adjustment, 0);
   const modifiersTotal = selectedModifiers.reduce((sum, m) => sum + m.price_adjustment, 0);
-  const totalPrice = (product.price + extrasTotal + modifiersTotal) * quantity;
+  const sideTotal = selectedSideModifier?.price_adjustment || 0;
+  const totalPrice = (product.price + extrasTotal + modifiersTotal + sideTotal) * quantity;
 
   const handleAddToOrder = () => {
     const removedIngredients = getRemovedIngredients();
-    // Combine paid modifiers with extra ingredient requests (with pricing)
-    const allModifiers = [...selectedModifiers, ...extraIngredients];
+    // Combine paid modifiers, extra ingredients, and selected side
+    const allModifiers = [
+      ...selectedModifiers, 
+      ...extraIngredients,
+      ...(selectedSideModifier ? [selectedSideModifier] : [])
+    ];
     
     addItem(product, quantity, allModifiers, removedIngredients);
     toast.success('Added to Cart', {
@@ -140,7 +173,8 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
   const removableIngredients = defaultIngredients.filter((ing) => ing.is_removable !== false);
   
   const hasIngredients = defaultIngredients.length > 0;
-  const hasModifiers = modifierGroups && modifierGroups.length > 0;
+  const hasAddOns = addOnGroups && addOnGroups.length > 0 && addOnGroups.some(g => g.modifiers.length > 0);
+  const hasSides = sidesGroup && sidesGroup.modifiers.length > 0;
 
   // Count customizations
   const removedCount = Object.values(ingredientStates).filter(s => s === 'removed').length;
@@ -190,7 +224,80 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
               )}
             </SheetHeader>
 
-            {/* SECTION 1: Customize Your Order (Ingredients) */}
+            {/* SECTION 1: Make it Epic (Paid Extras + Sides) */}
+            {(hasAddOns || hasSides) && (
+              <div className="space-y-6 mb-8">
+                <h4 className="font-heading text-sm uppercase tracking-wider text-foreground">
+                  Make it Epic
+                </h4>
+                
+                {/* Protein & Cheese Add-ons (Checkboxes) */}
+                {addOnGroups?.map((group) => (
+                  group.modifiers.length > 0 && (
+                    <div key={group.id} className="space-y-3">
+                      <h5 className="text-sm text-muted-foreground">
+                        {group.name}
+                      </h5>
+                      
+                      <div className="space-y-2">
+                        {group.modifiers.map((modifier) => {
+                          const isSelected = selectedModifiers.some((m) => m.id === modifier.id);
+                          return (
+                            <label
+                              key={modifier.id}
+                              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-white/10 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleModifier(modifier)}
+                                  className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                />
+                                <span className="text-foreground">{modifier.name}</span>
+                              </div>
+                              {modifier.price_adjustment && modifier.price_adjustment > 0 && (
+                                <span className="text-primary font-semibold">
+                                  +€{modifier.price_adjustment.toFixed(2)}
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )
+                ))}
+
+                {/* Sides Dropdown */}
+                {hasSides && (
+                  <div className="space-y-3">
+                    <h5 className="text-sm text-muted-foreground">Add a Side</h5>
+                    <Select 
+                      value={selectedSide || 'none'} 
+                      onValueChange={handleSideChange}
+                    >
+                      <SelectTrigger className="w-full bg-secondary border-white/10 hover:border-white/20">
+                        <SelectValue placeholder="No Side" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border z-50">
+                        <SelectItem value="none">No Side (€0.00)</SelectItem>
+                        {sidesGroup.modifiers.map((modifier) => (
+                          <SelectItem key={modifier.id} value={modifier.id}>
+                            {modifier.name} (+€{(modifier.price_adjustment || 0).toFixed(2)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SECTION 2: Customize Your Order (Ingredients) */}
             {hasIngredients && (
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
@@ -285,59 +392,6 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {/* SECTION 2: Make it Epic (Paid Extras) */}
-            {hasModifiers && (
-              <div className="space-y-6 mb-8">
-                <h4 className="font-heading text-sm uppercase tracking-wider text-foreground">
-                  Make it Epic
-                </h4>
-                {modifierGroups.map((group) => (
-                  <div key={group.id} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h5 className="text-sm text-muted-foreground">
-                        {group.name}
-                      </h5>
-                      {group.min_selection && group.min_selection > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          Required
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {group.modifiers.map((modifier) => {
-                        const isSelected = selectedModifiers.some((m) => m.id === modifier.id);
-                        return (
-                          <label
-                            key={modifier.id}
-                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
-                              isSelected
-                                ? 'border-primary bg-primary/10'
-                                : 'border-white/10 hover:border-white/20'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => toggleModifier(modifier)}
-                                className="border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                              />
-                              <span className="text-foreground">{modifier.name}</span>
-                            </div>
-                            {modifier.price_adjustment && modifier.price_adjustment > 0 && (
-                              <span className="text-primary font-semibold">
-                                +€{modifier.price_adjustment.toFixed(2)}
-                              </span>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
 
