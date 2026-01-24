@@ -15,8 +15,8 @@ import Auth from "./pages/Auth";
 import Details from "./pages/Details";
 import Profile from "./pages/Profile";
 import StaffPOS from "./pages/StaffPOS";
-import StaffPOSQuick from "./pages/StaffPOSQuick";
 import StaffDashboard from "./pages/StaffDashboard";
+import CommandCenter from "./pages/CommandCenter";
 import NotFound from "./pages/NotFound";
 import PaymentProcessing from "./pages/PaymentProcessing";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -80,9 +80,9 @@ const [queryClient] = useState(() => new QueryClient({
                 <Route path="/details" element={<AuthGuard><Details /></AuthGuard>} />
                 
                 {/* Staff routes - require admin role */}
-                <Route path="/admin" element={<AuthGuard allowedRoles={['admin']}><StaffPOS /></AuthGuard>} />
-                <Route path="/admin/pos" element={<AuthGuard allowedRoles={['admin']}><StaffPOSQuick /></AuthGuard>} />
-                <Route path="/admin/dashboard" element={<AuthGuard allowedRoles={['admin']}><StaffDashboard /></AuthGuard>} />
+                <Route path="/admin" element={<AuthGuard allowedRoles={['admin']}><StaffDashboard /></AuthGuard>} />
+                <Route path="/admin/pos" element={<AuthGuard allowedRoles={['admin']}><StaffDashboard /></AuthGuard>} />
+                <Route path="/admin/dashboard" element={<AuthGuard allowedRoles={['admin']}><CommandCenter /></AuthGuard>} />
                 
                 {/* Legacy payment routes - require auth */}
                 <Route path="/processing/:orderCode" element={<AuthGuard><PaymentProcessing /></AuthGuard>} />

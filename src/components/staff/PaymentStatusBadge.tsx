@@ -15,7 +15,8 @@ export function PaymentStatusBadge({
   size = 'md',
   showAlert = false 
 }: PaymentStatusBadgeProps) {
-  const isPaid = paymentStatus === 'paid';
+  // PAID if status is 'paid' OR 'completed'
+  const isPaid = paymentStatus === 'paid' || paymentStatus === 'completed';
   const isClickable = !isPaid && onClick;
 
   const sizeClasses = {
@@ -31,20 +32,20 @@ export function PaymentStatusBadge({
   };
 
   if (showAlert && !isPaid) {
-    // Compact alert mode for KDS tickets
+    // Compact alert mode for KDS tickets - amber/yellow for visibility
     return (
       <div 
         className={cn(
-          "flex items-center gap-1 px-2 py-1 rounded bg-red-500/20 border border-red-500/50",
-          isClickable && "cursor-pointer hover:bg-red-500/30 transition-colors"
+          "flex items-center gap-1 px-2 py-1 rounded bg-amber-500/20 border border-amber-500/50",
+          isClickable && "cursor-pointer hover:bg-amber-500/30 transition-colors"
         )}
         onClick={isClickable ? onClick : undefined}
         role={isClickable ? "button" : undefined}
         tabIndex={isClickable ? 0 : undefined}
       >
-        <AlertTriangle className="w-3 h-3 text-red-500" />
-        <span className="text-xs font-bold text-red-500 uppercase tracking-wider">
-          UNPAID - DO NOT SERVE
+        <AlertTriangle className="w-3 h-3 text-amber-500" />
+        <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">
+          PAYMENT PENDING
         </span>
       </div>
     );
@@ -58,7 +59,7 @@ export function PaymentStatusBadge({
         "font-bold uppercase tracking-wide flex items-center gap-1",
         isPaid 
           ? "bg-green-500 hover:bg-green-600 text-white border-green-600" 
-          : "bg-red-500 hover:bg-red-600 text-white border-red-600",
+          : "bg-amber-500 hover:bg-amber-600 text-black border-amber-600",
         isClickable && "cursor-pointer hover:scale-105 transition-transform"
       )}
       onClick={isClickable ? onClick : undefined}
@@ -66,7 +67,7 @@ export function PaymentStatusBadge({
       tabIndex={isClickable ? 0 : undefined}
     >
       <DollarSign className={iconSizes[size]} />
-      {isPaid ? 'PAID' : 'UNPAID'}
+      {isPaid ? 'PAID' : 'PENDING'}
     </Badge>
   );
 }
