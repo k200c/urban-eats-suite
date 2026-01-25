@@ -4,6 +4,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useProductModifiers } from '@/hooks/useProductModifiers';
 import { useProductIngredients } from '@/hooks/useProductIngredients';
 import { useStoreStatus } from '@/hooks/useStoreStatus';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ProductCardHorizontal } from './ProductCardHorizontal';
 import { ProductSheet } from './ProductSheet';
 
@@ -19,12 +20,14 @@ function AnimatedProductCard({
   product, 
   hasModifiers, 
   onClick, 
-  index 
+  index,
+  variant
 }: { 
   product: Product; 
   hasModifiers: boolean; 
   onClick: () => void; 
   index: number;
+  variant: 'compact' | 'vertical';
 }) {
   return (
     <div className="opacity-100">
@@ -32,6 +35,7 @@ function AnimatedProductCard({
         product={product}
         hasModifiers={hasModifiers}
         onClick={onClick}
+        variant={variant}
       />
     </div>
   );
@@ -43,13 +47,15 @@ function AnimatedCategorySection({
   products, 
   categoryRef,
   hasModifiers,
-  onProductClick
+  onProductClick,
+  isMobile
 }: { 
   category: ProductCategory;
   products: Product[];
   categoryRef: (el: HTMLDivElement | null) => void;
   hasModifiers: (id: string) => boolean;
   onProductClick: (product: Product) => void;
+  isMobile: boolean;
 }) {
   return (
     <div
@@ -60,7 +66,10 @@ function AnimatedCategorySection({
         {category}
       </h3>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className={cn(
+        "gap-3",
+        isMobile ? "flex flex-col" : "grid grid-cols-2 lg:grid-cols-3 gap-4"
+      )}>
         {products.map((product, index) => (
           <AnimatedProductCard
             key={product.id}
@@ -68,6 +77,7 @@ function AnimatedCategorySection({
             hasModifiers={hasModifiers(product.id)}
             onClick={() => onProductClick(product)}
             index={index}
+            variant={isMobile ? 'compact' : 'vertical'}
           />
         ))}
       </div>
@@ -89,6 +99,7 @@ export function MenuSection() {
   const { data: modifierGroups } = useProductModifiers(selectedProduct?.id);
   const { data: ingredients } = useProductIngredients(selectedProduct?.id);
   const { isStoreOpen, currentWaitTime } = useStoreStatus();
+  const isMobile = useIsMobile();
 
   const waitTime = currentWaitTime;
 
@@ -210,11 +221,15 @@ export function MenuSection() {
               categoryRef={(el) => (categoryRefs.current[category] = el)}
               hasModifiers={hasModifiers}
               onProductClick={setSelectedProduct}
+              isMobile={isMobile}
             />
           ))}
         </div>
       ) : products && products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={cn(
+          "gap-3",
+          isMobile ? "flex flex-col" : "grid grid-cols-2 lg:grid-cols-3 gap-4"
+        )}>
           {products.map((product, index) => (
             <AnimatedProductCard
               key={product.id}
@@ -222,6 +237,7 @@ export function MenuSection() {
               hasModifiers={hasModifiers(product.id)}
               onClick={() => setSelectedProduct(product)}
               index={index}
+              variant={isMobile ? 'compact' : 'vertical'}
             />
           ))}
         </div>

@@ -22,7 +22,7 @@ interface ProductCardHorizontalProps {
   product: Product;
   hasModifiers: boolean;
   onClick: () => void;
-  variant?: 'horizontal' | 'vertical';
+  variant?: 'horizontal' | 'vertical' | 'compact';
 }
 
 export function ProductCardHorizontal({
@@ -41,7 +41,6 @@ export function ProductCardHorizontal({
     e.stopPropagation();
     if (isSoldOut) return;
     
-    // Add with all defaults (no modifiers, no removed ingredients)
     addItem(product, 1, [], []);
     toast.success('Added to Cart', {
       description: `${product.name} added to your order`,
@@ -53,6 +52,57 @@ export function ProductCardHorizontal({
     if (isSoldOut) return;
     onClick();
   };
+
+  // Compact card variant for mobile - fits entirely on screen
+  if (variant === 'compact') {
+    return (
+      <div
+        className={cn(
+          'street-card p-2 flex items-center gap-3 cursor-pointer hover:border-primary/40 transition-all',
+          isSoldOut && 'opacity-50'
+        )}
+        onClick={onClick}
+      >
+        {/* Small Square Thumbnail */}
+        <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+          {isSoldOut && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+              <span className="text-[10px] font-bold text-muted-foreground">SOLD OUT</span>
+            </div>
+          )}
+        </div>
+
+        {/* Product Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-heading text-sm text-foreground line-clamp-1">
+            {product.name}
+          </h3>
+          <span className="text-primary font-bold text-sm mt-0.5 block">
+            €{product.price.toFixed(2)}
+          </span>
+        </div>
+
+        {/* Quick Add Button */}
+        <button
+          onClick={handleQuickAdd}
+          disabled={isSoldOut}
+          className={cn(
+            'h-10 w-10 rounded-full flex items-center justify-center transition-all flex-shrink-0',
+            'bg-primary text-primary-foreground hover:scale-110',
+            isSoldOut && 'cursor-not-allowed opacity-50'
+          )}
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  }
 
   // Vertical card variant for grid layout
   if (variant === 'vertical') {
