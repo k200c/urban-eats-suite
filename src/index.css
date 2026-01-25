@@ -76,6 +76,12 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   body {
@@ -128,11 +134,31 @@
     @apply px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200;
     @apply bg-secondary text-secondary-foreground uppercase tracking-wider;
     @apply hover:bg-primary hover:text-primary-foreground;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .category-pill.active {
     @apply bg-primary text-primary-foreground;
     box-shadow: 0 0 20px hsl(var(--glow-primary));
+  }
+
+  /* Category scroll container with snap */
+  .category-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    touch-action: pan-x;
+  }
+
+  .category-scroll > button {
+    scroll-snap-align: start;
+  }
+
+  /* Minimum touch target size (44x44px per Apple HIG) */
+  .touch-target-44 {
+    min-height: 44px;
+    min-width: 44px;
   }
 
   /* Product card horizontal */

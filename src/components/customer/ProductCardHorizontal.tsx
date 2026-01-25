@@ -88,13 +88,14 @@ export function ProductCardHorizontal({
           </span>
         </div>
 
-        {/* Quick Add Button */}
+        {/* Quick Add Button - 44x44px touch target */}
         <button
           onClick={handleQuickAdd}
           disabled={isSoldOut}
           className={cn(
-            'h-10 w-10 rounded-full flex items-center justify-center transition-all flex-shrink-0',
-            'bg-primary text-primary-foreground hover:scale-110',
+            'h-11 w-11 rounded-full flex items-center justify-center transition-all flex-shrink-0',
+            'bg-primary text-primary-foreground active:scale-95',
+            '-webkit-tap-highlight-color-transparent',
             isSoldOut && 'cursor-not-allowed opacity-50'
           )}
         >

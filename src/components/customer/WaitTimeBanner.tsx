@@ -10,7 +10,7 @@ export function WaitTimeBanner({ waitTime }: WaitTimeBannerProps) {
     <motion.div
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="bg-primary/20 border-b border-primary/30 px-4 py-2"
+      className="bg-primary/20 border-b border-primary/30 px-4 py-2 w-full max-w-full overflow-hidden"
     >
       <div className="flex items-center justify-center gap-2 text-sm">
         <Clock className="w-4 h-4 text-primary" />
