@@ -312,6 +312,13 @@
     animation: fade-in 0.2s ease-out;
   }
 
+  /* Touch optimization for mobile buttons */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;

@@ -182,8 +182,14 @@ export function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
-              onClick={() => setIsOpen(!isOpen)}
+              className="md:hidden touch-manipulation relative z-50"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsOpen(!isOpen);
+              }}
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isOpen}
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
@@ -192,8 +198,14 @@ export function Navbar() {
 
         {/* Mobile Menu - Full Height Overlay */}
         {isOpen && (
-          <div className="fixed inset-0 top-16 z-40 md:hidden bg-black/95 backdrop-blur-lg animate-fade-in overflow-y-auto">
-            <div className="flex flex-col gap-6 p-6">
+          <div 
+            className="fixed inset-0 top-16 z-40 md:hidden bg-black/95 backdrop-blur-lg animate-fade-in overflow-y-auto"
+            onClick={() => setIsOpen(false)}
+          >
+            <div 
+              className="flex flex-col gap-6 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
               {navLinks.map((link) => (
                 link.isRoute ? (
                   <button
