@@ -53,7 +53,7 @@ export function ProductCardHorizontal({
     onClick();
   };
 
-  // Mobile-vertical card variant - matches tablet design in single column
+  // Mobile-vertical card variant - compact to fit on mobile screen
   if (variant === 'mobile-vertical') {
     return (
       <div
@@ -64,8 +64,8 @@ export function ProductCardHorizontal({
         )}
         onClick={onClick}
       >
-        {/* Full-width product image */}
-        <div className="relative h-[200px] w-full">
+        {/* Compact image height for mobile */}
+        <div className="relative h-[120px] w-full">
           <img
             src={imageUrl}
             alt={product.name}
@@ -75,33 +75,33 @@ export function ProductCardHorizontal({
           />
           {/* HOT badge for featured items */}
           {product.is_featured && !isSoldOut && (
-            <div className="absolute top-3 left-3 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full">
+            <div className="absolute top-2 left-2 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-bold rounded-full">
               HOT
             </div>
           )}
           {/* Sold out overlay */}
           {isSoldOut && (
             <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-              <span className="bg-destructive/80 px-4 py-2 rounded-lg text-destructive-foreground font-bold text-sm">
+              <span className="bg-destructive/80 px-3 py-1.5 rounded-lg text-destructive-foreground font-bold text-sm">
                 SOLD OUT
               </span>
             </div>
           )}
         </div>
 
-        {/* Content section */}
-        <div className="p-4 space-y-3">
-          <h3 className="text-lg font-bold text-foreground font-heading">
+        {/* Compact content section for mobile */}
+        <div className="p-3 space-y-2">
+          <h3 className="text-base font-bold text-foreground font-heading line-clamp-1">
             {product.name}
           </h3>
           
-          <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+          <p className="text-sm text-muted-foreground line-clamp-2">
             {product.description || 'Delicious street food'}
           </p>
           
           {/* Price and Quick Add row */}
           <div className="flex items-center justify-between">
-            <span className="text-xl font-bold text-primary">
+            <span className="text-lg font-bold text-primary">
               €{product.price.toFixed(2)}
             </span>
             
@@ -109,23 +109,23 @@ export function ProductCardHorizontal({
               onClick={handleQuickAdd}
               disabled={isSoldOut}
               className={cn(
-                'w-12 h-12 rounded-full flex items-center justify-center',
+                'w-10 h-10 rounded-full flex items-center justify-center',
                 'bg-primary text-primary-foreground transition-all',
                 'active:scale-95 touch-manipulation',
                 isSoldOut && 'cursor-not-allowed opacity-50'
               )}
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
           
-          {/* Full-width Customize button */}
+          {/* Compact Customize button */}
           <button
             onClick={handleCustomize}
             disabled={isSoldOut}
             className={cn(
               'w-full bg-primary hover:bg-primary/90 text-primary-foreground',
-              'font-semibold py-3 rounded-lg transition-all active:scale-[0.98]',
+              'font-semibold py-2.5 rounded-lg transition-all active:scale-[0.98]',
               'touch-manipulation',
               isSoldOut && 'cursor-not-allowed opacity-50'
             )}

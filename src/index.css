@@ -148,11 +148,13 @@
   .category-scroll {
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    scroll-padding: 0 0.5rem;
     touch-action: pan-x;
   }
 
   .category-scroll > button {
-    scroll-snap-align: start;
+    scroll-snap-align: center;
+    min-width: fit-content;
   }
 
   /* Minimum touch target size (44x44px per Apple HIG) */
