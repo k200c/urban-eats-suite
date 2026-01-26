@@ -182,7 +182,7 @@ export function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden touch-manipulation relative z-50"
+              className="md:hidden touch-manipulation relative z-[60] cursor-pointer"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -199,7 +199,7 @@ export function Navbar() {
         {/* Mobile Menu - Full Height Overlay */}
         {isOpen && (
           <div 
-            className="fixed inset-0 top-16 z-40 md:hidden bg-black/95 backdrop-blur-lg animate-fade-in overflow-y-auto"
+            className="fixed inset-0 top-16 z-50 md:hidden bg-black/95 backdrop-blur-lg animate-fade-in overflow-y-auto"
             onClick={() => setIsOpen(false)}
           >
             <div 
