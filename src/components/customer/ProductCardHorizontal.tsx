@@ -58,7 +58,7 @@ export function ProductCardHorizontal({
     return (
       <div
         className={cn(
-          'street-card overflow-hidden flex flex-col cursor-pointer',
+          'street-card overflow-hidden flex flex-col cursor-pointer w-full min-w-0',
           'hover:border-primary/40 transition-all active:scale-[0.98]',
           isSoldOut && 'opacity-50'
         )}
@@ -84,7 +84,7 @@ export function ProductCardHorizontal({
 
         {/* Minimal content section */}
         <div className="p-1.5 sm:p-2 space-y-0.5">
-          <h3 className="text-[11px] sm:text-xs font-bold text-foreground font-heading line-clamp-1">
+          <h3 className="text-[11px] sm:text-xs font-bold text-foreground font-heading line-clamp-1 w-full overflow-hidden text-ellipsis">
             {product.name}
           </h3>
           

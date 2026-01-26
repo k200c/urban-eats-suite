@@ -66,17 +66,19 @@ function AnimatedCategorySection({
         {category}
       </h3>
       
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2 md:gap-4">
-        {products.map((product, index) => (
-          <AnimatedProductCard
-            key={product.id}
-            product={product}
-            hasModifiers={hasModifiers(product.id)}
-            onClick={() => onProductClick(product)}
-            index={index}
-            variant={isMobile ? 'mobile-grid' : 'vertical'}
-          />
-        ))}
+      <div className="overflow-hidden w-full">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2 md:gap-4">
+          {products.map((product, index) => (
+            <AnimatedProductCard
+              key={product.id}
+              product={product}
+              hasModifiers={hasModifiers(product.id)}
+              onClick={() => onProductClick(product)}
+              index={index}
+              variant={isMobile ? 'mobile-grid' : 'vertical'}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -148,7 +150,7 @@ export function MenuSection() {
       {/* Wait Time Banner - only show when store is open */}
       {isStoreOpen && waitTime && <WaitTimeBanner waitTime={waitTime} />}
       
-      <section ref={sectionRef} id="menu" className="px-2 sm:px-4 py-6 sm:py-12 pb-28 max-w-3xl mx-auto scroll-mt-20 relative overflow-x-hidden">
+      <section ref={sectionRef} id="menu" className="w-full px-2 sm:px-4 py-6 sm:py-12 pb-28 max-w-3xl mx-auto scroll-mt-20 relative overflow-hidden">
         {/* Animated Section Header */}
         <motion.div 
           ref={headerRef}
@@ -271,17 +273,19 @@ export function MenuSection() {
             ))}
           </div>
         ) : products && products.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2 md:gap-4">
-            {products.map((product, index) => (
-              <AnimatedProductCard
-                key={product.id}
-                product={product}
-                hasModifiers={hasModifiers(product.id)}
-                onClick={() => setSelectedProduct(product)}
-                index={index}
-                variant={isMobile ? 'mobile-grid' : 'vertical'}
-              />
-            ))}
+          <div className="overflow-hidden w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2 md:gap-4">
+              {products.map((product, index) => (
+                <AnimatedProductCard
+                  key={product.id}
+                  product={product}
+                  hasModifiers={hasModifiers(product.id)}
+                  onClick={() => setSelectedProduct(product)}
+                  index={index}
+                  variant={isMobile ? 'mobile-grid' : 'vertical'}
+                />
+              ))}
+            </div>
           </div>
         ) : (
           <motion.div 
