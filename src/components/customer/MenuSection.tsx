@@ -27,7 +27,7 @@ function AnimatedProductCard({
   hasModifiers: boolean; 
   onClick: () => void; 
   index: number;
-  variant: 'compact' | 'vertical';
+  variant: 'compact' | 'vertical' | 'mobile-vertical';
 }) {
   return (
     <div className="opacity-100">
@@ -66,10 +66,7 @@ function AnimatedCategorySection({
         {category}
       </h3>
       
-      <div className={cn(
-        "gap-3",
-        isMobile ? "flex flex-col" : "grid grid-cols-2 lg:grid-cols-3 gap-4"
-      )}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {products.map((product, index) => (
           <AnimatedProductCard
             key={product.id}
@@ -77,7 +74,7 @@ function AnimatedCategorySection({
             hasModifiers={hasModifiers(product.id)}
             onClick={() => onProductClick(product)}
             index={index}
-            variant={isMobile ? 'compact' : 'vertical'}
+            variant={isMobile ? 'mobile-vertical' : 'vertical'}
           />
         ))}
       </div>
@@ -151,7 +148,7 @@ export function MenuSection() {
       {/* Wait Time Banner - only show when store is open */}
       {isStoreOpen && waitTime && <WaitTimeBanner waitTime={waitTime} />}
       
-      <section ref={sectionRef} id="menu" className="px-4 py-12 max-w-4xl mx-auto scroll-mt-20 relative overflow-x-hidden">
+      <section ref={sectionRef} id="menu" className="px-4 py-12 pb-28 max-w-4xl mx-auto scroll-mt-20 relative overflow-x-hidden">
         {/* Animated Section Header */}
         <motion.div 
           ref={headerRef}
@@ -272,10 +269,7 @@ export function MenuSection() {
             ))}
           </div>
         ) : products && products.length > 0 ? (
-          <div className={cn(
-            "gap-3",
-            isMobile ? "flex flex-col" : "grid grid-cols-2 lg:grid-cols-3 gap-4"
-          )}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((product, index) => (
               <AnimatedProductCard
                 key={product.id}
@@ -283,7 +277,7 @@ export function MenuSection() {
                 hasModifiers={hasModifiers(product.id)}
                 onClick={() => setSelectedProduct(product)}
                 index={index}
-                variant={isMobile ? 'compact' : 'vertical'}
+                variant={isMobile ? 'mobile-vertical' : 'vertical'}
               />
             ))}
           </div>
