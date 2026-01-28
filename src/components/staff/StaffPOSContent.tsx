@@ -10,6 +10,7 @@ import { Trash2, Minus, Plus, ShoppingCart, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StaffProductSheet } from '@/components/staff/StaffProductSheet';
 import { StaffCheckoutModal } from '@/components/checkout/StaffCheckoutModal';
+import { cn } from '@/lib/utils';
 
 const categories: ProductCategory[] = ['Burgers', 'Flatbreads', 'Fries', 'Drinks', 'Specials'];
 
@@ -81,33 +82,54 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
                 <div key={i} className="h-24 bg-secondary rounded-lg animate-pulse" />
               ))
             ) : (
-              products.map((product) => (
-                <motion.button
-                  key={product.id}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative h-24 bg-card border border-border rounded-lg p-3 flex flex-col justify-between text-left hover:border-primary/50 transition-colors group"
-                  onClick={() => handleQuickAdd(product)}
-                >
-                  <span className="font-heading text-sm text-foreground line-clamp-2 leading-tight">
-                    {product.name}
-                  </span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-primary font-bold text-sm">
-                      €{product.price.toFixed(2)}
+              products.filter(p => p.is_available).map((product) => {
+                const isSoldOut = product.is_sold_out;
+                
+                return (
+                  <motion.button
+                    key={product.id}
+                    whileTap={{ scale: isSoldOut ? 1 : 0.95 }}
+                    className={cn(
+                      'relative h-24 bg-card border border-border rounded-lg p-3 flex flex-col justify-between text-left transition-colors group',
+                      isSoldOut 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'hover:border-primary/50'
+                    )}
+                    onClick={() => !isSoldOut && handleQuickAdd(product)}
+                    disabled={isSoldOut}
+                  >
+                    {isSoldOut && (
+                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-lg z-10">
+                        <span className="bg-destructive/80 px-2 py-0.5 rounded text-destructive-foreground font-bold text-[10px]">
+                          SOLD OUT
+                        </span>
+                      </div>
+                    )}
+                    <span className="font-heading text-sm text-foreground line-clamp-2 leading-tight">
+                      {product.name}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCustomize(product);
-                      }}
-                      className="p-1.5 rounded bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
-                      title="Customize"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </motion.button>
-              ))
+                    <div className="flex items-center justify-between">
+                      <span className="text-primary font-bold text-sm">
+                        €{product.price.toFixed(2)}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isSoldOut) handleCustomize(product);
+                        }}
+                        className={cn(
+                          'p-1.5 rounded bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors',
+                          isSoldOut && 'pointer-events-none opacity-50'
+                        )}
+                        title="Customize"
+                        disabled={isSoldOut}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </motion.button>
+                );
+              })
             )}
           </div>
         </ScrollArea>

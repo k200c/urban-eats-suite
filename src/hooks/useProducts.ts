@@ -35,6 +35,7 @@ export function useProducts(category?: ProductCategory | 'All') {
       let query = supabase
         .from('products')
         .select('*')
+        .eq('is_available', true) // Only show available products on customer menus
         .order('is_featured', { ascending: false })
         .order('name');
 
@@ -68,12 +69,69 @@ export function useFeaturedProducts() {
         .select('*')
         .eq('is_featured', true)
         .eq('is_available', true)
+        .eq('is_sold_out', false)
         .order('name');
 
       if (error) throw error;
       return data as Product[];
     },
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Hook for Staff Stock Manager - returns ALL products including hidden ones
+export function useAllProducts(category?: ProductCategory | 'All') {
+  const queryClient = useQueryClient();
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('all-products-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['all-products'] });
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return useQuery({
+    queryKey: ['all-products', category],
+    queryFn: async () => {
+      let query = supabase
+        .from('products')
+        .select('*')
+        .order('is_featured', { ascending: false })
+        .order('name');
+
+      if (category && category !== 'All') {
+        query = query.eq('category', category);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Supabase all products fetch error:', error.message, error);
+        throw error;
+      }
+      
+      return data as Product[];
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
+    retryDelay: 1000,
+    placeholderData: (previousData) => previousData,
   });
 }
 

@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Pencil, Search, X } from 'lucide-react';
-import { useProducts } from '@/hooks/useProducts';
+import { Package, Pencil, Search, X, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { useAllProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -26,7 +27,7 @@ const allCategories: ProductCategory[] = [
 ];
 
 export function OperationsContent() {
-  const { data: products, isLoading: productsLoading, refetch: refetchProducts } = useProducts();
+  const { data: products, isLoading: productsLoading, refetch: refetchProducts } = useAllProducts();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +44,24 @@ export function OperationsContent() {
     });
   }, [products, searchQuery, categoryFilter]);
 
-  const handleProductAvailability = async (productId: string, isAvailable: boolean) => {
+  // Toggle sold out status (visible but grayed out)
+  const handleSoldOutToggle = async (productId: string, isSoldOut: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_sold_out: isSoldOut })
+        .eq('id', productId);
+
+      if (error) throw error;
+      refetchProducts();
+      toast.success(isSoldOut ? 'Marked as sold out' : 'Back in stock');
+    } catch (error) {
+      toast.error('Failed to update sold out status');
+    }
+  };
+
+  // Toggle visibility (completely hidden from menus)
+  const handleVisibilityToggle = async (productId: string, isAvailable: boolean) => {
     try {
       const { error } = await supabase
         .from('products')
@@ -52,9 +70,9 @@ export function OperationsContent() {
 
       if (error) throw error;
       refetchProducts();
-      toast.success(isAvailable ? 'Item is now available' : 'Item marked as sold out');
+      toast.success(isAvailable ? 'Now visible on menu' : 'Hidden from menu');
     } catch (error) {
-      toast.error('Failed to update product availability');
+      toast.error('Failed to update visibility');
     }
   };
 
@@ -177,30 +195,59 @@ export function OperationsContent() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {filteredProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className={cn(
-                        'p-2 rounded-lg border transition-colors',
-                        product.is_available
-                          ? 'bg-secondary/20 border-border hover:border-primary/30'
-                          : 'bg-destructive/10 border-destructive/30'
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        {/* Left: Name + Category Dropdown */}
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className={cn(
-                              'font-medium text-sm truncate flex-1',
-                              !product.is_available && 'text-muted-foreground line-through'
-                            )}>
-                              {product.name}
-                            </p>
-                            <span className="text-primary font-bold text-xs">€{product.price.toFixed(2)}</span>
+                  {filteredProducts.map((product) => {
+                    const isHidden = !product.is_available;
+                    const isSoldOut = product.is_sold_out;
+                    
+                    return (
+                      <div
+                        key={product.id}
+                        className={cn(
+                          'p-2 rounded-lg border transition-colors',
+                          isHidden
+                            ? 'bg-muted/30 border-muted'
+                            : isSoldOut
+                              ? 'bg-amber-500/10 border-amber-500/30'
+                              : 'bg-secondary/20 border-border hover:border-primary/30'
+                        )}
+                      >
+                        {/* Product Info Row */}
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={cn(
+                                'font-medium text-sm truncate',
+                                isHidden && 'text-muted-foreground'
+                              )}>
+                                {product.name}
+                              </p>
+                              {isHidden && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-foreground/50 text-muted-foreground">
+                                  HIDDEN
+                                </Badge>
+                              )}
+                              {!isHidden && isSoldOut && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-500">
+                                  SOLD OUT
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          
-                          {/* Inline Category Dropdown */}
+                          <div className="flex items-center gap-1">
+                            <span className="text-primary font-bold text-xs">€{product.price.toFixed(2)}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Category Dropdown */}
+                        <div className="mb-2">
                           <Select
                             value={product.category}
                             onValueChange={(value) => handleCategoryChange(product.id, value as ProductCategory)}
@@ -218,25 +265,51 @@ export function OperationsContent() {
                           </Select>
                         </div>
                         
-                        {/* Right: Edit + Switch */}
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleEditProduct(product)}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                          <Switch
-                            checked={product.is_available ?? true}
-                            onCheckedChange={(checked) => handleProductAvailability(product.id, checked)}
-                            className="scale-90"
-                          />
+                        {/* Dual Toggle Row */}
+                        <div className="flex items-center gap-3 pt-1 border-t border-border/50">
+                          {/* Sold Out Toggle */}
+                          <div className="flex items-center gap-1.5 flex-1">
+                            <AlertTriangle className={cn(
+                              'w-3 h-3',
+                              isSoldOut ? 'text-amber-500' : 'text-muted-foreground/50'
+                            )} />
+                            <span className={cn(
+                              'text-[10px] font-medium uppercase',
+                              isSoldOut ? 'text-amber-500' : 'text-muted-foreground'
+                            )}>
+                              Sold Out
+                            </span>
+                            <Switch
+                              checked={isSoldOut}
+                              onCheckedChange={(checked) => handleSoldOutToggle(product.id, checked)}
+                              className="scale-75 data-[state=checked]:bg-amber-500"
+                              disabled={isHidden}
+                            />
+                          </div>
+                          
+                          {/* Visibility Toggle */}
+                          <div className="flex items-center gap-1.5 flex-1">
+                            {product.is_available ? (
+                              <Eye className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <EyeOff className="w-3 h-3 text-muted-foreground/50" />
+                            )}
+                            <span className={cn(
+                              'text-[10px] font-medium uppercase',
+                              product.is_available ? 'text-green-500' : 'text-muted-foreground'
+                            )}>
+                              Visible
+                            </span>
+                            <Switch
+                              checked={product.is_available ?? true}
+                              onCheckedChange={(checked) => handleVisibilityToggle(product.id, checked)}
+                              className="scale-75 data-[state=checked]:bg-green-500"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

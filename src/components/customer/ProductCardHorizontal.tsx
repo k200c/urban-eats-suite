@@ -35,7 +35,7 @@ export function ProductCardHorizontal({
   const [imgError, setImgError] = useState(false);
   const fallbackImage = categoryImages[product.category] || heroBurger;
   const imageUrl = imgError ? fallbackImage : (product.image_url || fallbackImage);
-  const isSoldOut = !product.is_available;
+  const isSoldOut = product.is_sold_out;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();

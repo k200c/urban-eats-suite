@@ -23,6 +23,7 @@ export interface Product {
   category: ProductCategory;
   image_url: string | null;
   is_available: boolean;
+  is_sold_out: boolean;
   is_featured: boolean;
   stock_count: number;
   created_at: string;

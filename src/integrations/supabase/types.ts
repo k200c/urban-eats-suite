@@ -532,6 +532,7 @@ export type Database = {
           image_url: string | null
           is_available: boolean | null
           is_featured: boolean | null
+          is_sold_out: boolean | null
           name: string
           price: number
           stock_count: number | null
@@ -545,6 +546,7 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean | null
           is_featured?: boolean | null
+          is_sold_out?: boolean | null
           name: string
           price: number
           stock_count?: number | null
@@ -558,6 +560,7 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean | null
           is_featured?: boolean | null
+          is_sold_out?: boolean | null
           name?: string
           price?: number
           stock_count?: number | null
