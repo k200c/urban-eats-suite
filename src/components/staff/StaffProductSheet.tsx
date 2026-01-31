@@ -24,6 +24,7 @@ const categoryImages: Record<string, string> = {
   Flatbreads: flatbread,
   Drinks: drinks,
   Specials: heroBurger,
+  'Kids Menu': heroBurger,
 };
 
 interface StaffProductSheetProps {
@@ -45,6 +46,12 @@ const STANDALONE_ADDONS = [
   { id: 'cheese', name: 'Cheese', price: 1.00 },
   { id: 'smoked-applewood', name: 'Smoked Applewood Cheese', price: 1.50 },
   { id: 'handcut-chips', name: 'Handcut Chips', price: 3.00 },
+];
+
+// Kids Menu specific add-ons
+const KIDS_MENU_ADDONS = [
+  { id: 'add-chips', name: 'Add Chips', price: 2.00 },
+  { id: 'capri-sun', name: 'Capri Sun', price: 1.50 },
 ];
 
 export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) {
@@ -77,6 +84,7 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
       setSelectedDrink(null);
       setSelectedSauce(null);
       // Initialize all default ingredients as 'included'
+      // For addable-only ingredients (like fries add-ons), don't set initial state
       const initialStates: Record<string, IngredientState> = {};
       ingredients?.forEach((ing) => {
         if (ing.is_default) {
@@ -91,8 +99,17 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
 
   const imageUrl = product.image_url || categoryImages[product.category] || heroBurger;
 
+  // Determine if this is a Kids Menu item
+  const isKidsMenu = product.category === 'Kids Menu';
+  
+  // Get the appropriate add-ons based on category
+  const currentAddons = isKidsMenu ? KIDS_MENU_ADDONS : STANDALONE_ADDONS;
+
   // Visibility: Show "Make It Epic" for everything EXCEPT Fries and Drinks
   const showMakeItEpic = product.category !== 'Fries' && product.category !== 'Drinks' && product.category !== 'Sauces';
+  
+  // For Kids Menu, don't show the dropdowns (loaded fries, drinks, sauces)
+  const showDropdowns = !isKidsMenu;
 
   const toggleStandaloneAddon = (addonId: string) => {
     setStandaloneAddons(prev => {
@@ -139,8 +156,10 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
       .filter((ing) => ingredientStates[ing.id] === 'extra')
       .map((ing) => ({ 
         id: ing.id, 
-        name: `Extra ${ing.name}`,
-        price_adjustment: getExtraPrice(ing.name)
+        // For addable-only ingredients (fries add-ons), don't prefix with "Extra"
+        name: ing.is_addable && !ing.is_default ? ing.name : `Extra ${ing.name}`,
+        price_adjustment: getExtraPrice(ing.name),
+        modifier_type: 'extra' as const,
       }));
   };
 
@@ -148,8 +167,8 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
   const buildAllModifiers = (): SelectedModifier[] => {
     const allMods: SelectedModifier[] = [...selectedModifiers, ...getExtraIngredients()];
 
-    // Add standalone add-ons
-    STANDALONE_ADDONS.forEach(addon => {
+    // Add standalone add-ons (use the appropriate list based on category)
+    currentAddons.forEach(addon => {
       if (standaloneAddons.has(addon.id)) {
         allMods.push({
           id: addon.id,
@@ -203,14 +222,14 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
   };
 
   // Calculate totals with dynamic pricing
-  const standaloneTotal = STANDALONE_ADDONS.filter(a => standaloneAddons.has(a.id)).reduce((sum, a) => sum + a.price, 0);
+  const currentAddonsTotal = currentAddons.filter(a => standaloneAddons.has(a.id)).reduce((sum, a) => sum + a.price, 0);
   const extrasTotal = getExtraIngredients().reduce((sum, e) => sum + e.price_adjustment, 0);
   const modifiersTotal = selectedModifiers.reduce((sum, m) => sum + m.price_adjustment, 0);
-  const loadedFriesPrice = selectedLoadedFries ? LOADED_FRIES_SMALL_PRICE : 0;
-  const drinkPrice = drinksProducts?.find(p => p.id === selectedDrink)?.price || 0;
-  const saucePrice = saucesProducts?.find(p => p.id === selectedSauce)?.price || 0;
+  const loadedFriesCalcPrice = (selectedLoadedFries && !isKidsMenu) ? LOADED_FRIES_SMALL_PRICE : 0;
+  const drinkPrice = (!isKidsMenu && drinksProducts?.find(p => p.id === selectedDrink)?.price) || 0;
+  const saucePrice = (!isKidsMenu && saucesProducts?.find(p => p.id === selectedSauce)?.price) || 0;
   
-  const totalPrice = (product.price + standaloneTotal + extrasTotal + modifiersTotal + loadedFriesPrice + drinkPrice + saucePrice) * quantity;
+  const totalPrice = (product.price + currentAddonsTotal + extrasTotal + modifiersTotal + loadedFriesCalcPrice + drinkPrice + saucePrice) * quantity;
 
   const handleAddToOrder = () => {
     const removedIngredients = getRemovedIngredients();
@@ -225,7 +244,12 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
   };
 
   const defaultIngredients = ingredients?.filter((ing) => ing.is_default) || [];
+  const addableOnlyIngredients = ingredients?.filter((ing) => ing.is_addable && !ing.is_default) || [];
   const hasIngredients = defaultIngredients.length > 0;
+  const hasAddableIngredients = addableOnlyIngredients.length > 0;
+  
+  // Show "Customize Your Fries" section for Fries category with addable ingredients
+  const showFriesCustomization = product.category === 'Fries' && hasAddableIngredients;
 
   // Count customizations
   const removedCount = Object.values(ingredientStates).filter(s => s === 'removed').length;
@@ -290,7 +314,7 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
 
                 {/* Standalone Add-on Checkboxes */}
                 <div className="space-y-2 mb-4">
-                  {STANDALONE_ADDONS.map((addon) => {
+                  {currentAddons.map((addon) => {
                     const isSelected = standaloneAddons.has(addon.id);
                     return (
                       <label
@@ -317,7 +341,9 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
                   })}
                 </div>
 
-                {/* Dropdown 1: Loaded Fries */}
+                {/* Dropdowns - only shown for non-Kids Menu items */}
+                {showDropdowns && (
+                  <>
                 {loadedFriesProducts && loadedFriesProducts.length > 0 && (
                   <div className="space-y-1.5 mb-3">
                     <label className="text-xs text-muted-foreground font-medium">
@@ -391,6 +417,47 @@ export function StaffProductSheet({ product, onClose }: StaffProductSheetProps) 
                     </Select>
                   </div>
                 )}
+                </>
+              )}
+              </div>
+            )}
+
+            {/* FRIES CUSTOMIZATION SECTION - For Regular Fries with addable sauces */}
+            {showFriesCustomization && (
+              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 relative overflow-hidden">
+                <h4 className="font-heading text-sm uppercase tracking-wider text-amber-400 flex items-center gap-2 mb-4">
+                  🍟 Customize Your Fries
+                </h4>
+
+                <div className="space-y-2">
+                  {addableOnlyIngredients.map((ingredient) => {
+                    const isSelected = ingredientStates[ingredient.id] === 'extra';
+                    const price = getExtraPrice(ingredient.name);
+                    
+                    return (
+                      <label
+                        key={ingredient.id}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
+                            : 'border-border bg-secondary/30 hover:border-amber-500/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleAddExtra(ingredient.id)}
+                            className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                          />
+                          <span className="text-sm text-foreground font-medium">{ingredient.name}</span>
+                        </div>
+                        <span className="text-amber-400 font-bold text-sm">
+                          +€{price.toFixed(2)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

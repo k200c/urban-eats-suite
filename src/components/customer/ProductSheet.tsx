@@ -94,11 +94,13 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
       setSelectedDrink(null);
       setSelectedSauce(null);
       // Initialize all default ingredients as 'included'
+      // For addable-only ingredients (like fries add-ons), don't set initial state (they start unchecked)
       const initialStates: Record<string, IngredientState> = {};
       ingredients?.forEach((ing) => {
         if (ing.is_default) {
           initialStates[ing.id] = 'included';
         }
+        // Addable-only ingredients (is_addable=true, is_default=false) are not initialized - they start unchecked
       });
       setIngredientStates(initialStates);
     }
@@ -166,8 +168,10 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
       .filter((ing) => ingredientStates[ing.id] === 'extra')
       .map((ing) => ({ 
         id: ing.id, 
-        name: `Extra ${ing.name}`,
-        price_adjustment: getExtraPrice(ing.name)
+        // For addable-only ingredients (fries add-ons), don't prefix with "Extra"
+        name: ing.is_addable && !ing.is_default ? ing.name : `Extra ${ing.name}`,
+        price_adjustment: getExtraPrice(ing.name),
+        modifier_type: 'extra' as const,
       }));
   };
 
@@ -251,8 +255,13 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
   };
 
   const defaultIngredients = ingredients?.filter((ing) => ing.is_default) || [];
+  const addableOnlyIngredients = ingredients?.filter((ing) => ing.is_addable && !ing.is_default) || [];
   const removableIngredients = defaultIngredients.filter((ing) => ing.is_removable !== false);
   const hasIngredients = defaultIngredients.length > 0;
+  const hasAddableIngredients = addableOnlyIngredients.length > 0;
+  
+  // Show "Customize Your Fries" section for Fries category with addable ingredients
+  const showFriesCustomization = product.category === 'Fries' && hasAddableIngredients;
 
   // Count customizations
   const removedCount = Object.values(ingredientStates).filter(s => s === 'removed').length;
@@ -437,6 +446,45 @@ export function ProductSheet({ product, modifierGroups, ingredients, onClose }: 
                     )}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* FRIES CUSTOMIZATION SECTION - For Regular Fries with addable sauces */}
+            {showFriesCustomization && (
+              <div className="mb-8 p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 relative overflow-hidden">
+                <h4 className="font-heading text-lg uppercase tracking-wider text-amber-400 flex items-center gap-2 mb-5">
+                  🍟 Customize Your Fries
+                </h4>
+
+                <div className="space-y-3">
+                  {addableOnlyIngredients.map((ingredient) => {
+                    const isSelected = ingredientStates[ingredient.id] === 'extra';
+                    const price = getExtraPrice(ingredient.name);
+                    
+                    return (
+                      <label
+                        key={ingredient.id}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
+                            : 'border-white/10 bg-white/5 hover:border-amber-500/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleAddExtra(ingredient.id)}
+                            className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                          />
+                          <span className="text-foreground font-medium">{ingredient.name}</span>
+                        </div>
+                        <span className="text-amber-400 font-bold">
+                          +€{price.toFixed(2)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
