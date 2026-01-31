@@ -12,6 +12,10 @@ export const EXTRA_PRICING = {
   cheeseKeywords: ['cheese', 'cheddar', 'american', 'applewood', 'mozzarella', 'gouda', 'swiss', 'brie', 'smoked applewood'],
   cheesePrice: 1.00,
   
+  // Sauce add-ons - €1.00 extra (for fries customization)
+  sauceKeywords: ['aioli', 'cheese sauce'],
+  saucePrice: 1.00,
+  
   // Default price for other extras (currently free)
   defaultExtraPrice: 0,
   
@@ -35,6 +39,11 @@ export function getExtraPrice(ingredientName: string): number {
   // Check for cheese ingredients - €1.00
   if (EXTRA_PRICING.cheeseKeywords.some(keyword => lowerName.includes(keyword))) {
     return EXTRA_PRICING.cheesePrice;
+  }
+  
+  // Check for sauce add-ons - €1.00 (for fries customization)
+  if (EXTRA_PRICING.sauceKeywords.some(keyword => lowerName.includes(keyword))) {
+    return EXTRA_PRICING.saucePrice;
   }
   
   // Other extras are free (or use defaultExtraPrice if needed)
