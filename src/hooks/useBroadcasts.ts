@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface Broadcast {
   id: string;
@@ -27,16 +27,16 @@ export interface CommunityVote {
   created_at: string;
 }
 
-const BROADCAST_WEBHOOK_URL = 'https://kyle2000.app.n8n.cloud/webhook/broadcast-savage-sunday';
+const BROADCAST_WEBHOOK_URL = "https://kyle2000.app.n8n.cloud/webhook-test/af8d316c-01bb-4b81-af97-adffa310d8e3";
 
 export function useBroadcasts() {
   return useQuery({
-    queryKey: ['broadcasts'],
+    queryKey: ["broadcasts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('broadcasts')
-        .select('*')
-        .order('sent_at', { ascending: false })
+        .from("broadcasts")
+        .select("*")
+        .order("sent_at", { ascending: false })
         .limit(20);
 
       if (error) throw error;
@@ -52,8 +52,8 @@ export function useSendBroadcast() {
     mutationFn: async (broadcast: { title: string; message: string; image_url?: string }) => {
       // First, send to n8n webhook
       const response = await fetch(BROADCAST_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: broadcast.title,
           message: broadcast.message,
@@ -63,7 +63,7 @@ export function useSendBroadcast() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send broadcast');
+        throw new Error("Failed to send broadcast");
       }
 
       // Simulated metrics (in production, n8n would return these)
@@ -72,7 +72,7 @@ export function useSendBroadcast() {
       const simulatedRevenue = Math.floor(Math.random() * 500) + 100;
 
       // Save to database
-      const { error } = await supabase.from('broadcasts').insert({
+      const { error } = await supabase.from("broadcasts").insert({
         title: broadcast.title,
         message: broadcast.message,
         image_url: broadcast.image_url || null,
@@ -84,11 +84,11 @@ export function useSendBroadcast() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
-      toast.success('📢 Broadcast sent successfully!');
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+      toast.success("📢 Broadcast sent successfully!");
     },
     onError: (error) => {
-      toast.error('Failed to send broadcast');
+      toast.error("Failed to send broadcast");
       console.error(error);
     },
   });
@@ -96,12 +96,12 @@ export function useSendBroadcast() {
 
 export function useCommunityVotes() {
   return useQuery({
-    queryKey: ['community-votes'],
+    queryKey: ["community-votes"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('community_votes')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("community_votes")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as CommunityVote[];
@@ -114,7 +114,7 @@ export function useCreateVote() {
 
   return useMutation({
     mutationFn: async (vote: { title: string; option_a: string; option_b: string; closing_date: string }) => {
-      const { error } = await supabase.from('community_votes').insert({
+      const { error } = await supabase.from("community_votes").insert({
         title: vote.title,
         option_a: vote.option_a,
         option_b: vote.option_b,
@@ -125,11 +125,11 @@ export function useCreateVote() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['community-votes'] });
-      toast.success('🗳️ Community vote created!');
+      queryClient.invalidateQueries({ queryKey: ["community-votes"] });
+      toast.success("🗳️ Community vote created!");
     },
     onError: () => {
-      toast.error('Failed to create vote');
+      toast.error("Failed to create vote");
     },
   });
 }
