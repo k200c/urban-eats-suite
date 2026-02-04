@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { useCartSync } from "@/hooks/useCartSync";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { UpdateToast } from "@/components/pwa/UpdateToast";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import Index from "./pages/Index";
 import Menu from "./pages/Menu";
@@ -61,6 +62,7 @@ const [queryClient] = useState(() => new QueryClient({
                 },
               }}
             />
+            <UpdateToast />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
                 {/* CRITICAL: Viva Wallet redirect routes MUST be first - public, no auth */}

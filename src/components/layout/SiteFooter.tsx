@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail, Info } from "lucide-react";
 import { AllergenModal } from "@/components/ui/allergen-modal";
+import { APP_VERSION } from "@/lib/pwa";
 // SVG Payment Icons as components for clean rendering
 const VisaIcon = () => (
   <svg viewBox="0 0 48 32" className="h-8 w-auto" aria-label="Visa">
@@ -132,11 +133,13 @@ export function SiteFooter() {
               </div>
             </div>
 
-            {/* Copyright */}
+            {/* Copyright & Version */}
             <p className="text-xs text-muted-foreground text-center md:text-right">
               © {new Date().getFullYear()} Street Eatz Waterford. All rights reserved.
               <br />
               <span className="text-primary/70">Made with ❤️ in Ireland 🇮🇪</span>
+              <br />
+              <span className="text-muted-foreground/50 text-[10px]">v{APP_VERSION}</span>
             </p>
           </div>
         </div>
