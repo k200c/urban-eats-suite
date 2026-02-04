@@ -67,7 +67,14 @@ export function Navbar() {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5">
+    <nav 
+      className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5"
+      style={{
+        paddingTop: 'var(--safe-top)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -199,7 +206,11 @@ export function Navbar() {
         {/* Mobile Menu - Full Height Overlay */}
         {isOpen && (
           <div 
-            className="fixed inset-0 top-16 z-50 md:hidden bg-black/95 backdrop-blur-lg animate-fade-in overflow-y-auto"
+            className="fixed inset-x-0 z-50 md:hidden bg-black/95 backdrop-blur-lg animate-fade-in overflow-y-auto"
+            style={{
+              top: 'var(--header-offset)',
+              height: 'calc(100dvh - var(--header-offset))',
+            }}
             onClick={() => setIsOpen(false)}
           >
             <div 

@@ -11,6 +11,13 @@
 
 @layer base {
   :root {
+    /* Header offset system - iOS safe area support */
+    --nav-height: 64px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --header-offset: calc(var(--nav-height) + var(--safe-top));
+
     /* Street Eatz Dark Theme */
     /* Deep Charcoal Gradient Background */
     --background: 0 0% 4%;

@@ -6,7 +6,7 @@ import { FloatingCartButton } from '@/components/customer/FloatingCartButton';
 
 export default function Menu() {
   return (
-    <div className="min-h-screen pt-16 pb-24 flex flex-col">
+    <div className="min-h-screen pt-[var(--header-offset)] pb-24 flex flex-col">
       <Navbar />
       <MenuSection />
       <SiteFooter />

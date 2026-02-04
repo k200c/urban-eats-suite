@@ -41,7 +41,7 @@ export default function Details() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-background pb-24 pt-20">
+      <div className="min-h-screen bg-background pb-24 pt-[var(--header-offset)]">
         <div className="max-w-2xl mx-auto px-4 py-8">
           {/* Header with Logo */}
           <motion.div 

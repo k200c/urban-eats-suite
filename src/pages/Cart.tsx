@@ -110,7 +110,7 @@ export default function Cart() {
     return (
       <div className="min-h-screen">
         <Navbar />
-        <div className="pt-20 px-4 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="pt-[var(--header-offset)] px-4 flex flex-col items-center justify-center min-h-[60vh]">
           <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mb-4">
             <ShoppingBag className="w-12 h-12 text-muted-foreground" />
           </div>
@@ -127,7 +127,7 @@ export default function Cart() {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="pt-20 px-4 max-w-lg mx-auto pb-40">
+      <div className="pt-[var(--header-offset)] px-4 max-w-lg mx-auto pb-40">
         {/* Header */}
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
