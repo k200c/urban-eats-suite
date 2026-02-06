@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.get-customers]
 verify_jwt = false
+
+[functions.get-wait-time]
+verify_jwt = false

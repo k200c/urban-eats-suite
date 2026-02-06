@@ -22,7 +22,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
 import { Product } from '@/types/database';
 
-const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '1 hour'];
+const waitTimeOptions = ['10 mins', '20 mins', '30 mins', '45 mins', '60 mins'];
 
 export default function CommandCenter() {
   const navigate = useNavigate();
