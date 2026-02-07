@@ -33,6 +33,13 @@ const FILE_LIMITS: Record<PostType, { min: number; max: number; label: string }>
   video: { min: 1, max: 1, label: '1 video' },
 };
 
+// Reference image limits based on post type (for AI generation mode)
+const REFERENCE_LIMITS: Record<PostType, { max: number; hint: string }> = {
+  single: { max: 3, hint: 'Upload 1-3 reference images (optional)' },
+  carousel: { max: 10, hint: 'Upload 2-10 reference images for consistent style' },
+  video: { max: 1, hint: 'Upload 1 reference image (optional)' },
+};
+
 export function SocialMediaManager() {
   // Form state - Strategy
   const [contentIdea, setContentIdea] = useState('');
@@ -43,7 +50,7 @@ export function SocialMediaManager() {
   const [useAiVisuals, setUseAiVisuals] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [visualPrompt, setVisualPrompt] = useState('');
-  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   
   // Scheduling
   const [scheduleForLater, setScheduleForLater] = useState(false);
@@ -79,7 +86,7 @@ export function SocialMediaManager() {
     setUseAiVisuals(false);
     setUploadedFiles([]);
     setVisualPrompt('');
-    setReferenceFile(null);
+    setReferenceFiles([]);
     setScheduleForLater(false);
     setScheduledDate(undefined);
     setScheduledTime('12:00');
@@ -99,8 +106,16 @@ export function SocialMediaManager() {
   };
 
   const handleReferenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setReferenceFile(e.target.files[0]);
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const limits = REFERENCE_LIMITS[postType];
+      
+      if (files.length > limits.max) {
+        toast.error(`Maximum ${limits.max} reference images for ${postType}`);
+        setReferenceFiles(files.slice(0, limits.max));
+      } else {
+        setReferenceFiles(files);
+      }
     }
   };
 
@@ -129,6 +144,15 @@ export function SocialMediaManager() {
       }
     }
 
+    // Validate reference file count when using AI visuals
+    if (useAiVisuals && referenceFiles.length > 0) {
+      const refLimits = REFERENCE_LIMITS[postType];
+      if (referenceFiles.length > refLimits.max) {
+        toast.error(`Maximum ${refLimits.max} reference images for ${postType}`);
+        return;
+      }
+    }
+
     setUploading(true);
     try {
       if (scheduleForLater && scheduledDate) {
@@ -141,7 +165,7 @@ export function SocialMediaManager() {
           scheduledTime,
           aiPreference,
           visualPrompt: useAiVisuals ? visualPrompt : undefined,
-          referenceFile: useAiVisuals ? referenceFile || undefined : undefined,
+          referenceFiles: useAiVisuals ? referenceFiles : [],
         });
       } else {
         await generateDraft({
@@ -151,7 +175,7 @@ export function SocialMediaManager() {
           files: uploadedFiles,
           aiPreference,
           visualPrompt: useAiVisuals ? visualPrompt : undefined,
-          referenceFile: useAiVisuals ? referenceFile || undefined : undefined,
+          referenceFiles: useAiVisuals ? referenceFiles : [],
         });
       }
       resetForm();
@@ -291,7 +315,7 @@ export function SocialMediaManager() {
                     setUseAiVisuals(checked);
                     setUploadedFiles([]);
                     setVisualPrompt('');
-                    setReferenceFile(null);
+                    setReferenceFiles([]);
                   }}
                 />
               </div>
@@ -368,23 +392,50 @@ export function SocialMediaManager() {
                     />
                   </div>
                   
-                  {/* Optional Reference Image */}
+                  {/* Reference Pack (Optional) */}
                   <div className="space-y-2">
                     <Label htmlFor="reference" className="font-medium flex items-center gap-2 text-muted-foreground">
                       <ImagePlus className="w-4 h-4" />
-                      Style Reference (Optional)
+                      Reference Pack (Optional)
                     </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {REFERENCE_LIMITS[postType].hint}
+                    </p>
                     <Input
                       id="reference"
                       type="file"
                       accept="image/*"
+                      multiple={postType !== 'video'}
                       onChange={handleReferenceFileChange}
                       className="bg-background/50 border-border/50 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-secondary file:text-secondary-foreground cursor-pointer"
                     />
-                    {referenceFile && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Check className="w-4 h-4 text-success" />
-                        Reference: {referenceFile.name}
+                    {referenceFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Check className="w-4 h-4 text-success" />
+                          {referenceFiles.length} reference image(s) selected
+                        </div>
+                        
+                        {/* File list with remove buttons */}
+                        <div className="flex flex-wrap gap-2">
+                          {referenceFiles.map((file, index) => (
+                            <div 
+                              key={`ref-${file.name}-${index}`}
+                              className="flex items-center gap-1 px-2 py-1 bg-violet-500/10 border border-violet-500/20 rounded-md text-xs"
+                            >
+                              <span className="max-w-[120px] truncate">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReferenceFiles(prev => prev.filter((_, i) => i !== index));
+                                }}
+                                className="text-muted-foreground hover:text-destructive p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

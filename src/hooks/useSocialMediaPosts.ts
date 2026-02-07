@@ -25,7 +25,7 @@ interface CreatePostParams {
   // New AI-powered fields
   aiPreference: 'generate_ai' | 'upload_media';
   visualPrompt?: string;
-  referenceFile?: File;
+  referenceFiles?: File[]; // Changed from referenceFile to support multi-file
 }
 
 const N8N_GENERATE_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-generate';
@@ -141,14 +141,20 @@ export function useSocialMediaPosts() {
   });
 
   // Upload files to storage with postId for consistent naming
-  const uploadFiles = async (files: File[], postId: string): Promise<string[]> => {
+  // folder param allows uploading to 'posts' or 'references'
+  const uploadFiles = async (
+    files: File[], 
+    postId: string, 
+    folder: 'posts' | 'references' = 'posts'
+  ): Promise<string[]> => {
     const urls: string[] = [];
     
     for (let index = 0; index < files.length; index++) {
       const file = files[index];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${postId}-${index}-${Date.now()}.${fileExt}`;
-      const filePath = `posts/${fileName}`;
+      const prefix = folder === 'references' ? 'ref-' : '';
+      const fileName = `${prefix}${postId}-${index}-${Date.now()}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('social-media-content')
@@ -171,7 +177,7 @@ export function useSocialMediaPosts() {
 
   // Generate draft mutation (no date selected) - REFACTORED: Sequential Upload → Payload → Dispatch
   const generateDraftMutation = useMutation({
-    mutationFn: async ({ contentIdea, brief, postType, files, aiPreference, visualPrompt, referenceFile }: CreatePostParams) => {
+    mutationFn: async ({ contentIdea, brief, postType, files, aiPreference, visualPrompt, referenceFiles }: CreatePostParams) => {
       console.log("%c 🚀 STARTING DRAFT GENERATION v2...", "background: #222; color: #bada55", { 
         contentIdea, brief, postType, filesCount: files.length, aiPreference, visualPrompt 
       });
@@ -192,25 +198,26 @@ export function useSocialMediaPosts() {
       // STEP 2: INITIALIZE MEDIA VARIABLES (GUARANTEED ARRAYS)
       // ═══════════════════════════════════════════════════════════════
       let finalMediaUrls: string[] = []; // Always starts as empty array
-      let finalReferenceUrl: string | null = null;
+      let finalReferenceUrls: string[] = []; // Changed to array for multi-file support
 
       // ═══════════════════════════════════════════════════════════════
       // STEP 3: CONDITIONAL FILE UPLOAD (Only if files exist)
       // ═══════════════════════════════════════════════════════════════
       if (aiPreference === 'upload_media' && files && files.length > 0) {
         console.log("📤 STEP 3: Uploading", files.length, "media files with postId:", newId);
-        const uploadResult = await uploadFiles(files, newId);
+        const uploadResult = await uploadFiles(files, newId, 'posts');
         finalMediaUrls = Array.isArray(uploadResult) ? uploadResult : [];
         console.log("✅ STEP 3 COMPLETE - finalMediaUrls:", JSON.stringify(finalMediaUrls));
       } else {
         console.log("⏭️ STEP 3: No files to upload, finalMediaUrls = []");
       }
 
-      if (aiPreference === 'generate_ai' && referenceFile) {
-        console.log("📤 STEP 3b: Uploading reference image...");
-        const uploadResult = await uploadFiles([referenceFile], `ref-${newId}`);
-        finalReferenceUrl = uploadResult[0] || null;
-        console.log("✅ STEP 3b COMPLETE - finalReferenceUrl:", finalReferenceUrl);
+      // Upload reference files array (for AI generation mode)
+      if (aiPreference === 'generate_ai' && referenceFiles && referenceFiles.length > 0) {
+        console.log("📤 STEP 3b: Uploading", referenceFiles.length, "reference images...");
+        const uploadResult = await uploadFiles(referenceFiles, newId, 'references');
+        finalReferenceUrls = Array.isArray(uploadResult) ? uploadResult : [];
+        console.log("✅ STEP 3b COMPLETE - finalReferenceUrls:", JSON.stringify(finalReferenceUrls));
       }
 
       // ═══════════════════════════════════════════════════════════════
@@ -244,7 +251,7 @@ export function useSocialMediaPosts() {
         ai_preference: aiPreference,
         media_urls: safeMediaUrls, // ← GUARANTEED ARRAY (never null/undefined)
         visual_prompt: aiPreference === 'generate_ai' ? (visualPrompt || "") : null,
-        reference_image_url: finalReferenceUrl,
+        reference_image_urls: finalReferenceUrls, // Changed to array for multi-file support
       };
 
       console.log("%c 💾 STEP 4: DB PAYLOAD:", "background: #333; color: #00ffff", JSON.stringify(dbPayload, null, 2));
