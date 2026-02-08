@@ -73,6 +73,14 @@ const KIDS_MENU_ADDONS = [
   { id: 'capri-sun', name: 'Capri Sun', price: 1.50 },
 ];
 
+// Bread swap option - only for Burgers and Specials
+const BREAD_SWAP_FLATBREAD = {
+  id: 'bread-swap-flatbread',
+  name: 'Make it a Flatbread',
+  kitchenLabel: 'FLATBREAD',
+  price: 1.00,
+};
+
 export function ProductSheet({ 
   product, 
   modifierGroups, 
@@ -89,6 +97,7 @@ export function ProductSheet({
   const [selectedLoadedFries, setSelectedLoadedFries] = useState<string | null>(null);
   const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
   const [selectedSauce, setSelectedSauce] = useState<string | null>(null);
+  const [flatbreadSelected, setFlatbreadSelected] = useState(false);
   
   const addItem = useCartStore((state) => state.addItem);
   const updateItem = useCartStore((state) => state.updateItem);
@@ -115,6 +124,8 @@ export function ProductSheet({
         let sauce: string | null = null;
         const otherMods: SelectedModifier[] = [];
         
+        let hasFlatbread = false;
+        
         initialItem.selectedModifiers.forEach(mod => {
           // Check if it's a standalone addon
           const isStandaloneAddon = [...STANDALONE_ADDONS, ...KIDS_MENU_ADDONS].some(a => a.id === mod.id || a.name === mod.name);
@@ -126,10 +137,14 @@ export function ProductSheet({
             drink = mod.id;
           } else if (mod.modifier_type === 'sauce') {
             sauce = mod.id;
+          } else if (mod.modifier_type === 'bread_swap') {
+            hasFlatbread = true;
           } else {
             otherMods.push(mod);
           }
         });
+        
+        setFlatbreadSelected(hasFlatbread);
         
         setStandaloneAddons(addonIds);
         setSelectedLoadedFries(loadedFries);
@@ -174,6 +189,7 @@ export function ProductSheet({
         setSelectedLoadedFries(null);
         setSelectedDrink(null);
         setSelectedSauce(null);
+        setFlatbreadSelected(false);
         // Initialize all default ingredients as 'included'
         const initStates: Record<string, IngredientState> = {};
         ingredients?.forEach((ing) => {
@@ -204,6 +220,9 @@ export function ProductSheet({
   
   // For Kids Menu, don't show the dropdowns (loaded fries, drinks, sauces)
   const showDropdowns = !isKidsMenu;
+  
+  // Show flatbread option only for Burgers and Specials
+  const showFlatbreadOption = product.category === 'Burgers' || product.category === 'Specials';
   const toggleStandaloneAddon = (addonId: string) => {
     setStandaloneAddons(prev => {
       const next = new Set(prev);
@@ -310,6 +329,16 @@ export function ProductSheet({
       }
     }
 
+    // Add flatbread bread swap if selected
+    if (flatbreadSelected) {
+      allMods.push({
+        id: BREAD_SWAP_FLATBREAD.id,
+        name: BREAD_SWAP_FLATBREAD.name,
+        price_adjustment: BREAD_SWAP_FLATBREAD.price,
+        modifier_type: 'bread_swap',
+      });
+    }
+
     return allMods;
   };
 
@@ -320,8 +349,9 @@ export function ProductSheet({
   const selectedLoadedFriesPrice = (selectedLoadedFries && !isKidsMenu) ? loadedFriesPrice : 0;
   const drinkPrice = (!isKidsMenu && drinksProducts?.find(p => p.id === selectedDrink)?.price) || 0;
   const saucePrice = (!isKidsMenu && saucesProducts?.find(p => p.id === selectedSauce)?.price) || 0;
+  const flatbreadPrice = flatbreadSelected ? BREAD_SWAP_FLATBREAD.price : 0;
   
-  const totalPrice = (product.price + currentAddonsTotal + extrasTotal + modifiersTotal + selectedLoadedFriesPrice + drinkPrice + saucePrice) * quantity;
+  const totalPrice = (product.price + currentAddonsTotal + extrasTotal + modifiersTotal + selectedLoadedFriesPrice + drinkPrice + saucePrice + flatbreadPrice) * quantity;
 
   const handleAddToOrder = async () => {
     const removedIngredients = getRemovedIngredients();
@@ -532,6 +562,32 @@ export function ProductSheet({
                       </div>
                     )}
                   </>
+                )}
+
+                {/* Bread Swap Option - Only for Burgers & Specials */}
+                {showFlatbreadOption && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <label
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        flatbreadSelected
+                          ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
+                          : 'border-white/10 bg-white/5 hover:border-amber-500/40'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={flatbreadSelected}
+                            onCheckedChange={(checked) => setFlatbreadSelected(checked === true)}
+                            className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                          />
+                          <span className="text-foreground font-medium">Make it a Flatbread</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground ml-9">Replaces the standard bun</span>
+                      </div>
+                      <span className="text-amber-400 font-bold">+€1.00</span>
+                    </label>
+                  </div>
                 )}
               </div>
             )}

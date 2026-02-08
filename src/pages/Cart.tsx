@@ -196,15 +196,23 @@ export default function Cart() {
                         </span>
                       ))}
                       
-                      {/* Added Extras - Green badges */}
-                      {item.selectedModifiers.map((m) => (
-                        <span 
-                          key={m.id} 
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/20 text-green-400 border border-green-500/30"
-                        >
-                          + {m.name}
-                        </span>
-                      ))}
+                      {/* Added Extras - Green badges, Bread swaps - Amber badges */}
+                      {item.selectedModifiers.map((m) => {
+                        const isBreadSwap = m.modifier_type === 'bread_swap';
+                        return (
+                          <span 
+                            key={m.id} 
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              isBreadSwap 
+                                ? 'bg-amber-500/30 text-amber-300 border border-amber-500/50'
+                                : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            }`}
+                          >
+                            {isBreadSwap ? m.name : `+ ${m.name}`}
+                            {m.price_adjustment > 0 && ` (+€${m.price_adjustment.toFixed(2)})`}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                   <div className="flex items-center justify-between mt-3">

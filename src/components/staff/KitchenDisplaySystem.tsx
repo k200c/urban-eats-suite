@@ -335,15 +335,23 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
                             + EXTRA {extra.toUpperCase()}
                           </span>
                         ))}
-                        {/* Regular Modifiers */}
-                        {parsed.regularModifiers.map((mod, i) => (
-                          <span
-                            key={`mod-${i}`}
-                            className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground"
-                          >
-                            {mod.name}
-                          </span>
-                        ))}
+                        {/* Regular Modifiers - with special styling for flatbread */}
+                        {parsed.regularModifiers.map((mod, i) => {
+                          const isBreadSwap = mod.name?.toLowerCase().includes('flatbread');
+                          return (
+                            <span
+                              key={`mod-${i}`}
+                              className={`text-xs px-1.5 py-0.5 rounded font-bold ${
+                                isBreadSwap
+                                  ? 'bg-amber-500/40 text-amber-200'
+                                  : 'bg-secondary text-muted-foreground'
+                              }`}
+                            >
+                              {isBreadSwap ? `BREAD: ${mod.name.toUpperCase()}` : mod.name}
+                              {mod.price_adjustment && mod.price_adjustment > 0 && ` (+€${mod.price_adjustment.toFixed(2)})`}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
