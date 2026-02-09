@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+
 export interface Broadcast {
   id: string;
   title: string;
@@ -27,7 +28,7 @@ export interface CommunityVote {
   created_at: string;
 }
 
-const BROADCAST_WEBHOOK_URL = "https://kyle2000.app.n8n.cloud/webhook-test/af8d316c-01bb-4b81-af97-adffa310d8e3";
+// Broadcast webhook is now routed through authenticated Edge Function
 
 export function useBroadcasts() {
   return useQuery({
@@ -50,19 +51,16 @@ export function useSendBroadcast() {
 
   return useMutation({
     mutationFn: async (broadcast: { title: string; message: string; image_url?: string }) => {
-      // First, send to n8n webhook
-      const response = await fetch(BROADCAST_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // Send via authenticated Edge Function (not direct to n8n)
+      const { data, error: fnError } = await supabase.functions.invoke('send-broadcast', {
+        body: {
           title: broadcast.title,
           message: broadcast.message,
           image_url: broadcast.image_url || null,
-          sent_at: new Date().toISOString(),
-        }),
+        },
       });
 
-      if (!response.ok) {
+      if (fnError) {
         throw new Error("Failed to send broadcast");
       }
 

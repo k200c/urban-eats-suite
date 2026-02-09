@@ -524,26 +524,27 @@ export function KitchenDisplaySystem() {
           }
         };
 
-        // 🚀 BYPASSING EDGE FUNCTION - Direct fetch to n8n
-        console.log("%c 🚀 BYPASSING EDGE FUNCTION - Sending directly to N8N...", "background: #222; color: #bada55", payload);
+        // Route through authenticated Edge Function (not direct to n8n)
+        console.log("🔒 Sending status update via Edge Function...", payload);
         
-        const N8N_STATUS_URL = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-status";
-        
-        fetch(N8N_STATUS_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        })
-          .then(async (response) => {
-            if (!response.ok) {
-              console.error(`❌ N8N Error: ${response.status} ${response.statusText}`);
-            } else {
-              console.log("✅ N8N Success - Status notification sent for order:", orderId);
-            }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.error("No session for status update");
+        } else {
+          supabase.functions.invoke('update-order-status', {
+            body: payload,
           })
-          .catch((err) => {
-            console.error("🚨 Network Error (N8N):", err);
-          });
+            .then(({ data, error }) => {
+              if (error) {
+                console.error(`❌ Edge Function Error:`, error);
+              } else {
+                console.log("✅ Status notification sent via Edge Function for order:", orderId);
+              }
+            })
+            .catch((err) => {
+              console.error("🚨 Network Error (Edge Function):", err);
+            });
+        }
       }
 
       // Update status in database (exclude pending_payment from the mutation type)

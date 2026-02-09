@@ -16,8 +16,7 @@ interface StaffOrderResult {
   createdAt: string;
 }
 
-// n8n Webhook URL for POS orders
-const N8N_POS_WEBHOOK = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-order";
+// Kitchen webhook is now routed through authenticated Edge Function
 
 export function useStaffCheckout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -176,19 +175,17 @@ export function useStaffCheckout() {
         },
       };
 
-      console.log("📦 Staff POS: Sending to kitchen:", payload);
+      console.log("📦 Staff POS: Sending to kitchen via Edge Function:", payload);
 
-      const response = await fetch(N8N_POS_WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const { data, error: fnError } = await supabase.functions.invoke('send-to-kitchen', {
+        body: payload,
       });
 
-      if (response.ok) {
+      if (!fnError) {
         console.log("✅ Staff POS: Order sent to kitchen");
         return true;
       } else {
-        console.error("❌ Staff POS: Kitchen webhook failed:", response.status);
+        console.error("❌ Staff POS: Kitchen edge function error:", fnError);
         return true; // Still return true - order is saved in DB
       }
     } catch (error) {

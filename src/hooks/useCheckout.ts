@@ -20,8 +20,7 @@ interface OrderResult {
   createdAt: string;
 }
 
-// n8n Webhook URL for kitchen notifications
-const N8N_KITCHEN_WEBHOOK = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-order";
+// Kitchen webhook is now routed through authenticated Edge Function
 
 export function useCheckout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -224,23 +223,19 @@ export function useCheckout() {
         },
       };
 
-      console.log("🚀 Sending collection order to kitchen:", JSON.stringify(payload, null, 2));
+      console.log("🚀 Sending collection order to kitchen via Edge Function:", JSON.stringify(payload, null, 2));
 
-      const response = await fetch(N8N_KITCHEN_WEBHOOK, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      const { data, error: fnError } = await supabase.functions.invoke('send-to-kitchen', {
+        body: payload,
       });
 
-      if (response.ok) {
+      if (!fnError) {
         console.log("✅ Order sent to kitchen successfully!");
         toast.success("Order sent to Kitchen! 👨‍🍳");
         return true;
       } else {
-        console.error("❌ Kitchen webhook failed:", response.status);
-        toast.error(`Network Error: ${response.status}. Please show staff this screen.`);
+        console.error("❌ Kitchen edge function error:", fnError);
+        toast.error("Network Error. Please show staff this screen.");
         return true; // Still return true - order is saved in DB
       }
     } catch (error) {
