@@ -28,7 +28,7 @@ interface CreatePostParams {
   referenceFiles?: File[]; // Changed from referenceFile to support multi-file
 }
 
-const N8N_GENERATE_WEBHOOK = "https://kyle2000.app.n8n.cloud/webhook-test/street-eatz-generate";
+const N8N_GENERATE_WEBHOOK = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-generate";
 
 export function useSocialMediaPosts() {
   const queryClient = useQueryClient();
