@@ -75,7 +75,7 @@ export default function StaffPOSQuick() {
   }
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden">
+    <div className="h-screen flex bg-background overflow-hidden staff-pos">
       {/* Left Side - Product Grid */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Category Tabs */}
@@ -87,7 +87,7 @@ export default function StaffPOSQuick() {
                   <Button
                     key={cat}
                     variant={activeCategory === cat ? 'default' : 'ghost'}
-                    className={`flex-shrink-0 h-12 px-6 font-heading ${
+                    className={`flex-shrink-0 h-14 px-8 text-base font-heading pos-control ${
                       activeCategory === cat ? 'bg-primary text-primary-foreground' : ''
                     }`}
                     onClick={() => setActiveCategory(cat)}
@@ -131,7 +131,7 @@ export default function StaffPOSQuick() {
                 <motion.button
                   key={product.id}
                   whileTap={{ scale: 0.95 }}
-                  className="relative h-24 bg-card border border-border rounded-lg p-3 flex flex-col justify-between text-left hover:border-primary/50 transition-colors group"
+                  className="relative h-28 bg-card border border-border rounded-lg p-3 flex flex-col justify-between text-left hover:border-primary/50 transition-colors group"
                   onClick={() => handleQuickAdd(product)}
                 >
                   <span className="font-heading text-sm text-foreground line-clamp-2 leading-tight">
@@ -146,10 +146,10 @@ export default function StaffPOSQuick() {
                         e.stopPropagation();
                         handleCustomize(product);
                       }}
-                      className="p-1.5 rounded bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      className="p-2.5 rounded bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors"
                       title="Customize"
                     >
-                      <Edit2 className="w-3 h-3" />
+                      <Edit2 className="w-4 h-4" />
                     </button>
                   </div>
                 </motion.button>
@@ -240,16 +240,16 @@ export default function StaffPOSQuick() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => item.quantity === 1 ? removeItem(index) : updateQuantity(index, item.quantity - 1)}
-                        className="w-7 h-7 rounded-full bg-background flex items-center justify-center"
+                        className="w-9 h-9 rounded-full bg-background flex items-center justify-center"
                       >
-                        {item.quantity === 1 ? <Trash2 className="w-3 h-3 text-destructive" /> : <Minus className="w-3 h-3" />}
+                        {item.quantity === 1 ? <Trash2 className="w-4 h-4 text-destructive" /> : <Minus className="w-4 h-4" />}
                       </button>
-                      <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
+                      <span className="w-8 text-center text-base font-semibold">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(index, item.quantity + 1)}
-                        className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                        className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-4 h-4" />
                       </button>
                     </div>
                   </motion.div>
@@ -280,7 +280,7 @@ export default function StaffPOSQuick() {
           {/* Checkout Button */}
           {items.length > 0 && (
             <Button
-              className="w-full h-14 btn-glow text-lg"
+              className="w-full h-16 btn-glow text-xl pos-control"
               onClick={() => setShowCheckout(true)}
             >
               CHECKOUT

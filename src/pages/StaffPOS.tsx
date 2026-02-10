@@ -163,7 +163,7 @@ export default function StaffPOS() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex staff-pos">
       {/* Left Side - Menu Grid (70%) */}
       <div className="w-[70%] p-4 border-r border-border flex flex-col">
         {/* Header */}
@@ -214,7 +214,7 @@ export default function StaffPOS() {
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={cn(
-                'px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap',
+                'px-6 py-3 text-base rounded-lg font-medium transition-colors whitespace-nowrap pos-control',
                 selectedCategory === cat
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
@@ -397,7 +397,7 @@ export default function StaffPOS() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => updateQuantity(index, -1)}
-                        className="w-8 h-8 rounded-full bg-background flex items-center justify-center"
+                        className="w-10 h-10 rounded-full bg-background flex items-center justify-center"
                       >
                         {item.quantity === 1 ? (
                           <Trash2 className="w-4 h-4 text-destructive" />
@@ -405,10 +405,10 @@ export default function StaffPOS() {
                           <Minus className="w-4 h-4" />
                         )}
                       </button>
-                      <span className="w-6 text-center font-bold">{item.quantity}</span>
+                      <span className="w-8 text-center font-bold">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(index, 1)}
-                        className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                        className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
                       >
                         <Plus className="w-4 h-4" />
                       </button>

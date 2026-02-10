@@ -38,7 +38,7 @@ export default function StaffDashboard() {
   if (!isAdmin) return null;
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden staff-pos">
       {/* Low-Chrome Header */}
       <header className="flex-shrink-0 bg-black/95 backdrop-blur-sm border-b border-border">
         <div className="px-4 py-3 flex items-center justify-between">

@@ -185,7 +185,7 @@ export default function CommandCenter() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background staff-pos">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

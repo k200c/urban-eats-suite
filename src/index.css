@@ -106,6 +106,27 @@
 }
 
 @layer components {
+  /* Staff POS Scale System -- iPad touch optimization */
+  .staff-pos {
+    --pos-btn-min-h: 52px;
+    --pos-btn-padding: 14px 20px;
+    --pos-btn-font: 15px;
+    --pos-icon-size: 20px;
+    --pos-input-height: 52px;
+  }
+
+  .staff-pos .pos-control {
+    min-height: var(--pos-btn-min-h);
+    padding: var(--pos-btn-padding);
+    font-size: var(--pos-btn-font);
+  }
+
+  .staff-pos input,
+  .staff-pos select,
+  .staff-pos [role="combobox"] {
+    min-height: var(--pos-input-height);
+  }
+
   /* Gradient background overlay */
   .gradient-bg {
     background: linear-gradient(180deg, #0A0A0A 0%, #1A1A1A 100%);

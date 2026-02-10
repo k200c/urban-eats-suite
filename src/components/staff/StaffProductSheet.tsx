@@ -374,16 +374,17 @@ export function StaffProductSheet({
         side="right"
         className="w-full sm:max-w-md bg-gradient-to-b from-card to-background border-l border-border p-0 overflow-hidden"
       >
-        {/* Close Button */}
+        {/* Close Button - safe-area aware */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+          className="absolute right-4 z-10 w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+          style={{ top: 'max(16px, env(safe-area-inset-top, 16px))' }}
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
 
         {/* Scrollable Content */}
-        <div className="h-full overflow-y-auto pb-32">
+        <div className="h-full overflow-y-auto pb-32" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           {/* Product Image */}
           <div className="relative h-40">
             <img
@@ -432,7 +433,7 @@ export function StaffProductSheet({
                     return (
                       <label
                         key={addon.id}
-                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                        className={`flex items-center justify-between p-3.5 rounded-lg border cursor-pointer transition-all ${
                           isSelected
                             ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
                             : 'border-border bg-secondary/30 hover:border-primary/40'
@@ -668,7 +669,7 @@ export function StaffProductSheet({
                           {isRemovable && (
                             <button
                               onClick={() => handleRemoveIngredient(ingredient.id)}
-                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
                                 isRemoved 
                                   ? 'bg-destructive text-destructive-foreground' 
                                   : 'bg-background text-muted-foreground hover:bg-destructive/20 hover:text-destructive'
@@ -682,7 +683,7 @@ export function StaffProductSheet({
                           {isAddable && (
                             <button
                               onClick={() => handleAddExtra(ingredient.id)}
-                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
                                 isExtra 
                                   ? 'bg-green-500 text-white' 
                                   : 'bg-background text-muted-foreground hover:bg-green-500/20 hover:text-green-400'
@@ -715,18 +716,18 @@ export function StaffProductSheet({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-11 w-11"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
-                <span className="text-xl font-bold text-foreground w-8 text-center">
+                <span className="text-xl font-bold text-foreground w-10 text-center">
                   {quantity}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-11 w-11"
                   onClick={() => setQuantity(quantity + 1)}
                 >
                   <Plus className="w-4 h-4" />
@@ -739,7 +740,7 @@ export function StaffProductSheet({
         {/* Sticky Add to Order Button */}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-card via-card/95 to-transparent pt-8">
           <Button
-            className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl"
+            className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl pos-control"
             onClick={handleAddToOrder}
           >
             {editMode ? 'UPDATE ORDER' : 'SAVE TO ORDER'} · €{totalPrice.toFixed(2)}

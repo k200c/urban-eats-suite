@@ -92,7 +92,7 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
                 <Button
                   key={cat}
                   variant={activeCategory === cat ? 'default' : 'ghost'}
-                  className={`flex-shrink-0 h-12 px-6 font-heading ${
+                  className={`flex-shrink-0 h-14 px-8 text-base font-heading pos-control ${
                     activeCategory === cat ? 'bg-primary text-primary-foreground' : ''
                   }`}
                   onClick={() => setActiveCategory(cat)}
@@ -120,7 +120,7 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
                     key={product.id}
                     whileTap={{ scale: isSoldOut ? 1 : 0.95 }}
                     className={cn(
-                      'relative h-24 bg-card border border-border rounded-lg p-3 flex flex-col justify-between text-left transition-colors group',
+                      'relative h-28 bg-card border border-border rounded-lg p-3 flex flex-col justify-between text-left transition-colors group',
                       isSoldOut 
                         ? 'opacity-50 cursor-not-allowed' 
                         : 'hover:border-primary/50'
@@ -148,13 +148,13 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
                           if (!isSoldOut) handleCustomize(product);
                         }}
                         className={cn(
-                          'p-1.5 rounded bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors',
+                          'p-2.5 rounded bg-secondary hover:bg-primary hover:text-primary-foreground transition-colors',
                           isSoldOut && 'pointer-events-none opacity-50'
                         )}
                         title="Customize"
                         disabled={isSoldOut}
                       >
-                        <Edit2 className="w-3 h-3" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                     </div>
                   </motion.button>
@@ -246,25 +246,25 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
                       {/* Edit Button */}
                       <button
                         onClick={() => handleEditItem(index, item)}
-                        className="p-1.5 rounded bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
+                        className="p-2.5 min-w-[36px] min-h-[36px] rounded bg-background hover:bg-primary hover:text-primary-foreground transition-colors"
                         title="Edit item"
                       >
-                        <Edit2 className="w-3 h-3" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => item.quantity === 1 ? removeItem(index) : updateQuantity(index, item.quantity - 1)}
-                          className="w-7 h-7 rounded-full bg-background flex items-center justify-center"
+                          className="w-9 h-9 rounded-full bg-background flex items-center justify-center"
                         >
-                          {item.quantity === 1 ? <Trash2 className="w-3 h-3 text-destructive" /> : <Minus className="w-3 h-3" />}
+                          {item.quantity === 1 ? <Trash2 className="w-4 h-4 text-destructive" /> : <Minus className="w-4 h-4" />}
                         </button>
-                        <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
+                        <span className="w-8 text-center text-base font-semibold">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(index, item.quantity + 1)}
-                          className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                          className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -297,7 +297,7 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
           {items.length > 0 && (
             <Button
               className={cn(
-                "w-full h-14 text-lg",
+                "w-full h-16 text-xl pos-control",
                 checkoutReady ? "btn-glow" : "bg-primary/70"
               )}
               onClick={() => setShowCheckout(true)}

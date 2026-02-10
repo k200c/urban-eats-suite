@@ -390,16 +390,17 @@ export function ProductSheet({
         side="bottom"
         className="h-[100dvh] sm:h-[90vh] sm:rounded-t-3xl bg-gradient-to-b from-[#1A1A1A] to-[#0A0A0A] border-t border-white/10 p-0 overflow-hidden"
       >
-        {/* Close Button */}
+        {/* Close Button - safe-area aware */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="absolute right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          style={{ top: 'max(16px, env(safe-area-inset-top, 16px))' }}
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
 
         {/* Scrollable Content */}
-        <div className="h-full overflow-y-auto pb-36">
+        <div className="h-full overflow-y-auto pb-36" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           {/* Product Image */}
           <div className="relative h-56 sm:h-64">
             <img

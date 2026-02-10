@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import streetEatzLogo from '@/assets/street-eatz-logo.png';
 
@@ -133,6 +133,15 @@ export function HeroSection() {
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 font-semibold tracking-wider"
           >
             VIEW MENU
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => window.open('https://www.just-eat.ie/restaurants-street-eatz-waterford-waterford/menu', '_blank', 'noopener,noreferrer')}
+            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            DELIVERY (Just Eat)
           </Button>
         </motion.div>
       </div>
