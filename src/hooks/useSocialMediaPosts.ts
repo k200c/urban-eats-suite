@@ -422,60 +422,41 @@ export function useSocialMediaPosts() {
     },
   });
 
-  // Post Now mutation - immediately publish to socials via n8n
+  // Post Now mutation - securely proxy to n8n via Edge Function
   const postNowMutation = useMutation({
     mutationFn: async (postId: string) => {
-      console.log("🚀 POST NOW - Triggering instant publish for:", postId);
-      
-      // Get the post data first
-      const { data: post, error: fetchError } = await supabase
-        .from('social_media_posts')
-        .select('*')
-        .eq('id', postId)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      if (!post) throw new Error('Post not found');
-      
-      // Trigger the n8n webhook for instant posting
-      const response = await fetch('https://kyle2000.app.n8n.cloud/webhook/post-now-instant', {
-        method: 'POST',
+      console.log("🚀 POST NOW - Calling post-now edge function for:", postId);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Not authenticated");
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/post-now`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          post_id: postId,
-          content_idea: post.content_idea,
-          generated_caption: post.generated_caption,
-          media_urls: post.media_urls,
-          post_type: post.post_type,
-        }),
+        body: JSON.stringify({ post_id: postId }),
       });
-      
+
+      const result = await response.json();
+      console.log("📡 post-now response:", response.status, result);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('N8N Post Now error:', errorText);
-        throw new Error(`Failed to publish: ${response.status}`);
+        throw new Error(result.error || `Failed: ${response.status}`);
       }
-      
-      // Update status to published
-      const { error: updateError } = await supabase
-        .from('social_media_posts')
-        .update({ status: 'published' })
-        .eq('id', postId);
-      
-      if (updateError) throw updateError;
-      
-      return post;
+
+      return result.post;
     },
     onSuccess: () => {
-      toast.success('🎉 Published to socials!');
+      toast.success('✅ Sent to posting pipeline');
       queryClient.invalidateQueries({ queryKey: ['social-media-drafts'] });
       queryClient.invalidateQueries({ queryKey: ['social-media-scheduled'] });
     },
     onError: (error) => {
       console.error('Post now error:', error);
-      toast.error('Failed to publish post');
+      toast.error('Failed to send. Try again.');
     },
   });
 

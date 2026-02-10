@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.get-wait-time]
 verify_jwt = false
+
+[functions.post-now]
+verify_jwt = false
