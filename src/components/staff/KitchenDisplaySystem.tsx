@@ -268,6 +268,11 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
                 <span className="font-bold text-lg">
                   #{displayNumber}
                 </span>
+                {(order as any).order_channel === 'voice' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-600 text-white font-bold uppercase">
+                    VOICE
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <PaymentStatusBadge 
