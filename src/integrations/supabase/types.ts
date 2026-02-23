@@ -389,6 +389,7 @@ export type Database = {
           customer_phone: string | null
           display_id: number
           id: string
+          order_channel: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: string | null
           special_notes: string | null
@@ -407,6 +408,7 @@ export type Database = {
           customer_phone?: string | null
           display_id?: number
           id?: string
+          order_channel?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: string | null
           special_notes?: string | null
@@ -425,6 +427,7 @@ export type Database = {
           customer_phone?: string | null
           display_id?: number
           id?: string
+          order_channel?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: string | null
           special_notes?: string | null
