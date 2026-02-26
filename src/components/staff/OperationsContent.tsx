@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Pencil, Search, X, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Package, Pencil, Search, X, Eye, EyeOff, AlertTriangle, Trash2 } from 'lucide-react';
 import { useAllProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { KitchenDisplaySystem } from '@/components/staff/KitchenDisplaySystem';
 import { AddProductDialog } from '@/components/staff/AddProductDialog';
 import { EditProductDialog } from '@/components/staff/EditProductDialog';
@@ -94,6 +105,27 @@ export function OperationsContent() {
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setShowEditDialog(true);
+  };
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) throw error;
+      refetchProducts();
+      toast.success(`"${productName}" deleted`);
+    } catch (error: any) {
+      console.error('Failed to delete product:', {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      toast.error(error?.message || 'Failed to delete product');
+    }
   };
 
   const clearFilters = () => {
@@ -243,6 +275,34 @@ export function OperationsContent() {
                             >
                               <Pencil className="w-3 h-3" />
                             </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete "{product.name}"?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently remove this product from the menu. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() => handleDeleteProduct(product.id, product.name)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
 
