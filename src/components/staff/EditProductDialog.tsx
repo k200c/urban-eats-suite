@@ -72,9 +72,18 @@ export function EditProductDialog({ product, open, onOpenChange, onProductUpdate
       });
       onProductUpdated();
       onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to update product:', error);
-      toast.error('Failed to update product');
+    } catch (error: any) {
+      console.error('Failed to update product:', {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      if (error?.code === '23505') {
+        toast.error('A product with this name already exists.');
+      } else {
+        toast.error(error?.message || 'Failed to update product. Please try again.');
+      }
     } finally {
       setIsSaving(false);
     }

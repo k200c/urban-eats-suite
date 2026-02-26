@@ -105,6 +105,21 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
     console.log('🚀 Adding new product:', values);
 
     try {
+      const trimmedName = values.name.trim();
+
+      // Check for duplicate name before insert
+      const { data: existing } = await supabase
+        .from('products')
+        .select('id, name')
+        .ilike('name', trimmedName)
+        .maybeSingle();
+
+      if (existing) {
+        toast.error(`A product named "${existing.name}" already exists.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       let imageUrl: string | null = null;
 
       // Upload image if present
@@ -136,9 +151,18 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
       setImagePreview(null);
       setOpen(false);
       onProductAdded();
-    } catch (error) {
-      console.error('Failed to add product:', error);
-      toast.error('Failed to add product. Please try again.');
+    } catch (error: any) {
+      console.error('Failed to add product:', {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      if (error?.code === '23505') {
+        toast.error('A product with this name already exists.');
+      } else {
+        toast.error(error?.message || 'Failed to add product. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
