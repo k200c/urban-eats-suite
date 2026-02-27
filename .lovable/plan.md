@@ -1,87 +1,47 @@
 
 
-# Fix: Stock Manager 409 Conflict Error
+# Plan: Delivery Modal + Bacon Price Fix + Capri Sun Verification
 
-## Root Cause
+## Part 1 — Delivery Options Modal
 
-The `products` table has a **`UNIQUE (name)` constraint** (`products_name_unique`). When staff attempt to add a product with a name that already exists, PostgREST returns a `409 Conflict`. The current error handling shows a generic "Failed to add product" instead of surfacing the actual duplicate name issue.
+**New file: `src/components/customer/DeliveryOptionsModal.tsx`**
+- Dialog with two large CTA buttons: Just Eat (orange) and Deliveroo (purple)
+- Both open in new tabs with `target="_blank"` and `rel="noopener noreferrer"`
+- Dark theme, mobile-first, 52px min button height, fade+scale animation
+- Subtitle: "Choose your preferred delivery partner"
+- ExternalLink icons on both buttons
 
-## Changes
+**Edit: `src/components/customer/HeroSection.tsx`**
+- Replace direct `window.open` on the Delivery button with `setIsDeliveryModalOpen(true)`
+- Import and render `DeliveryOptionsModal`
+- Change button label from "DELIVERY (Just Eat)" to "DELIVERY"
 
-### 1. `src/components/staff/AddProductDialog.tsx` — Better error handling + duplicate check
+## Part 2 — Bacon Price = €2.00 Everywhere
 
-**Before insert**, query the DB to check if a product with the same name already exists. If it does, show a clear toast ("A product named X already exists") and abort.
+**Edit: `src/lib/pricingRules.ts`**
+- Add a bacon-specific check **before** the general meat check in `getExtraPrice()`:
+  ```typescript
+  // Bacon is always €2.00 (overrides general meat price)
+  if (lowerName.includes('bacon')) return 2.00;
+  ```
+- This ensures ingredient extras priced via `getExtraPrice` charge €2.00 for bacon instead of €2.50
 
-Also improve the `catch` block to surface Supabase error details (code, message, hint, details) in both console and toast.
+**Already correct:**
+- `STANDALONE_ADDONS` in both ProductSheet and StaffProductSheet already has Bacon at €2.00
+- Only the `getExtraPrice` path (ingredient-based extras) was wrong at €2.50
 
-```typescript
-// In onSubmit, before the insert:
-const trimmedName = values.name.trim();
+## Part 3 — Capri Sun (Kids Only)
 
-// Check for duplicate name
-const { data: existing } = await supabase
-  .from('products')
-  .select('id, name')
-  .ilike('name', trimmedName)
-  .maybeSingle();
+**Already correct — no changes needed.**
+- Capri Sun is in `KIDS_MENU_ADDONS`, which only renders when `product.category === 'Kids Menu'`
+- The drinks dropdown fetches from the DB `Drinks` category, which does not include Capri Sun
+- Capri Sun never appears for adult items
 
-if (existing) {
-  toast.error(`A product named "${existing.name}" already exists.`);
-  setIsSubmitting(false);
-  return;
-}
+## Files Changed
 
-// Then proceed with insert...
-```
-
-And in the catch block:
-```typescript
-catch (error: any) {
-  console.error('Failed to add product:', {
-    code: error?.code,
-    message: error?.message,
-    details: error?.details,
-    hint: error?.hint,
-  });
-  
-  if (error?.code === '23505') {
-    toast.error(`A product with this name already exists.`);
-  } else {
-    toast.error(error?.message || 'Failed to add product. Please try again.');
-  }
-}
-```
-
-### 2. `src/components/staff/EditProductDialog.tsx` — Same error handling improvement
-
-Add the same structured error logging in the catch block, and check for `23505` (unique violation) when updating a product name to one that already exists.
-
-### 3. `src/components/staff/OperationsContent.tsx` — No changes needed
-
-The operations content uses direct `update` calls for `is_sold_out` and `is_available` toggles, which don't touch the `name` field and can't trigger the unique constraint. These are fine as-is.
-
----
-
-## Summary of Changes
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/components/staff/AddProductDialog.tsx` | Add pre-insert duplicate name check via `ilike` query; improve error handling to surface Supabase error code/message/details/hint; show human-readable toast for duplicate names (code `23505`) |
-| 2 | `src/components/staff/EditProductDialog.tsx` | Add structured error logging with code/message/details/hint; handle `23505` unique violation on name update |
-
-No database migrations needed. No RLS changes needed (staff already has INSERT + UPDATE on products). The `products_name_unique` constraint is correct and should stay — it prevents data integrity issues. The fix is purely in the application layer: check before insert and surface clear errors.
-
----
-
-## Verification Checklist
-
-| # | Test | Expected |
-|---|------|----------|
-| 1 | Add a new product with a unique name | Inserts successfully, toast shows success |
-| 2 | Add a product with the same name as an existing one | Blocked before insert, toast shows "A product named X already exists" |
-| 3 | Add a product with same name different casing (e.g., "handcut chips" vs "Handcut Chips") | Caught by `ilike` check, blocked with clear message |
-| 4 | Edit a product and change its name to an existing product's name | `23505` caught, toast shows duplicate message |
-| 5 | Edit a product without changing the name | Updates normally, no conflict |
-| 6 | Toggle sold out / visibility in Quick Stock | Works as before, no regression |
-| 7 | Console shows full error object (code, message, details, hint) on any failure | Structured logging present |
+| File | Change |
+|------|--------|
+| `src/components/customer/DeliveryOptionsModal.tsx` | New — modal with Just Eat + Deliveroo buttons |
+| `src/components/customer/HeroSection.tsx` | Swap direct link for modal trigger |
+| `src/lib/pricingRules.ts` | Add bacon-specific €2.00 override before meat check |
 
