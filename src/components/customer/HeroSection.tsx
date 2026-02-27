@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import streetEatzLogo from '@/assets/street-eatz-logo.png';
+import { DeliveryOptionsModal } from './DeliveryOptionsModal';
 
 export function HeroSection() {
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const scrollToMenu = () => {
     const menuSection = document.getElementById('menu');
     if (menuSection) {
@@ -137,11 +140,11 @@ export function HeroSection() {
           <Button
             size="lg"
             variant="outline"
-            onClick={() => window.open('https://www.just-eat.ie/restaurants-street-eatz-waterford-waterford/menu', '_blank', 'noopener,noreferrer')}
+            onClick={() => setIsDeliveryModalOpen(true)}
             className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
           >
             <ExternalLink className="w-4 h-4" />
-            DELIVERY (Just Eat)
+            DELIVERY
           </Button>
         </motion.div>
       </div>
@@ -150,6 +153,8 @@ export function HeroSection() {
       <div className="absolute bottom-16 sm:bottom-24 left-1/2 -translate-x-1/2 animate-bounce opacity-70">
         <ChevronDown className="w-8 h-8 text-muted-foreground" />
       </div>
+      {/* Delivery Options Modal */}
+      <DeliveryOptionsModal open={isDeliveryModalOpen} onOpenChange={setIsDeliveryModalOpen} />
     </section>
   );
 }

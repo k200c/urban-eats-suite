@@ -31,6 +31,9 @@ export const EXTRA_PRICING = {
 export function getExtraPrice(ingredientName: string): number {
   const lowerName = ingredientName.toLowerCase();
   
+  // Bacon is always €2.00 (overrides general meat price)
+  if (lowerName.includes('bacon')) return 2.00;
+
   // Check for meat ingredients - €2.50
   if (EXTRA_PRICING.meatKeywords.some(keyword => lowerName.includes(keyword))) {
     return EXTRA_PRICING.meatPrice;
