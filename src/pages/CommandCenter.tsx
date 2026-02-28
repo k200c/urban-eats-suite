@@ -19,6 +19,7 @@ import { AnalyticsDashboard } from '@/components/staff/AnalyticsDashboard';
 import { AddProductDialog } from '@/components/staff/AddProductDialog';
 import { EditProductDialog } from '@/components/staff/EditProductDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { IngredientPriceManager } from '@/components/staff/IngredientPriceManager';
 import { toast } from 'sonner';
 import { Product } from '@/types/database';
 
@@ -355,6 +356,7 @@ export default function CommandCenter() {
               transition={{ duration: 0.3, delay: 0.3 }}
             >
               <QuickStockManager />
+              <IngredientPriceManager />
             </motion.div>
           </TabsContent>
 

@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Ingredient {
   id: string;
   name: string;
+  ingredient_type: string;
+  addon_price: number;
+  addon_price_kids: number;
   created_at: string;
 }
 
@@ -56,6 +59,9 @@ export function useProductIngredientsAdmin(productId?: string) {
           ingredients:ingredient_id (
             id,
             name,
+            ingredient_type,
+            addon_price,
+            addon_price_kids,
             created_at
           )
         `)

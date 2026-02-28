@@ -23,6 +23,9 @@ export function useProductIngredients(productId?: string) {
           ingredients:ingredient_id (
             id,
             name,
+            ingredient_type,
+            addon_price,
+            addon_price_kids,
             created_at
           )
         `)

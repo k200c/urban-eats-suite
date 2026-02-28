@@ -32,6 +32,7 @@ import { EditProductDialog } from '@/components/staff/EditProductDialog';
 import { toast } from 'sonner';
 import { Product, ProductCategory } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { IngredientPriceManager } from '@/components/staff/IngredientPriceManager';
 
 const allCategories: ProductCategory[] = [
   'Burgers', 'Flatbreads', 'Fries', 'Kids Menu', 'Drinks', 'Specials', 'Sauces'
@@ -382,6 +383,8 @@ export function OperationsContent() {
           onOpenChange={setShowEditDialog}
           onProductUpdated={refetchProducts}
         />
+
+        <IngredientPriceManager />
       </div>
     </div>
   );

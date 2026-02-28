@@ -24,32 +24,39 @@ export const EXTRA_PRICING = {
 };
 
 /**
+ * Get per-ingredient add-on price from the database.
+ * Uses the ingredient's stored addon_price / addon_price_kids columns.
+ * Falls back to €0.50 if fields are null.
+ */
+export function getIngredientAddonPrice(
+  ingredient: { addon_price?: number | null; addon_price_kids?: number | null },
+  productCategory: string
+): number {
+  if (productCategory === 'Kids Menu') {
+    return ingredient.addon_price_kids ?? 0.50;
+  }
+  return ingredient.addon_price ?? 0.50;
+}
+
+/**
+ * @deprecated Use getIngredientAddonPrice instead – kept only as a fallback.
  * Calculate the extra price for an ingredient based on its name
- * @param ingredientName - Name of the ingredient
- * @returns Price adjustment for adding this ingredient as an extra
  */
 export function getExtraPrice(ingredientName: string): number {
   const lowerName = ingredientName.toLowerCase();
   
-  // Bacon is always €2.00 (overrides general meat price)
-  if (lowerName.includes('bacon')) return 2.00;
+  // Bacon is always €2.50
+  if (lowerName.includes('bacon')) return 2.50;
 
-  // Check for meat ingredients - €2.50
   if (EXTRA_PRICING.meatKeywords.some(keyword => lowerName.includes(keyword))) {
     return EXTRA_PRICING.meatPrice;
   }
-  
-  // Check for cheese ingredients - €1.00
   if (EXTRA_PRICING.cheeseKeywords.some(keyword => lowerName.includes(keyword))) {
     return EXTRA_PRICING.cheesePrice;
   }
-  
-  // Check for sauce add-ons - €1.50
   if (EXTRA_PRICING.sauceKeywords.some(keyword => lowerName.includes(keyword))) {
     return EXTRA_PRICING.saucePrice;
   }
-  
-  // Other extras are free (or use defaultExtraPrice if needed)
   return EXTRA_PRICING.defaultExtraPrice;
 }
 

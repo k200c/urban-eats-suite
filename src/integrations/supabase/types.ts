@@ -219,18 +219,27 @@ export type Database = {
       }
       ingredients: {
         Row: {
+          addon_price: number
+          addon_price_kids: number
           created_at: string
           id: string
+          ingredient_type: string
           name: string
         }
         Insert: {
+          addon_price?: number
+          addon_price_kids?: number
           created_at?: string
           id?: string
+          ingredient_type?: string
           name: string
         }
         Update: {
+          addon_price?: number
+          addon_price_kids?: number
           created_at?: string
           id?: string
+          ingredient_type?: string
           name?: string
         }
         Relationships: []

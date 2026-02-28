@@ -11,7 +11,7 @@ import { ProductIngredientWithDetails } from '@/hooks/useProductIngredients';
 import { useLoadedFries, useDrinks, useSauces } from '@/hooks/useProductsByCategory';
 import { useProductAllergens } from '@/hooks/useProductAllergens';
 import { useCartStore } from '@/stores/cartStore';
-import { getExtraPrice, getModifierTotal, getLoadedFriesPrice, getSaucePrice, hasFriesLargeOption, getFriesLargeUpgradeDelta } from '@/lib/pricingRules';
+import { getIngredientAddonPrice, getModifierTotal, getLoadedFriesPrice, getSaucePrice, hasFriesLargeOption, getFriesLargeUpgradeDelta } from '@/lib/pricingRules';
 import { toast } from 'sonner';
 import { AllergenBadges } from './AllergenBadges';
 import { AllergenModal } from '@/components/ui/allergen-modal';
@@ -250,7 +250,7 @@ export function ProductSheet({
       .map((ing) => ({ 
         id: ing.id, 
         name: ing.is_addable && !ing.is_default ? ing.name : `Extra ${ing.name}`,
-        price_adjustment: getExtraPrice(ing.name),
+        price_adjustment: getIngredientAddonPrice(ing, product.category),
         modifier_type: 'extra' as const,
       }));
   };
@@ -633,7 +633,7 @@ export function ProductSheet({
                 <div className="space-y-3">
                   {addableOnlyIngredients.map((ingredient) => {
                     const isSelected = ingredientStates[ingredient.id] === 'extra';
-                    const price = getExtraPrice(ingredient.name);
+                    const price = getIngredientAddonPrice(ingredient, product.category);
                     
                     return (
                       <label
@@ -765,9 +765,9 @@ export function ProductSheet({
                           }`}>
                             {isRemoved && 'No '}{isExtra && 'Extra '}{ingredient.name}
                           </span>
-                          {isExtra && getExtraPrice(ingredient.name) > 0 && (
+                          {isExtra && getIngredientAddonPrice(ingredient, product.category) > 0 && (
                             <span className="ml-2 text-sm text-green-400 font-semibold">
-                              +€{getExtraPrice(ingredient.name).toFixed(2)}
+                              +€{getIngredientAddonPrice(ingredient, product.category).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -805,10 +805,8 @@ export function ProductSheet({
                 </div>
 
                 {/* Pricing Legend */}
-                <div className="mt-3 flex gap-3 text-[11px] text-muted-foreground">
-                  <span>🥩 Meat +€2.50</span>
-                  <span>🧀 Cheese +€1.00</span>
-                  <span>Others +€0.50</span>
+                <div className="mt-3 text-[11px] text-muted-foreground">
+                  <span>Prices shown per ingredient</span>
                 </div>
               </div>
             )}

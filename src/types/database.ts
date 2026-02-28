@@ -56,6 +56,9 @@ export interface ProductModifier {
 export interface Ingredient {
   id: string;
   name: string;
+  ingredient_type: string;
+  addon_price: number;
+  addon_price_kids: number;
   created_at: string;
 }
 

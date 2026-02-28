@@ -10,7 +10,7 @@ import { useProductModifiers } from '@/hooks/useProductModifiers';
 import { useProductIngredients } from '@/hooks/useProductIngredients';
 import { useLoadedFries, useDrinks, useSauces } from '@/hooks/useProductsByCategory';
 import { useStaffCartStore } from '@/stores/staffCartStore';
-import { getExtraPrice, getModifierTotal, getLoadedFriesPrice, getSaucePrice, hasFriesLargeOption, getFriesLargeUpgradeDelta } from '@/lib/pricingRules';
+import { getIngredientAddonPrice, getModifierTotal, getLoadedFriesPrice, getSaucePrice, hasFriesLargeOption, getFriesLargeUpgradeDelta } from '@/lib/pricingRules';
 import { toast } from 'sonner';
 
 import heroBurger from '@/assets/hero-burger.jpg';
@@ -241,7 +241,7 @@ export function StaffProductSheet({
       .map((ing) => ({ 
         id: ing.id, 
         name: ing.is_addable && !ing.is_default ? ing.name : `Extra ${ing.name}`,
-        price_adjustment: getExtraPrice(ing.name),
+        price_adjustment: getIngredientAddonPrice(ing, product.category),
         modifier_type: 'extra' as const,
       }));
   };
@@ -602,7 +602,7 @@ export function StaffProductSheet({
                 <div className="space-y-2">
                   {addableOnlyIngredients.map((ingredient) => {
                     const isSelected = ingredientStates[ingredient.id] === 'extra';
-                    const price = getExtraPrice(ingredient.name);
+                    const price = getIngredientAddonPrice(ingredient, product.category);
                     
                     return (
                       <label
@@ -712,7 +712,7 @@ export function StaffProductSheet({
                     const isExtra = state === 'extra';
                     const isRemovable = ingredient.is_removable !== false;
                     const isAddable = ingredient.is_addable !== false;
-                    const extraPrice = getExtraPrice(ingredient.name);
+                    const extraPrice = getIngredientAddonPrice(ingredient, product.category);
                     
                     return (
                       <div
@@ -775,10 +775,8 @@ export function StaffProductSheet({
                 </div>
                 
                 {/* Pricing Legend */}
-                <div className="mt-3 flex gap-3 text-[10px] text-muted-foreground">
-                  <span>🥩 Meat +€2.50</span>
-                  <span>🧀 Cheese +€1.00</span>
-                  <span>Others +€0.50</span>
+                <div className="mt-3 text-[10px] text-muted-foreground">
+                  <span>Prices shown per ingredient</span>
                 </div>
               </div>
             )}
