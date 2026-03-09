@@ -178,7 +178,7 @@ export function MenuSection() {
         </motion.div>
 
         {/* Sticky Category Bar with Scroll Snap and Gradients */}
-        <div className="sticky top-16 z-30 bg-black/90 backdrop-blur-md py-1.5 sm:py-2 md:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-3 sm:mb-4 md:mb-8 border-y border-white/5 overflow-hidden">
+        <div className="sticky z-30 bg-black/90 backdrop-blur-md py-1.5 sm:py-2 md:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-3 sm:mb-4 md:mb-8 border-y border-white/5 overflow-hidden" style={{ top: 'var(--header-offset)' }}>
           <div className="relative">
             {/* Left gradient indicator */}
             <div 
