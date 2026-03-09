@@ -332,8 +332,8 @@ export function StaffProductSheet({
     return allMods;
   };
 
-  const currentAddonsTotal = currentAddons.filter(a => standaloneAddons.has(a.id)).reduce((sum, a) => sum + lookupPrice(a.name, product.category), 0);
-  const beefPattyTotal = beefPattyCount * lookupPrice(BEEF_PATTY.name, product.category);
+  const currentAddonsTotal = currentAddons.filter(a => standaloneAddons.has(a.id)).reduce((sum, a) => sum + lookupPrice(a.dbName || a.name, product.category), 0);
+  const beefPattyTotal = beefPattyCount * lookupPrice(BEEF_PATTY.dbName, product.category);
   const extrasTotal = getExtraIngredients().reduce((sum, e) => sum + e.price_adjustment, 0);
   const modifiersTotal = selectedModifiers.reduce((sum, m) => sum + getModifierTotal(m), 0);
   const loadedFriesCalcPrice = (selectedLoadedFries && !isKidsMenu) ? loadedFriesPrice : 0;
