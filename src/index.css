@@ -298,13 +298,27 @@
 }
 
 @layer utilities {
-  /* Safe area insets for iOS notch and home indicator */
-  .safe-area-pb {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Safe area utilities */
+  .safe-area-pt {
+    padding-top: var(--safe-top);
   }
-  
+  .safe-area-pb {
+    padding-bottom: var(--safe-bottom);
+  }
+  .safe-area-pl {
+    padding-left: var(--safe-left);
+  }
+  .safe-area-pr {
+    padding-right: var(--safe-right);
+  }
   .safe-area-bottom {
-    bottom: env(safe-area-inset-bottom, 0px);
+    bottom: var(--safe-bottom);
+  }
+
+  /* Reusable app container */
+  .app-container {
+    @apply max-w-3xl mx-auto px-3 sm:px-4;
+    width: 100%;
   }
 
   .text-glow {

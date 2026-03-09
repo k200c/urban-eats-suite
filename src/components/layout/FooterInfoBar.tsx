@@ -28,15 +28,15 @@ export function FooterInfoBar() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between text-xs">
           {/* Location */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="w-4 h-4 text-primary" />
-            <span className="hidden sm:inline">Crystal Sports & Leisure Centre</span>
-            <span className="sm:hidden">Crystal Sports</span>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Crystal Sports & Leisure Centre</span>
+            <span className="sm:hidden truncate">Crystal Sports</span>
           </div>
 
           {/* Hours */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="w-3.5 h-3.5 text-primary flex-shrink-0" />
             <span className="hidden sm:inline">Thu-Fri: 12-7pm · Sat-Sun: 1-7pm</span>
             <span className="sm:hidden">Thu-Sun Open</span>
           </div>

@@ -150,7 +150,7 @@ export function MenuSection() {
       {/* Wait Time Banner - only show when store is open */}
       {isStoreOpen && waitTime && <WaitTimeBanner waitTime={waitTime} />}
       
-      <section ref={sectionRef} id="menu" className="w-full px-2 sm:px-4 py-6 sm:py-12 pb-28 max-w-3xl mx-auto scroll-mt-20 relative overflow-hidden">
+      <section ref={sectionRef} id="menu" className="w-full px-2 sm:px-4 py-3 sm:py-12 pb-28 max-w-3xl mx-auto scroll-mt-20 relative overflow-hidden">
         {/* Animated Section Header */}
         <motion.div 
           ref={headerRef}

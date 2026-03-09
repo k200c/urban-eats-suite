@@ -16,7 +16,7 @@ export function HeroSection() {
 
   return (
     <section 
-      className="min-h-[50vh] sm:min-h-[70vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-12 sm:pt-16 pb-12 sm:pb-20 relative overflow-hidden"
+      className="min-h-[38vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-10 sm:pt-16 pb-6 sm:pb-16 relative overflow-hidden"
       style={{ scrollMarginTop: 'var(--header-offset)' }}
     >
       {/* Background with Vignette */}
@@ -38,9 +38,9 @@ export function HeroSection() {
 
       {/* Content Container */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Logo with entrance animation only */}
+        {/* Logo with entrance animation */}
         <motion.div
-          className="mb-6 relative"
+          className="mb-3 sm:mb-6 relative"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{
@@ -50,7 +50,7 @@ export function HeroSection() {
             duration: 1.2,
           }}
         >
-          {/* Pulsing Glow Background - CSS animation */}
+          {/* Pulsing Glow Background */}
           <div
             className="absolute inset-0 -inset-x-8 -inset-y-8 animate-pulse"
             style={{
@@ -59,41 +59,39 @@ export function HeroSection() {
             }}
           />
           
-          {/* Logo - static after entrance */}
+          {/* Logo — compact on mobile */}
           <img
             src={streetEatzLogo}
             alt="StreetEatz Logo"
-            className="w-32 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
+            className="w-24 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
           />
         </motion.div>
 
-        {/* Text Animations - Staggered Entrance */}
-        <div className="space-y-1 sm:space-y-2 mb-4 sm:mb-6">
+        {/* Text — responsive clamp sizing */}
+        <div className="space-y-0.5 sm:space-y-2 mb-3 sm:mb-6">
           <motion.h1
-            className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-extrabold text-primary tracking-tight"
+            className="font-heading font-extrabold text-primary tracking-tight"
             style={{
+              fontSize: 'clamp(1.75rem, 6vw, 3rem)',
+              lineHeight: 1.1,
               textShadow: '0 0 40px rgba(255, 107, 0, 0.5), 0 0 80px rgba(255, 107, 0, 0.3)',
             }}
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.8,
-              delay: 0.8,
-              ease: [0.25, 0.46, 0.45, 0.94],
-            }}
+            transition={{ duration: 0.8, delay: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             StreetEatz Waterford
           </motion.h1>
           
           <motion.h2
-            className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold text-foreground tracking-tight"
+            className="font-heading font-extrabold text-foreground tracking-tight"
+            style={{
+              fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
+              lineHeight: 1.1,
+            }}
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.8,
-              delay: 1.0,
-              ease: [0.25, 0.46, 0.45, 0.94],
-            }}
+            transition={{ duration: 0.8, delay: 1.0, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             GOURMET STREET FOOD
           </motion.h2>
@@ -101,31 +99,25 @@ export function HeroSection() {
 
         {/* Tagline */}
         <motion.p
-          className="text-muted-foreground text-xs sm:text-sm md:text-base tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-6 sm:mb-10"
+          className="text-muted-foreground text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-4 sm:mb-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{
-            duration: 0.8,
-            delay: 1.2,
-          }}
+          transition={{ duration: 0.8, delay: 1.2 }}
         >
           Fresh · Bold · Waterford
         </motion.p>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons — horizontal row on all sizes */}
         <motion.div
-          className="flex flex-col sm:flex-row gap-4"
+          className="flex flex-row flex-wrap justify-center gap-2 sm:gap-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.6,
-            delay: 1.4,
-          }}
+          transition={{ duration: 0.6, delay: 1.4 }}
         >
           <Button
             size="lg"
             onClick={scrollToMenu}
-            className="btn-glow text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 font-semibold tracking-wider"
+            className="btn-glow text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider"
           >
             ORDER NOW
           </Button>
@@ -133,7 +125,7 @@ export function HeroSection() {
             size="lg"
             variant="outline"
             onClick={scrollToMenu}
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 font-semibold tracking-wider"
+            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider"
           >
             VIEW MENU
           </Button>
@@ -141,7 +133,7 @@ export function HeroSection() {
             size="lg"
             variant="outline"
             onClick={() => setIsDeliveryModalOpen(true)}
-            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-sm sm:text-base px-6 py-4 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
+            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
           >
             <ExternalLink className="w-4 h-4" />
             DELIVERY
@@ -149,8 +141,8 @@ export function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Scroll Indicator - CSS animation */}
-      <div className="absolute bottom-16 sm:bottom-24 left-1/2 -translate-x-1/2 animate-bounce opacity-70">
+      {/* Scroll Indicator — hidden on small mobile */}
+      <div className="absolute bottom-6 sm:bottom-24 left-1/2 -translate-x-1/2 animate-bounce opacity-70 hidden sm:block">
         <ChevronDown className="w-8 h-8 text-muted-foreground" />
       </div>
       {/* Delivery Options Modal */}
