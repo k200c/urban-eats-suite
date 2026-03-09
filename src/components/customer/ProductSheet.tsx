@@ -511,7 +511,7 @@ export function ProductSheet({
                           <span className="text-foreground font-medium">{addon.name}</span>
                         </div>
                         <span className="text-primary font-bold">
-                          +€{lookupPrice(addon.name, product.category).toFixed(2)}
+                          +€{lookupPrice(addon.dbName || addon.name, product.category).toFixed(2)}
                         </span>
                       </label>
                     );
