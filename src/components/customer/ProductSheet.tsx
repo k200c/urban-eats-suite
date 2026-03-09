@@ -61,8 +61,8 @@ const STANDALONE_ADDONS = [
 const BEEF_PATTY = { id: 'beef-patty', name: 'Beef Patty', dbName: 'Dry-aged beef patties', maxQty: 4 };
 
 const KIDS_MENU_ADDONS = [
-  { id: 'add-chips', name: 'Add Chips' },
-  { id: 'capri-sun', name: 'Capri Sun' },
+  { id: 'add-chips', name: 'Add Chips', dbName: 'Chips' },
+  { id: 'capri-sun', name: 'Capri Sun', dbName: 'Capri Sun' },
 ];
 
 const BREAD_SWAP_FLATBREAD = {
