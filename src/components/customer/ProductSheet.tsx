@@ -267,7 +267,7 @@ export function ProductSheet({
         allMods.push({
           id: addon.id,
           name: addon.name,
-          price_adjustment: lookupPrice(addon.name, product.category),
+          price_adjustment: lookupPrice(addon.dbName || addon.name, product.category),
           modifier_type: 'addon',
         });
       }
