@@ -63,7 +63,7 @@ export function HeroSection() {
           <img
             src={streetEatzLogo}
             alt="StreetEatz Logo"
-            className="w-24 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
+            className="w-16 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
           />
         </motion.div>
 
