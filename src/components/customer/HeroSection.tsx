@@ -117,7 +117,7 @@ export function HeroSection() {
           <Button
             size="lg"
             onClick={scrollToMenu}
-            className="btn-glow text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider"
+            className="btn-glow text-xs sm:text-base px-3 py-2 sm:px-8 sm:py-6 font-semibold tracking-wider"
           >
             ORDER NOW
           </Button>
