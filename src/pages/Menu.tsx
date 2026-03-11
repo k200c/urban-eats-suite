@@ -6,7 +6,7 @@ import { FloatingCartButton } from '@/components/customer/FloatingCartButton';
 
 export default function Menu() {
   return (
-    <div className="min-h-screen pt-[var(--header-offset)] pb-24 flex flex-col">
+    <div className="flex flex-col pt-[var(--header-offset)]" style={{ minHeight: '100dvh', paddingBottom: 'calc(var(--bottom-offset, 56px) + 4rem)' }}>
       <Navbar />
       <MenuSection />
       <SiteFooter />

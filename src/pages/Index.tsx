@@ -61,7 +61,7 @@ function AboutSection() {
 
 export default function Index() {
   return (
-    <div className="min-h-screen relative flex flex-col pb-16">
+    <div className="relative flex flex-col" style={{ minHeight: '100dvh', paddingBottom: 'calc(var(--bottom-offset, 56px) + 3rem)' }}>
       <Navbar />
       <HeroSection />
       <MenuSection />

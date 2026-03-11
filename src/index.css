@@ -107,6 +107,14 @@
     min-height: 100dvh;
   }
 
+  /* PWA standalone mode adjustments */
+  @media (display-mode: standalone) {
+    body {
+      /* Ensure status bar area has proper background */
+      background-color: hsl(var(--background-top));
+    }
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Montserrat', sans-serif;
     @apply font-bold uppercase tracking-wide;

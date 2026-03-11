@@ -24,7 +24,7 @@ export function FooterInfoBar() {
   }, [tapCount]);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-sm border-t border-white/10 h-10 safe-area-pb">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-sm border-t border-white/10 min-h-[var(--bottom-bar-height)] safe-area-pb">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between text-xs">
           {/* Location */}
