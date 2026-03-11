@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { User, Mail, Phone, ArrowRight, Loader2, CheckCircle, Lock } from 'lucide-react';
 import { z } from 'zod';
-import streetEatzLogo from '@/assets/street-eatz-logo.png';
+import streetEatzLogo from '@/assets/street-eatz-logo-new.jpeg';
 
 // Validation schemas
 const emailSchema = z.string().trim().email('Please enter a valid email').max(255, 'Email too long');

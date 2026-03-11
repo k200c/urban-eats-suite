@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
-import streetEatzLogo from '@/assets/street-eatz-logo.png';
+import streetEatzLogo from '@/assets/street-eatz-logo-new.jpeg';
 import { DeliveryOptionsModal } from './DeliveryOptionsModal';
 
 export function HeroSection() {

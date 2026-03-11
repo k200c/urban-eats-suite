@@ -1,7 +1,7 @@
 import { Phone, Mail, MapPin, Clock, Instagram, Facebook } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import streetEatzLogo from '@/assets/street-eatz-logo.png';
+import streetEatzLogo from '@/assets/street-eatz-logo-new.jpeg';
 import { Navbar } from '@/components/layout/Navbar';
 import { BottomNav } from '@/components/layout/BottomNav';
 
