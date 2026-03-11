@@ -172,30 +172,6 @@ const OrderCard = forwardRef<HTMLDivElement, OrderCardProps>(
 
     const getActionButtons = () => {
       switch (currentStatus) {
-        case 'pending':
-          return (
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
-                onClick={handleAction}
-                disabled={isUpdating}
-              >
-                <Play className="w-4 h-4 mr-1" />
-                Start Cooking
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                className="px-2 border-muted-foreground/30 hover:bg-muted"
-                onClick={handleQuickComplete}
-                disabled={isUpdating}
-                title="Archive - Skip to Completed (No SMS)"
-              >
-                <CheckCircle className="w-4 h-4" />
-              </Button>
-            </div>
-          );
         case 'cooking':
           return (
             <div className="flex gap-2">
