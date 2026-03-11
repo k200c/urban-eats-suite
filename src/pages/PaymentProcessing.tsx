@@ -12,7 +12,7 @@ const PaymentProcessing = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [attempts, setAttempts] = useState(0);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
