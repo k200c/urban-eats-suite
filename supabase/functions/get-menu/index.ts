@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const VALID_CATEGORIES = ['Burgers', 'Flatbreads', 'Fries', 'Drinks', 'Specials'];
+const VALID_CATEGORIES = ['Burgers', 'Flatbreads', 'Fries', 'Drinks', 'Sauces', 'Specials', 'Kids Menu'];
 
 Deno.serve(async (req) => {
   // Handle CORS preflight

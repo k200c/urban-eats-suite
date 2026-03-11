@@ -12,7 +12,7 @@ import { StaffProductSheet } from '@/components/staff/StaffProductSheet';
 import { StaffCheckoutModal } from '@/components/checkout/StaffCheckoutModal';
 import { cn } from '@/lib/utils';
 
-const categories: ProductCategory[] = ['Burgers', 'Flatbreads', 'Fries', 'Kids Menu', 'Drinks', 'Specials'];
+const categories: ProductCategory[] = ['Burgers', 'Flatbreads', 'Fries', 'Kids Menu', 'Drinks', 'Sauces', 'Specials'];
 
 interface StaffPOSContentProps {
   onOrderComplete?: (orderNumber: number) => void;

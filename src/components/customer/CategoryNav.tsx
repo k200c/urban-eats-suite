@@ -8,6 +8,7 @@ const categories: { value: ProductCategory | 'All'; label: string; icon: typeof 
   { value: 'Flatbreads', label: 'Flatbreads', icon: Pizza },
   { value: 'Fries', label: 'Fries', icon: Salad },
   { value: 'Drinks', label: 'Drinks', icon: GlassWater },
+  { value: 'Sauces', label: 'Sauces', icon: Sparkles },
   { value: 'Specials', label: 'Specials', icon: Sparkles },
 ];
 
