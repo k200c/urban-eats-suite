@@ -218,10 +218,14 @@ export function useKitchenOrders() {
     };
   }, [refetch, playNotificationSound]);
 
-  // Group orders by status (mapping 'received'/'created' to 'pending')
+  // Group orders by status
+  // KDS simplification: pending orders are merged into the cooking queue
+  const pendingOrders = orders?.filter(o => PENDING_STATUSES.includes(o.status || '')) || [];
+  const cookingOrders = orders?.filter(o => o.status === 'cooking') || [];
+  
   const ordersByStatus = {
-    pending: orders?.filter(o => PENDING_STATUSES.includes(o.status || '')) || [],
-    cooking: orders?.filter(o => o.status === 'cooking') || [],
+    pending: pendingOrders,
+    cooking: [...pendingOrders, ...cookingOrders],
     ready: orders?.filter(o => o.status === 'ready') || [],
     pending_payment: orders?.filter(o => PENDING_PAYMENT_STATUSES.includes(o.status || '')) || []
   };
@@ -231,8 +235,8 @@ export function useKitchenOrders() {
     totalFetched: orders?.length || 0,
     lastRefetch,
     byStatus: {
-      pending: ordersByStatus.pending.length,
-      cooking: ordersByStatus.cooking.length,
+      pending: pendingOrders.length,
+      cooking: cookingOrders.length,
       ready: ordersByStatus.ready.length,
       pending_payment: ordersByStatus.pending_payment.length
     }

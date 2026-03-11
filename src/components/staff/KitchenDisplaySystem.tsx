@@ -1,6 +1,6 @@
 import React, { useState, DragEvent, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChefHat, Clock, Volume2, VolumeX, GripVertical, Play, CheckCircle, PackageCheck, RefreshCw, Bug, ShoppingBag, Filter } from 'lucide-react';
+import { ChefHat, Clock, Volume2, VolumeX, GripVertical, CheckCircle, PackageCheck, RefreshCw, Bug, ShoppingBag, Filter } from 'lucide-react';
 import { useKitchenOrders, KitchenOrder } from '@/hooks/useKitchenOrders';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
