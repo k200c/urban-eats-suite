@@ -26,6 +26,7 @@ export function useProductIngredients(productId?: string) {
             ingredient_type,
             addon_price,
             addon_price_kids,
+            in_stock,
             created_at
           )
         `)

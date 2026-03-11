@@ -99,7 +99,7 @@ export function ProductSheet({
   const { data: drinksProducts } = useDrinks();
   const { data: saucesProducts } = useSauces();
   const { data: allergenData } = useProductAllergens(product?.id || null);
-  const { lookupPrice } = useIngredientPriceLookup();
+  const { lookupPrice, isInStock } = useIngredientPriceLookup();
 
   useEffect(() => {
     if (product) {
@@ -457,18 +457,25 @@ export function ProductSheet({
                 </h4>
 
                 {/* Beef Patty Stepper (0-4) - only for non-Kids, non-Flatbreads */}
-                {showBeefPattyStepper && (
+                {showBeefPattyStepper && (() => {
+                  const pattyOos = !isInStock(BEEF_PATTY.dbName);
+                  return (
                   <div className={`flex items-center justify-between p-3 rounded-xl border mb-3 transition-all ${
-                    beefPattyCount > 0
+                    pattyOos
+                      ? 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                      : beefPattyCount > 0
                       ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
                       : 'border-white/10 bg-white/5'
                   }`}>
-                    <span className="text-foreground font-medium">{BEEF_PATTY.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-foreground font-medium">{BEEF_PATTY.name}</span>
+                      {pattyOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Out of Stock</Badge>}
+                    </div>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setBeefPattyCount(Math.max(0, beefPattyCount - 1))}
-                          disabled={beefPattyCount === 0}
+                          disabled={beefPattyCount === 0 || pattyOos}
                           className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors disabled:opacity-30"
                         >
                           <Minus className="w-4 h-4" />
@@ -476,7 +483,7 @@ export function ProductSheet({
                         <span className="w-6 text-center font-bold text-foreground">{beefPattyCount}</span>
                         <button
                           onClick={() => setBeefPattyCount(Math.min(BEEF_PATTY.maxQty, beefPattyCount + 1))}
-                          disabled={beefPattyCount >= BEEF_PATTY.maxQty}
+                          disabled={beefPattyCount >= BEEF_PATTY.maxQty || pattyOos}
                           className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-30"
                         >
                           <Plus className="w-4 h-4" />
@@ -487,30 +494,36 @@ export function ProductSheet({
                       </span>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Add-on Checkboxes (Kids Menu or Standard) */}
                 <div className="space-y-3 mb-6">
                   {currentAddons.map((addon) => {
                     const isSelected = standaloneAddons.has(addon.id);
+                    const addonOos = !isInStock(addon.dbName || addon.name);
                     return (
                       <label
                         key={addon.id}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                          isSelected
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          addonOos
+                            ? 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                            : isSelected
                             ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
-                            : 'border-white/10 bg-white/5 hover:border-primary/40'
+                            : 'border-white/10 bg-white/5 hover:border-primary/40 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => toggleStandaloneAddon(addon.id)}
+                            onCheckedChange={() => !addonOos && toggleStandaloneAddon(addon.id)}
+                            disabled={addonOos}
                             className="border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <span className="text-foreground font-medium">{addon.name}</span>
+                          {addonOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Out of Stock</Badge>}
                         </div>
-                        <span className="text-primary font-bold">
+                        <span className={`font-bold ${addonOos ? 'text-muted-foreground' : 'text-primary'}`}>
                           +€{lookupPrice(addon.dbName || addon.name, product.category).toFixed(2)}
                         </span>
                       </label>
@@ -637,25 +650,30 @@ export function ProductSheet({
                   {addableOnlyIngredients.map((ingredient) => {
                     const isSelected = ingredientStates[ingredient.id] === 'extra';
                     const price = getIngredientAddonPrice(ingredient, product.category);
+                    const ingOos = ingredient.in_stock === false;
                     
                     return (
                       <label
                         key={ingredient.id}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                          isSelected
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          ingOos
+                            ? 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                            : isSelected
                             ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
-                            : 'border-white/10 bg-white/5 hover:border-amber-500/40'
+                            : 'border-white/10 bg-white/5 hover:border-amber-500/40 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => handleAddExtra(ingredient.id)}
+                            onCheckedChange={() => !ingOos && handleAddExtra(ingredient.id)}
+                            disabled={ingOos}
                             className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                           />
                           <span className="text-foreground font-medium">{ingredient.name}</span>
+                          {ingOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Out of Stock</Badge>}
                         </div>
-                        <span className="text-amber-400 font-bold">
+                        <span className={`font-bold ${ingOos ? 'text-muted-foreground' : 'text-amber-400'}`}>
                           +€{price.toFixed(2)}
                         </span>
                       </label>
@@ -746,6 +764,7 @@ export function ProductSheet({
                     const isExtra = state === 'extra';
                     const isRemovable = ingredient.is_removable !== false;
                     const isAddable = ingredient.is_addable !== false;
+                    const ingOos = ingredient.in_stock === false;
                     
                     return (
                       <div
@@ -758,7 +777,7 @@ export function ProductSheet({
                             : 'border-white/10 bg-transparent'
                         }`}
                       >
-                        <div className="flex-1">
+                        <div className="flex-1 flex items-center gap-2">
                           <span className={`font-medium ${
                             isRemoved 
                               ? 'text-muted-foreground line-through' 
@@ -769,9 +788,12 @@ export function ProductSheet({
                             {isRemoved && 'No '}{isExtra && 'Extra '}{ingredient.name}
                           </span>
                           {isExtra && getIngredientAddonPrice(ingredient, product.category) > 0 && (
-                            <span className="ml-2 text-sm text-green-400 font-semibold">
+                            <span className="text-sm text-green-400 font-semibold">
                               +€{getIngredientAddonPrice(ingredient, product.category).toFixed(2)}
                             </span>
+                          )}
+                          {ingOos && !isRemoved && (
+                            <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Out of Stock</Badge>
                           )}
                         </div>
                         
@@ -791,9 +813,12 @@ export function ProductSheet({
                           
                           {isAddable && (
                             <button
-                              onClick={() => handleAddExtra(ingredient.id)}
+                              onClick={() => !ingOos && handleAddExtra(ingredient.id)}
+                              disabled={ingOos}
                               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                                isExtra 
+                                ingOos
+                                  ? 'bg-secondary/50 text-muted-foreground opacity-40 cursor-not-allowed'
+                                  : isExtra 
                                   ? 'bg-green-500 text-white' 
                                   : 'bg-secondary text-secondary-foreground hover:bg-green-500/20 hover:text-green-400'
                               }`}

@@ -223,6 +223,7 @@ export type Database = {
           addon_price_kids: number
           created_at: string
           id: string
+          in_stock: boolean
           ingredient_type: string
           name: string
         }
@@ -231,6 +232,7 @@ export type Database = {
           addon_price_kids?: number
           created_at?: string
           id?: string
+          in_stock?: boolean
           ingredient_type?: string
           name: string
         }
@@ -239,6 +241,7 @@ export type Database = {
           addon_price_kids?: number
           created_at?: string
           id?: string
+          in_stock?: boolean
           ingredient_type?: string
           name?: string
         }

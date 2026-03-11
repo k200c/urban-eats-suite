@@ -59,6 +59,7 @@ export interface Ingredient {
   ingredient_type: string;
   addon_price: number;
   addon_price_kids: number;
+  in_stock: boolean;
   created_at: string;
 }
 

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAllIngredients } from '@/hooks/useIngredients';
@@ -19,6 +20,7 @@ interface EditedValues {
   ingredient_type?: string;
   addon_price?: string;
   addon_price_kids?: string;
+  in_stock?: boolean;
 }
 
 export function IngredientPriceManager() {
@@ -51,6 +53,7 @@ export function IngredientPriceManager() {
         if (vals.ingredient_type !== undefined && vals.ingredient_type !== orig.ingredient_type) return true;
         if (vals.addon_price !== undefined && vals.addon_price !== orig.addon_price.toFixed(2)) return true;
         if (vals.addon_price_kids !== undefined && vals.addon_price_kids !== orig.addon_price_kids.toFixed(2)) return true;
+        if (vals.in_stock !== undefined && vals.in_stock !== orig.in_stock) return true;
         return false;
       })
       .map(([id]) => id);
@@ -58,7 +61,7 @@ export function IngredientPriceManager() {
 
   const dirtyCount = dirtyIds.length;
 
-  const updateEdit = useCallback((id: string, field: keyof EditedValues, value: string) => {
+  const updateEdit = useCallback((id: string, field: keyof EditedValues, value: string | boolean) => {
     setEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
   }, []);
 
@@ -92,11 +95,12 @@ export function IngredientPriceManager() {
     try {
       const updates = dirtyIds.map(id => {
         const vals = edits[id];
-        const payload: Record<string, string | number> = {};
+        const payload: Record<string, string | number | boolean> = {};
         if (vals?.name !== undefined) payload.name = vals.name.trim();
         if (vals?.ingredient_type !== undefined) payload.ingredient_type = vals.ingredient_type;
         if (vals?.addon_price !== undefined) payload.addon_price = Number(parseFloat(vals.addon_price).toFixed(2));
         if (vals?.addon_price_kids !== undefined) payload.addon_price_kids = Number(parseFloat(vals.addon_price_kids).toFixed(2));
+        if (vals?.in_stock !== undefined) payload.in_stock = vals.in_stock;
         return supabase.from('ingredients').update(payload).eq('id', id);
       });
 
@@ -117,8 +121,12 @@ export function IngredientPriceManager() {
     }
   }, [ingredients, dirtyIds, edits, queryClient]);
 
-  const getVal = (id: string, field: keyof EditedValues, original: string) => {
-    return edits[id]?.[field] ?? original;
+  const getStrVal = (id: string, field: 'name' | 'ingredient_type' | 'addon_price' | 'addon_price_kids', original: string): string => {
+    return (edits[id]?.[field] as string | undefined) ?? original;
+  };
+
+  const getStockVal = (id: string, original: boolean): boolean => {
+    return edits[id]?.in_stock ?? original;
   };
 
   return (
@@ -167,7 +175,8 @@ export function IngredientPriceManager() {
             <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           ) : (
             <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-              <div className="grid grid-cols-[1fr_80px_60px_60px] gap-1.5 px-1 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              <div className="grid grid-cols-[32px_1fr_80px_60px_60px] gap-1.5 px-1 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                <span></span>
                 <span>Name</span>
                 <span>Type</span>
                 <span>Price</span>
@@ -176,15 +185,21 @@ export function IngredientPriceManager() {
 
               {filtered.map(ing => {
                 const isDirty = dirtyIds.includes(ing.id);
+                const inStock = getStockVal(ing.id, ing.in_stock);
                 return (
-                  <div key={ing.id} className={`grid grid-cols-[1fr_80px_60px_60px] gap-1.5 items-center p-1.5 rounded border ${isDirty ? 'bg-primary/10 border-primary/30' : 'bg-secondary/20 border-border/30'}`}>
+                  <div key={ing.id} className={`grid grid-cols-[32px_1fr_80px_60px_60px] gap-1.5 items-center p-1.5 rounded border ${isDirty ? 'bg-primary/10 border-primary/30' : inStock ? 'bg-secondary/20 border-border/30' : 'bg-destructive/10 border-destructive/30'}`}>
+                    <Switch
+                      checked={inStock}
+                      onCheckedChange={v => updateEdit(ing.id, 'in_stock', v as any)}
+                      className="scale-75"
+                    />
                     <Input
-                      value={getVal(ing.id, 'name', ing.name)}
+                      value={getStrVal(ing.id, 'name', ing.name)}
                       className="h-7 text-xs bg-background/50 border-border/50"
                       onChange={e => updateEdit(ing.id, 'name', e.target.value)}
                     />
                     <Select
-                      value={getVal(ing.id, 'ingredient_type', ing.ingredient_type)}
+                      value={getStrVal(ing.id, 'ingredient_type', ing.ingredient_type)}
                       onValueChange={v => updateEdit(ing.id, 'ingredient_type', v)}
                     >
                       <SelectTrigger className="h-7 text-[10px] px-1.5 bg-background/50 border-border/50">
@@ -200,7 +215,7 @@ export function IngredientPriceManager() {
                       type="number"
                       step="0.10"
                       min="0"
-                      value={getVal(ing.id, 'addon_price', ing.addon_price.toFixed(2))}
+                      value={getStrVal(ing.id, 'addon_price', ing.addon_price.toFixed(2))}
                       className="h-7 text-xs bg-background/50 border-border/50 px-1.5"
                       onChange={e => updateEdit(ing.id, 'addon_price', e.target.value)}
                     />
@@ -208,7 +223,7 @@ export function IngredientPriceManager() {
                       type="number"
                       step="0.10"
                       min="0"
-                      value={getVal(ing.id, 'addon_price_kids', ing.addon_price_kids.toFixed(2))}
+                      value={getStrVal(ing.id, 'addon_price_kids', ing.addon_price_kids.toFixed(2))}
                       className="h-7 text-xs bg-background/50 border-border/50 px-1.5"
                       onChange={e => updateEdit(ing.id, 'addon_price_kids', e.target.value)}
                     />

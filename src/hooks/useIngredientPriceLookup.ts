@@ -2,8 +2,8 @@ import { useAllIngredients } from '@/hooks/useIngredients';
 import { getIngredientAddonPrice } from '@/lib/pricingRules';
 
 /**
- * Shared hook that fetches all ingredients and returns a lookup function.
- * Use this to resolve DB-driven addon prices by ingredient name.
+ * Shared hook that fetches all ingredients and returns lookup functions.
+ * Use this to resolve DB-driven addon prices and stock status by ingredient name.
  */
 export function useIngredientPriceLookup() {
   const { data: allIngredients, isLoading } = useAllIngredients();
@@ -21,5 +21,18 @@ export function useIngredientPriceLookup() {
     return getIngredientAddonPrice(ingredient, productCategory);
   };
 
-  return { lookupPrice, isLoading };
+  /**
+   * Check if an ingredient is in stock by name.
+   * Returns true if ingredient not found (safe fallback).
+   */
+  const isInStock = (name: string): boolean => {
+    if (!allIngredients) return true;
+    const ingredient = allIngredients.find(
+      (ing) => ing.name.toLowerCase() === name.toLowerCase()
+    );
+    if (!ingredient) return true;
+    return ingredient.in_stock !== false;
+  };
+
+  return { lookupPrice, isInStock, isLoading };
 }

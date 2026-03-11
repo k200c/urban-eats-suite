@@ -1,0 +1,1 @@
+ALTER TABLE public.ingredients ADD COLUMN IF NOT EXISTS in_stock boolean NOT NULL DEFAULT true;

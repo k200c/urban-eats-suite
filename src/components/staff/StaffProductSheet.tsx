@@ -93,7 +93,7 @@ export function StaffProductSheet({
   const { data: loadedFriesProducts } = useLoadedFries();
   const { data: drinksProducts } = useDrinks();
   const { data: saucesProducts } = useSauces();
-  const { lookupPrice } = useIngredientPriceLookup();
+  const { lookupPrice, isInStock } = useIngredientPriceLookup();
 
   useEffect(() => {
     if (product) {
@@ -427,18 +427,25 @@ export function StaffProductSheet({
                 </h4>
 
                 {/* Beef Patty Stepper (0-4) */}
-                {showBeefPattyStepper && (
+                {showBeefPattyStepper && (() => {
+                  const pattyOos = !isInStock(BEEF_PATTY.dbName);
+                  return (
                   <div className={`flex items-center justify-between p-3.5 rounded-lg border mb-2 transition-all ${
-                    beefPattyCount > 0
+                    pattyOos
+                      ? 'border-border/30 bg-secondary/10 opacity-50 cursor-not-allowed'
+                      : beefPattyCount > 0
                       ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
                       : 'border-border bg-secondary/30'
                   }`}>
-                    <span className="text-sm text-foreground font-medium">{BEEF_PATTY.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-foreground font-medium">{BEEF_PATTY.name}</span>
+                      {pattyOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">OOS</Badge>}
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setBeefPattyCount(Math.max(0, beefPattyCount - 1))}
-                          disabled={beefPattyCount === 0}
+                          disabled={beefPattyCount === 0 || pattyOos}
                           className="w-7 h-7 rounded-full bg-background flex items-center justify-center hover:bg-secondary/80 transition-colors disabled:opacity-30"
                         >
                           <Minus className="w-3.5 h-3.5" />
@@ -446,7 +453,7 @@ export function StaffProductSheet({
                         <span className="w-5 text-center font-bold text-foreground text-sm">{beefPattyCount}</span>
                         <button
                           onClick={() => setBeefPattyCount(Math.min(BEEF_PATTY.maxQty, beefPattyCount + 1))}
-                          disabled={beefPattyCount >= BEEF_PATTY.maxQty}
+                          disabled={beefPattyCount >= BEEF_PATTY.maxQty || pattyOos}
                           className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-30"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -457,30 +464,36 @@ export function StaffProductSheet({
                       </span>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Standalone Add-on Checkboxes */}
                 <div className="space-y-2 mb-4">
                   {currentAddons.map((addon) => {
                     const isSelected = standaloneAddons.has(addon.id);
+                    const addonOos = !isInStock(addon.dbName || addon.name);
                     return (
                       <label
                         key={addon.id}
-                        className={`flex items-center justify-between p-3.5 rounded-lg border cursor-pointer transition-all ${
-                          isSelected
+                        className={`flex items-center justify-between p-3.5 rounded-lg border transition-all ${
+                          addonOos
+                            ? 'border-border/30 bg-secondary/10 opacity-50 cursor-not-allowed'
+                            : isSelected
                             ? 'border-primary bg-primary/15 shadow-sm shadow-primary/20'
-                            : 'border-border bg-secondary/30 hover:border-primary/40'
+                            : 'border-border bg-secondary/30 hover:border-primary/40 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => toggleStandaloneAddon(addon.id)}
+                            onCheckedChange={() => !addonOos && toggleStandaloneAddon(addon.id)}
+                            disabled={addonOos}
                             className="border-primary/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <span className="text-sm text-foreground font-medium">{addon.name}</span>
+                          {addonOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">OOS</Badge>}
                         </div>
-                        <span className="text-primary font-bold text-sm">
+                        <span className={`font-bold text-sm ${addonOos ? 'text-muted-foreground' : 'text-primary'}`}>
                           +€{lookupPrice(addon.dbName || addon.name, product.category).toFixed(2)}
                         </span>
                       </label>
@@ -606,25 +619,30 @@ export function StaffProductSheet({
                   {addableOnlyIngredients.map((ingredient) => {
                     const isSelected = ingredientStates[ingredient.id] === 'extra';
                     const price = getIngredientAddonPrice(ingredient, product.category);
+                    const ingOos = ingredient.in_stock === false;
                     
                     return (
                       <label
                         key={ingredient.id}
-                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
-                          isSelected
+                        className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+                          ingOos
+                            ? 'border-border/30 bg-secondary/10 opacity-50 cursor-not-allowed'
+                            : isSelected
                             ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
-                            : 'border-border bg-secondary/30 hover:border-amber-500/40'
+                            : 'border-border bg-secondary/30 hover:border-amber-500/40 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => handleAddExtra(ingredient.id)}
+                            onCheckedChange={() => !ingOos && handleAddExtra(ingredient.id)}
+                            disabled={ingOos}
                             className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                           />
                           <span className="text-sm text-foreground font-medium">{ingredient.name}</span>
+                          {ingOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">OOS</Badge>}
                         </div>
-                        <span className="text-amber-400 font-bold text-sm">
+                        <span className={`font-bold text-sm ${ingOos ? 'text-muted-foreground' : 'text-amber-400'}`}>
                           +€{price.toFixed(2)}
                         </span>
                       </label>
@@ -716,6 +734,7 @@ export function StaffProductSheet({
                     const isRemovable = ingredient.is_removable !== false;
                     const isAddable = ingredient.is_addable !== false;
                     const extraPrice = getIngredientAddonPrice(ingredient, product.category);
+                    const ingOos = ingredient.in_stock === false;
                     
                     return (
                       <div
@@ -728,7 +747,7 @@ export function StaffProductSheet({
                             : 'border-border bg-secondary/50'
                         }`}
                       >
-                        <div className="flex-1">
+                        <div className="flex-1 flex items-center gap-1.5">
                           <span className={`text-sm font-medium ${
                             isRemoved 
                               ? 'text-muted-foreground line-through' 
@@ -739,9 +758,12 @@ export function StaffProductSheet({
                             {isRemoved && 'No '}{isExtra && 'Extra '}{ingredient.name}
                           </span>
                           {isExtra && extraPrice > 0 && (
-                            <span className="ml-2 text-xs text-green-400 font-semibold">
+                            <span className="text-xs text-green-400 font-semibold">
                               +€{extraPrice.toFixed(2)}
                             </span>
+                          )}
+                          {ingOos && !isRemoved && (
+                            <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">OOS</Badge>
                           )}
                         </div>
                         
@@ -761,9 +783,12 @@ export function StaffProductSheet({
                           
                           {isAddable && (
                             <button
-                              onClick={() => handleAddExtra(ingredient.id)}
+                              onClick={() => !ingOos && handleAddExtra(ingredient.id)}
+                              disabled={ingOos}
                               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                                isExtra 
+                                ingOos
+                                  ? 'bg-secondary/30 text-muted-foreground opacity-40 cursor-not-allowed'
+                                  : isExtra 
                                   ? 'bg-green-500 text-white' 
                                   : 'bg-background text-muted-foreground hover:bg-green-500/20 hover:text-green-400'
                               }`}
