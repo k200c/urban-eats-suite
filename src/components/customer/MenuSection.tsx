@@ -201,7 +201,7 @@ export function MenuSection() {
                   onClick={() => handleCategoryClick(category)}
                   className={cn(
                     'category-pill whitespace-nowrap flex-shrink-0 transition-transform',
-                    'px-3 py-1.5 text-xs sm:px-5 sm:py-2.5 sm:text-sm',
+                    'px-3 py-1 text-xs sm:px-5 sm:py-2.5 sm:text-sm',
                     'hover:scale-105 active:scale-95 touch-target-44',
                     selectedCategory === category && 'active'
                   )}

@@ -133,7 +133,7 @@ export function HeroSection() {
             size="lg"
             variant="outline"
             onClick={() => setIsDeliveryModalOpen(true)}
-            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
+            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-xs sm:text-base px-3 py-2 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
           >
             <ExternalLink className="w-4 h-4" />
             DELIVERY
