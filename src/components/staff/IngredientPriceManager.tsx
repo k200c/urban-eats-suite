@@ -95,11 +95,12 @@ export function IngredientPriceManager() {
     try {
       const updates = dirtyIds.map(id => {
         const vals = edits[id];
-        const payload: Record<string, string | number> = {};
+        const payload: Record<string, string | number | boolean> = {};
         if (vals?.name !== undefined) payload.name = vals.name.trim();
         if (vals?.ingredient_type !== undefined) payload.ingredient_type = vals.ingredient_type;
         if (vals?.addon_price !== undefined) payload.addon_price = Number(parseFloat(vals.addon_price).toFixed(2));
         if (vals?.addon_price_kids !== undefined) payload.addon_price_kids = Number(parseFloat(vals.addon_price_kids).toFixed(2));
+        if (vals?.in_stock !== undefined) payload.in_stock = vals.in_stock;
         return supabase.from('ingredients').update(payload).eq('id', id);
       });
 
