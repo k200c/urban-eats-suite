@@ -453,7 +453,7 @@ export function KitchenDisplaySystem() {
 
   // Find full order data by ID
   const findOrderById = (orderId: string): KitchenOrder | undefined => {
-    return [...ordersByStatus.pending, ...ordersByStatus.cooking, ...ordersByStatus.ready, ...ordersByStatus.pending_payment]
+    return [...ordersByStatus.cooking, ...ordersByStatus.ready, ...ordersByStatus.pending_payment]
       .find(order => order.id === orderId);
   };
 
