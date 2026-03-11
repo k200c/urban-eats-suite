@@ -16,7 +16,7 @@ export function HeroSection() {
 
   return (
     <section 
-      className="min-h-[38vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-10 sm:pt-16 pb-6 sm:pb-16 relative overflow-hidden"
+      className="min-h-[28vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-6 sm:pt-16 pb-3 sm:pb-16 relative overflow-hidden"
       style={{ scrollMarginTop: 'var(--header-offset)' }}
     >
       {/* Background with Vignette */}
@@ -40,7 +40,7 @@ export function HeroSection() {
       <div className="relative z-10 flex flex-col items-center">
         {/* Logo with entrance animation */}
         <motion.div
-          className="mb-3 sm:mb-6 relative"
+          className="mb-1 sm:mb-6 relative"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{
@@ -63,12 +63,12 @@ export function HeroSection() {
           <img
             src={streetEatzLogo}
             alt="StreetEatz Logo"
-            className="w-24 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
+            className="w-16 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
           />
         </motion.div>
 
         {/* Text — responsive clamp sizing */}
-        <div className="space-y-0.5 sm:space-y-2 mb-3 sm:mb-6">
+        <div className="space-y-0.5 sm:space-y-2 mb-1 sm:mb-6">
           <motion.h1
             className="font-heading font-extrabold text-primary tracking-tight"
             style={{
@@ -84,7 +84,7 @@ export function HeroSection() {
           </motion.h1>
           
           <motion.h2
-            className="font-heading font-extrabold text-foreground tracking-tight"
+            className="font-heading font-extrabold text-foreground tracking-tight hidden sm:block"
             style={{
               fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
               lineHeight: 1.1,
@@ -99,7 +99,7 @@ export function HeroSection() {
 
         {/* Tagline */}
         <motion.p
-          className="text-muted-foreground text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-4 sm:mb-8"
+          className="text-muted-foreground text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-2 sm:mb-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1.2 }}
@@ -117,7 +117,7 @@ export function HeroSection() {
           <Button
             size="lg"
             onClick={scrollToMenu}
-            className="btn-glow text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider"
+            className="btn-glow text-xs sm:text-base px-3 py-2 sm:px-8 sm:py-6 font-semibold tracking-wider"
           >
             ORDER NOW
           </Button>
@@ -125,7 +125,7 @@ export function HeroSection() {
             size="lg"
             variant="outline"
             onClick={scrollToMenu}
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider"
+            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground text-xs sm:text-base px-3 py-2 sm:px-8 sm:py-6 font-semibold tracking-wider"
           >
             VIEW MENU
           </Button>
@@ -133,7 +133,7 @@ export function HeroSection() {
             size="lg"
             variant="outline"
             onClick={() => setIsDeliveryModalOpen(true)}
-            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-xs sm:text-base px-4 py-2.5 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
+            className="border-green-500 text-green-400 hover:bg-green-500 hover:text-white text-xs sm:text-base px-3 py-2 sm:px-8 sm:py-6 font-semibold tracking-wider gap-2"
           >
             <ExternalLink className="w-4 h-4" />
             DELIVERY
