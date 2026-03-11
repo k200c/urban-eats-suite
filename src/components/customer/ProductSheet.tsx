@@ -650,25 +650,30 @@ export function ProductSheet({
                   {addableOnlyIngredients.map((ingredient) => {
                     const isSelected = ingredientStates[ingredient.id] === 'extra';
                     const price = getIngredientAddonPrice(ingredient, product.category);
+                    const ingOos = ingredient.in_stock === false;
                     
                     return (
                       <label
                         key={ingredient.id}
-                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                          isSelected
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          ingOos
+                            ? 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                            : isSelected
                             ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
-                            : 'border-white/10 bg-white/5 hover:border-amber-500/40'
+                            : 'border-white/10 bg-white/5 hover:border-amber-500/40 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <Checkbox
                             checked={isSelected}
-                            onCheckedChange={() => handleAddExtra(ingredient.id)}
+                            onCheckedChange={() => !ingOos && handleAddExtra(ingredient.id)}
+                            disabled={ingOos}
                             className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                           />
                           <span className="text-foreground font-medium">{ingredient.name}</span>
+                          {ingOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Out of Stock</Badge>}
                         </div>
-                        <span className="text-amber-400 font-bold">
+                        <span className={`font-bold ${ingOos ? 'text-muted-foreground' : 'text-amber-400'}`}>
                           +€{price.toFixed(2)}
                         </span>
                       </label>
