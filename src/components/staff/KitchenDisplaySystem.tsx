@@ -579,7 +579,6 @@ export function KitchenDisplaySystem() {
     ordersByStatus.ready.length;
 
   const unpaidCount = [
-    ...ordersByStatus.pending,
     ...ordersByStatus.cooking,
     ...ordersByStatus.ready
   ].filter(o => o.payment_status !== 'paid').length;
