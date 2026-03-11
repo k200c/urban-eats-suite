@@ -674,12 +674,12 @@ export function KitchenDisplaySystem() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {columns.map((column) => (
                   <KanbanColumn
                     key={column.status}
                     config={column}
-                    orders={filteredOrdersByStatus[column.status]}
+                    orders={filteredOrdersByStatus[column.status as keyof typeof filteredOrdersByStatus] as KitchenOrder[]}
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                     onStatusChange={handleStatusChange}
