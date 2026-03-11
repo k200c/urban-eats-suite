@@ -28,14 +28,6 @@ interface ColumnConfig {
 
 const columns: ColumnConfig[] = [
   { 
-    status: 'pending', 
-    title: 'PENDING', 
-    borderColor: 'border-red-500',
-    bgColor: 'bg-red-500/5',
-    headerBg: 'bg-red-500',
-    headerText: 'text-white'
-  },
-  { 
     status: 'cooking', 
     title: 'COOKING', 
     borderColor: 'border-yellow-500',
