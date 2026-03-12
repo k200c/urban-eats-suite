@@ -21,9 +21,11 @@
     --nav-height: 56px;
     --header-offset: calc(var(--nav-height) + var(--safe-top));
 
-    /* Bottom bar system */
-    --bottom-bar-height: 40px;
-    --bottom-offset: calc(var(--bottom-bar-height) + var(--safe-bottom));
+    /* Bottom stacking system */
+    --bottom-nav-height: 56px;
+    --bottom-bar-height: 32px;
+    --bottom-total: calc(var(--bottom-nav-height) + var(--bottom-bar-height));
+    --bottom-offset: calc(var(--bottom-total) + var(--safe-bottom));
 
     /* Street Eatz Dark Theme */
     /* Deep Charcoal Gradient Background */
@@ -115,7 +117,8 @@
 
     :root {
       --nav-height: 48px;
-      --bottom-bar-height: 32px;
+      --bottom-nav-height: 48px;
+      --bottom-bar-height: 28px;
     }
   }
 
@@ -178,14 +181,18 @@
     box-shadow: 0 0 30px hsl(var(--glow-strong));
   }
 
-  /* Category pill */
+  /* Category pill — mobile-first compact, larger at sm: */
   .category-pill {
-    @apply px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200;
+    @apply px-3 py-1 rounded-full text-xs font-semibold transition-all duration-200;
     @apply bg-secondary text-secondary-foreground uppercase tracking-wider;
     @apply hover:bg-primary hover:text-primary-foreground;
+    @apply sm:px-5 sm:py-2.5 sm:text-sm;
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .category-pill.active {

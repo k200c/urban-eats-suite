@@ -178,7 +178,7 @@ export function MenuSection() {
         </motion.div>
 
         {/* Sticky Category Bar with Scroll Snap and Gradients */}
-        <div className="sticky z-30 bg-black/90 backdrop-blur-md py-1 sm:py-2 md:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-1.5 sm:mb-4 md:mb-8 border-y border-white/5 overflow-hidden" style={{ top: 'var(--header-offset)' }}>
+        <div className="sticky z-30 bg-black/90 backdrop-blur-md py-0.5 sm:py-2 md:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-1 sm:mb-4 md:mb-8 border-y border-white/5 overflow-hidden" style={{ top: 'var(--header-offset)' }}>
           <div className="relative">
             {/* Left gradient indicator */}
             <div 
@@ -201,8 +201,7 @@ export function MenuSection() {
                   onClick={() => handleCategoryClick(category)}
                   className={cn(
                     'category-pill whitespace-nowrap flex-shrink-0 transition-transform',
-                    'px-3 py-1 text-xs sm:px-5 sm:py-2.5 sm:text-sm',
-                    'hover:scale-105 active:scale-95 touch-target-44',
+                    'hover:scale-105 active:scale-95',
                     selectedCategory === category && 'active'
                   )}
                 >
@@ -223,24 +222,16 @@ export function MenuSection() {
 
         {/* Products */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <motion.div 
-                key={i} 
-                className="street-card p-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <div className="flex gap-4">
-                  <Skeleton className="w-24 h-24 rounded-lg flex-shrink-0 bg-secondary/50" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-3/4 bg-secondary/50" />
-                    <Skeleton className="h-4 w-full bg-secondary/50" />
-                    <Skeleton className="h-8 w-20 bg-secondary/50" />
-                  </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2 md:gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="street-card overflow-hidden">
+                <Skeleton className="w-full aspect-square bg-secondary/50" />
+                <div className="p-2 space-y-1.5">
+                  <Skeleton className="h-4 w-3/4 bg-secondary/50" />
+                  <Skeleton className="h-3 w-1/2 bg-secondary/50" />
+                  <Skeleton className="h-6 w-16 bg-secondary/50" />
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         ) : isError ? (

@@ -8,7 +8,7 @@ interface CustomerLayoutProps {
 
 export function CustomerLayout({ children }: CustomerLayoutProps) {
   return (
-    <div className="bg-background" style={{ minHeight: '100dvh', paddingBottom: 'calc(var(--bottom-offset, 56px) + 2rem)' }}>
+    <div className="bg-background" style={{ minHeight: '100dvh', paddingBottom: 'calc(var(--bottom-offset) + 2rem)' }}>
       <MarketingBanner />
       <main className="max-w-lg mx-auto">
         {children}

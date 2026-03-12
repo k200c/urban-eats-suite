@@ -108,7 +108,7 @@ export default function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-[100dvh]">
         <Navbar />
         <div className="pt-[var(--header-offset)] px-4 flex flex-col items-center justify-center min-h-[60vh]">
           <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mb-4">
@@ -125,7 +125,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-[100dvh]">
       <Navbar />
       <div className="pt-[var(--header-offset)] px-4 max-w-lg mx-auto pb-40">
         {/* Header */}

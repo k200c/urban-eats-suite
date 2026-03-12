@@ -16,7 +16,7 @@ export function HeroSection() {
 
   return (
     <section 
-      className="min-h-[28vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-6 sm:pt-16 pb-3 sm:pb-16 relative overflow-hidden"
+      className="min-h-[20vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-2 sm:pt-16 pb-2 sm:pb-16 relative overflow-hidden"
       style={{ scrollMarginTop: 'var(--header-offset)' }}
     >
       {/* Background with Vignette */}
@@ -40,7 +40,7 @@ export function HeroSection() {
       <div className="relative z-10 flex flex-col items-center">
         {/* Logo with entrance animation */}
         <motion.div
-          className="mb-1 sm:mb-6 relative"
+          className="mb-0.5 sm:mb-6 relative"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{
@@ -52,7 +52,7 @@ export function HeroSection() {
         >
           {/* Pulsing Glow Background */}
           <div
-            className="absolute inset-0 -inset-x-8 -inset-y-8 animate-pulse"
+            className="absolute inset-0 -inset-x-4 -inset-y-4 animate-pulse"
             style={{
               background: 'radial-gradient(ellipse at center, rgba(255, 107, 0, 0.4) 0%, transparent 70%)',
               filter: 'blur(30px)',
@@ -63,7 +63,7 @@ export function HeroSection() {
           <img
             src={streetEatzLogo}
             alt="StreetEatz Logo"
-            className="w-16 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
+            className="w-12 sm:w-48 md:w-56 lg:w-64 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(255,107,0,0.5)]"
           />
         </motion.div>
 
