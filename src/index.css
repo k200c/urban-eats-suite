@@ -117,7 +117,8 @@
 
     :root {
       --nav-height: 48px;
-      --bottom-bar-height: 32px;
+      --bottom-nav-height: 48px;
+      --bottom-bar-height: 28px;
     }
   }
 
