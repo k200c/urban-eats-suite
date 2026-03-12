@@ -24,7 +24,7 @@ export function FooterInfoBar() {
   }, [tapCount]);
 
   return (
-    <div className="fixed left-0 right-0 z-40 bg-black/95 backdrop-blur-sm border-t border-white/10" style={{ bottom: 'var(--bottom-nav-height)', minHeight: 'var(--bottom-bar-height)' }}>
+    <div className="w-full bg-black/95 backdrop-blur-sm border-t border-white/10" style={{ minHeight: 'var(--bottom-bar-height)' }}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1 sm:py-2">
         <div className="flex items-center justify-between text-[10px] sm:text-xs">
           {/* Location */}

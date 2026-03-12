@@ -18,7 +18,7 @@ export function FloatingCartButton() {
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           onClick={() => navigate('/cart')}
           className="fixed left-4 right-4 z-50 mx-auto max-w-md"
-          style={{ bottom: 'calc(var(--bottom-total) + var(--safe-bottom) + 0.5rem)' }}
+          style={{ bottom: 'calc(var(--bottom-nav-height) + var(--safe-bottom) + 0.5rem)' }}
         >
           <div className="btn-glow bg-primary text-primary-foreground rounded-2xl px-6 py-4 flex items-center justify-between shadow-2xl">
             <div className="flex items-center gap-3">
