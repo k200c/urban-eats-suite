@@ -65,6 +65,7 @@ export function OrderHistoryCard({ order }: OrderHistoryCardProps) {
               category: product.category,
               image_url: product.image_url,
               is_available: product.is_available ?? true,
+              is_visible: true,
               is_sold_out: product.is_sold_out ?? false,
               is_featured: product.is_featured ?? false,
               stock_count: product.stock_count ?? 100,

@@ -581,6 +581,7 @@ export type Database = {
           is_available: boolean | null
           is_featured: boolean | null
           is_sold_out: boolean | null
+          is_visible: boolean
           name: string
           price: number
           stock_count: number | null
@@ -596,6 +597,7 @@ export type Database = {
           is_available?: boolean | null
           is_featured?: boolean | null
           is_sold_out?: boolean | null
+          is_visible?: boolean
           name: string
           price: number
           stock_count?: number | null
@@ -611,6 +613,7 @@ export type Database = {
           is_available?: boolean | null
           is_featured?: boolean | null
           is_sold_out?: boolean | null
+          is_visible?: boolean
           name?: string
           price?: number
           stock_count?: number | null

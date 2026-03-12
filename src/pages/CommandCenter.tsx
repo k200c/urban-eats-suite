@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, Clock, Package, ArrowLeft, Users, Share2, Bug, BarChart3, Megaphone, Pencil } from 'lucide-react';
+import { Store, Clock, ArrowLeft, Users, Share2, Bug, BarChart3, Megaphone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { useStoreStatus } from '@/hooks/useStoreStatus';
-import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -16,12 +15,10 @@ import { SocialMediaManager } from '@/components/staff/SocialMediaManager';
 import { CRMDashboard } from '@/components/staff/CRMDashboard';
 import { MarketingHub } from '@/components/staff/MarketingHub';
 import { AnalyticsDashboard } from '@/components/staff/AnalyticsDashboard';
-import { AddProductDialog } from '@/components/staff/AddProductDialog';
-import { EditProductDialog } from '@/components/staff/EditProductDialog';
+import { QuickStockManager } from '@/components/staff/QuickStockManager';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IngredientPriceManager } from '@/components/staff/IngredientPriceManager';
 import { toast } from 'sonner';
-import { Product } from '@/types/database';
 
 const waitTimeOptions = ['10 mins', '20 mins', '30 mins', '45 mins', '60 mins'];
 
@@ -30,12 +27,7 @@ export default function CommandCenter() {
   const { isAdmin, loading } = useAuth();
   const { data: settings, isLoading: settingsLoading } = useAppSettings();
   const { devModeEnabled, toggleDevMode, dbStoreOpen } = useStoreStatus();
-  const { data: products, isLoading: productsLoading, refetch: refetchProducts } = useProducts();
   const updateSettings = useUpdateAppSettings();
-
-  // State for edit dialog
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -61,21 +53,6 @@ export default function CommandCenter() {
     }
   };
 
-  const handleProductAvailability = async (productId: string, isAvailable: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_available: isAvailable })
-        .eq('id', productId);
-
-      if (error) throw error;
-      refetchProducts();
-      toast.success(isAvailable ? 'Item is now available' : 'Item marked as sold out');
-    } catch (error) {
-      toast.error('Failed to update product availability');
-    }
-  };
-
   if (loading || settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -93,97 +70,6 @@ export default function CommandCenter() {
     const newValue = toggleDevMode();
     toast.success(newValue ? '🔧 Dev Mode ENABLED - Store always open' : '🔧 Dev Mode DISABLED');
   };
-
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setShowEditDialog(true);
-  };
-
-  // Quick Stock Manager Component
-  const QuickStockManager = () => (
-    <>
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Package className="w-5 h-5 text-primary" />
-              Quick Stock Manager
-            </CardTitle>
-            <AddProductDialog onProductAdded={refetchProducts} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {productsLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-12 bg-secondary/30 rounded animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {products?.map((product) => (
-                <div
-                  key={product.id}
-                  className={`p-3 rounded-lg border transition-colors ${
-                    product.is_available
-                      ? 'bg-secondary/20 border-border'
-                      : 'bg-red-500/10 border-red-500/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-medium truncate ${!product.is_available && 'text-muted-foreground line-through'}`}>
-                        {product.name}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{product.category}</span>
-                        <span>•</span>
-                        <span className="text-primary font-medium">€{product.price.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleEditProduct(product)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <span className={`text-xs font-medium min-w-[60px] text-right ${product.is_available ? 'text-green-400' : 'text-red-400'}`}>
-                        {product.is_available ? 'In Stock' : 'Sold Out'}
-                      </span>
-                      <Switch
-                        checked={product.is_available ?? true}
-                        onCheckedChange={(checked) => handleProductAvailability(product.id, checked)}
-                      />
-                    </div>
-                  </div>
-                  {/* Description preview */}
-                  {product.description ? (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {product.description}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-yellow-500/80 mt-1 italic">
-                      ⚠️ No description - click edit to add one
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <EditProductDialog
-        product={editingProduct}
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        onProductUpdated={refetchProducts}
-      />
-    </>
-  );
 
   return (
     <div className="min-h-screen bg-background staff-pos">
