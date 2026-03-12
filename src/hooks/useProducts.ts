@@ -35,7 +35,8 @@ export function useProducts(category?: ProductCategory | 'All') {
       let query = supabase
         .from('products')
         .select('*')
-        .eq('is_available', true) // Only show available products on customer menus
+        .eq('is_available', true)
+        .eq('is_visible', true) // Only show visible + available products on customer menus
         .order('is_featured', { ascending: false })
         .order('name');
 
