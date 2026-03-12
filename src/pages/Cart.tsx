@@ -125,7 +125,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-[100dvh]">
       <Navbar />
       <div className="pt-[var(--header-offset)] px-4 max-w-lg mx-auto pb-40">
         {/* Header */}
