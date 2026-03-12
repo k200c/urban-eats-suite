@@ -85,19 +85,21 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
       {/* Left Side - Product Grid */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Category Tabs */}
-        <div className="flex-shrink-0 bg-card/50 border-b border-border">
-          <ScrollArea className="flex-1">
-            <div className="flex p-2 gap-2">
-              {categories.map((cat) => (
-                <Button
-                  key={cat}
-                  variant={activeCategory === cat ? 'default' : 'ghost'}
-                  className={`flex-shrink-0 h-14 px-8 text-base font-heading pos-control ${
-                    activeCategory === cat ? 'bg-primary text-primary-foreground' : ''
-                  }`}
-                  onClick={() => setActiveCategory(cat)}
-                >
-                  {cat.toUpperCase()}
+        <div className="flex-shrink-0 bg-card/50 border-b border-border relative">
+          {/* Right fade indicator for scroll overflow */}
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card/80 to-transparent pointer-events-none z-10" />
+          <div className="flex p-2 gap-2 overflow-x-auto overflow-y-hidden no-scrollbar">
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                variant={activeCategory === cat ? 'default' : 'ghost'}
+                className={cn(
+                  'flex-shrink-0 h-14 px-8 text-base font-heading pos-control whitespace-nowrap',
+                  activeCategory === cat ? 'bg-primary text-primary-foreground' : ''
+                )}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat.toUpperCase()}
                 </Button>
               ))}
             </div>
