@@ -40,7 +40,7 @@ export function HeroSection() {
       <div className="relative z-10 flex flex-col items-center">
         {/* Logo with entrance animation */}
         <motion.div
-          className="mb-1 sm:mb-6 relative"
+          className="mb-0.5 sm:mb-6 relative"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{
