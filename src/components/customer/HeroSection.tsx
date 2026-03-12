@@ -16,8 +16,8 @@ export function HeroSection() {
 
   return (
     <section 
-      className="min-h-[25vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-center text-center px-4 pt-4 sm:pt-16 pb-3 sm:pb-16 relative overflow-hidden"
-      style={{ scrollMarginTop: 'var(--header-offset)' }}
+      className="min-h-[26vh] sm:min-h-[50vh] md:min-h-screen flex flex-col items-center justify-start sm:justify-center text-center px-4 pb-3 sm:pb-16 relative overflow-x-hidden"
+      style={{ scrollMarginTop: 'var(--header-offset)', paddingTop: 'calc(var(--header-offset) + 0.5rem)' }}
     >
       {/* Background with Vignette */}
       <div className="absolute inset-0 bg-[#0A0A0A] pointer-events-none" />
