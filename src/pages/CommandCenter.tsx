@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, Clock, Package, ArrowLeft, Users, Share2, Bug, BarChart3, Megaphone, Pencil } from 'lucide-react';
+import { Store, Clock, ArrowLeft, Users, Share2, Bug, BarChart3, Megaphone } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { useStoreStatus } from '@/hooks/useStoreStatus';
-import { useProducts } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -16,12 +15,10 @@ import { SocialMediaManager } from '@/components/staff/SocialMediaManager';
 import { CRMDashboard } from '@/components/staff/CRMDashboard';
 import { MarketingHub } from '@/components/staff/MarketingHub';
 import { AnalyticsDashboard } from '@/components/staff/AnalyticsDashboard';
-import { AddProductDialog } from '@/components/staff/AddProductDialog';
-import { EditProductDialog } from '@/components/staff/EditProductDialog';
+import { QuickStockManager } from '@/components/staff/QuickStockManager';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IngredientPriceManager } from '@/components/staff/IngredientPriceManager';
 import { toast } from 'sonner';
-import { Product } from '@/types/database';
 
 const waitTimeOptions = ['10 mins', '20 mins', '30 mins', '45 mins', '60 mins'];
 
