@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/select';
 import { ProductCategory } from '@/types/database';
 
-const categories: ProductCategory[] = ['Burgers', 'Flatbreads', 'Fries', 'Drinks', 'Specials'];
+const categories: ProductCategory[] = ['Burgers', 'Flatbreads', 'Fries', 'Drinks', 'Specials', 'Sauces', 'Kids Menu'];
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
