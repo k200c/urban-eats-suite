@@ -20,7 +20,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { IngredientPriceManager } from '@/components/staff/IngredientPriceManager';
 import { toast } from 'sonner';
 
-const waitTimeOptions = ['10 mins', '20 mins', '30 mins', '45 mins', '60 mins'];
+const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '60 mins'];
 
 export default function CommandCenter() {
   const navigate = useNavigate();
