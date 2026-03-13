@@ -29,6 +29,24 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
   
   // Checkout safeguard - delay before checkout becomes ready after cart changes
   const [checkoutReady, setCheckoutReady] = useState(true);
+  
+  // Category scroll state
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftGradient, setShowLeftGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(false);
+
+  const updateGradients = useCallback(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    setShowLeftGradient(el.scrollLeft > 4);
+    setShowRightGradient(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    updateGradients();
+    window.addEventListener('resize', updateGradients);
+    return () => window.removeEventListener('resize', updateGradients);
+  }, [updateGradients]);
 
   const { data: products = [], isLoading } = useProducts(activeCategory);
   
