@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProducts } from '@/hooks/useProducts';
 import { useStaffCartStore } from '@/stores/staffCartStore';
@@ -29,6 +29,24 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
   
   // Checkout safeguard - delay before checkout becomes ready after cart changes
   const [checkoutReady, setCheckoutReady] = useState(true);
+  
+  // Category scroll state
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftGradient, setShowLeftGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(false);
+
+  const updateGradients = useCallback(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    setShowLeftGradient(el.scrollLeft > 4);
+    setShowRightGradient(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    updateGradients();
+    window.addEventListener('resize', updateGradients);
+    return () => window.removeEventListener('resize', updateGradients);
+  }, [updateGradients]);
 
   const { data: products = [], isLoading } = useProducts(activeCategory);
   
@@ -86,22 +104,39 @@ export function StaffPOSContent({ onOrderComplete }: StaffPOSContentProps) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Category Tabs */}
         <div className="flex-shrink-0 bg-card/50 border-b border-border relative">
-          {/* Right fade indicator for scroll overflow */}
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card/80 to-transparent pointer-events-none z-10" />
-          <div className="flex p-2 gap-2 overflow-x-auto overflow-y-hidden no-scrollbar">
-            {categories.map((cat) => (
-              <Button
-                key={cat}
-                variant={activeCategory === cat ? 'default' : 'ghost'}
-                className={cn(
-                  'flex-shrink-0 h-14 px-8 text-base font-heading pos-control whitespace-nowrap',
-                  activeCategory === cat ? 'bg-primary text-primary-foreground' : ''
-                )}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat.toUpperCase()}
-              </Button>
-            ))}
+          {showLeftGradient && (
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-card/80 to-transparent pointer-events-none z-10" />
+          )}
+          {showRightGradient && (
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card/80 to-transparent pointer-events-none z-10" />
+          )}
+          <div
+            ref={categoryScrollRef}
+            onScroll={updateGradients}
+            className="w-full min-w-0 overflow-x-auto overflow-y-hidden no-scrollbar category-scroll p-2"
+          >
+            <div className="flex w-max min-w-max gap-2 px-2 pr-10">
+              {categories.map((cat) => (
+                <Button
+                  key={cat}
+                  variant={activeCategory === cat ? 'default' : 'ghost'}
+                  className={cn(
+                    'flex-none h-14 px-8 text-base font-heading pos-control whitespace-nowrap',
+                    activeCategory === cat ? 'bg-primary text-primary-foreground' : ''
+                  )}
+                  onClick={(e) => {
+                    setActiveCategory(cat);
+                    (e.currentTarget as HTMLElement).scrollIntoView({
+                      behavior: 'smooth',
+                      inline: 'center',
+                      block: 'nearest',
+                    });
+                  }}
+                >
+                  {cat.toUpperCase()}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
