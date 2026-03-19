@@ -911,9 +911,9 @@ export function ProductSheet({
         </div>
 
         {/* Sticky Add to Order Button */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pt-8">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pt-8" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
           <Button
-            className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/30"
+            className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/30 touch-manipulation"
             onClick={handleAddToOrder}
           >
             {editMode ? 'UPDATE ORDER' : 'ADD TO ORDER'} · €{totalPrice.toFixed(2)}
