@@ -392,17 +392,27 @@ export function ProductSheet({
     <Sheet open={!!product} onOpenChange={() => onClose()}>
       <SheetContent
         side="bottom"
+        hideDefaultClose
         className="h-[100dvh] sm:h-[90vh] sm:rounded-t-3xl bg-gradient-to-b from-[#1A1A1A] to-[#0A0A0A] border-t border-white/10 p-0 overflow-hidden"
       >
         <button
           onClick={onClose}
-          className="absolute right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="absolute right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors touch-manipulation"
           style={{ top: 'max(16px, env(safe-area-inset-top, 16px))' }}
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="h-full overflow-y-auto pb-36" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div
+          className="h-full overflow-y-auto pb-36"
+          style={{
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehaviorY: 'contain',
+            touchAction: 'pan-y',
+            willChange: 'transform',
+          }}
+        >
           {/* Product Image */}
           <div className="relative h-56 sm:h-64">
             <img
@@ -901,9 +911,9 @@ export function ProductSheet({
         </div>
 
         {/* Sticky Add to Order Button */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pt-8">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent pt-8" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
           <Button
-            className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/30"
+            className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/30 touch-manipulation"
             onClick={handleAddToOrder}
           >
             {editMode ? 'UPDATE ORDER' : 'ADD TO ORDER'} · €{totalPrice.toFixed(2)}
