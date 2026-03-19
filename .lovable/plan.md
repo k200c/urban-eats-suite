@@ -1,52 +1,76 @@
 
 
-# Plan: Unify Make It Epic Pricing with DB-Driven Ingredient Prices
+# Fix Mobile Product Details Bug + Harden Mobile UX + Menu Option Changes
 
-## Problem
+## Root Cause Analysis
 
-`STANDALONE_ADDONS` in both `ProductSheet.tsx` and `StaffProductSheet.tsx` has hardcoded prices (Bacon €2.00, Cheese €1.00, etc.) that don't match the DB (Bacon is €2.50 in `ingredients` table). The sauce dropdown uses `getSaucePrice()` keyword-based logic instead of DB prices.
+### Android Product Details Glitch
+The `ProductSheet` uses a Radix UI Sheet (`@radix-ui/react-dialog`) with `side="bottom"`. Two issues cause the Android glitch:
 
-## Changes
+1. **Duplicate close buttons**: The `SheetContent` component (sheet.tsx line 60-63) renders a default `SheetPrimitive.Close` X button at `right-4 top-4`, while `ProductSheet` renders its own custom close button at the same position. On Android, these overlap and fight for tap events, causing visual flicker and state confusion.
 
-### 1. Create a shared hook: `src/hooks/useIngredientPriceLookup.ts`
+2. **`overflow-hidden` on SheetContent + inner scroll container**: The SheetContent has `overflow-hidden` in the className, and the inner scrollable div uses `overflow-y-auto` with `h-full`. On Android Chrome, the combination of a `position: fixed` sheet with `overflow-hidden` and a child scroll container causes rendering glitches during the slide-in animation — the browser attempts to composite layers that conflict during the transition.
 
-Fetches all ingredients and returns a lookup function `getAddonPrice(name, category)` that finds the ingredient by name and calls `getIngredientAddonPrice()`. Falls back to €0.50 if not found.
+3. **No `will-change` or `transform: translateZ(0)` hint**: Android's compositor doesn't promote the scroll container to its own layer, causing paint jank during open/close.
 
-### 2. Refactor `STANDALONE_ADDONS` to not include prices
+### Fix approach
+- Remove the default close button from `SheetContent` when used in bottom sheets (the ProductSheet already has its own styled one)
+- Add GPU compositing hints to the scroll container
+- Ensure touch-action is set correctly for the scroll area
 
-Convert to price-less config arrays (just `id` and `name`). Resolve prices at render time via the lookup hook. Both `ProductSheet.tsx` and `StaffProductSheet.tsx` get the same treatment.
+## Plan
 
-Bacon → DB returns €2.50. Cheese → DB returns whatever is set. Sauces in dropdown → use ingredient lookup by name instead of `getSaucePrice()`.
+### Task A: Fix Android product details glitch
 
-### 3. Update `ProductSheet.tsx`
+**File: `src/components/ui/sheet.tsx`**
+- Add an optional `hideDefaultClose` prop to `SheetContent`
+- When true, skip rendering the default `SheetPrimitive.Close` button
+- This eliminates the duplicate close button conflict
 
-- Import and call `useIngredientPriceLookup()`
-- Remove hardcoded `price` from `STANDALONE_ADDONS` and `KIDS_MENU_ADDONS`
-- Resolve addon prices dynamically: `const addonPrice = lookupPrice(addon.name, product.category)`
-- Update `buildAllModifiers()` to use looked-up prices
-- Update `currentAddonsTotal` calculation to use looked-up prices
-- Replace `getSaucePrice()` in sauce dropdown with ingredient lookup
+**File: `src/components/customer/ProductSheet.tsx`**
+- Pass `hideDefaultClose` to `SheetContent`
+- Add `-webkit-overflow-scrolling: touch` and `overscroll-behavior-y: contain` to the scroll container for smoother Android scrolling
+- Add `touch-action: pan-y` to the scroll container to prevent gesture conflicts
+- Use `will-change: transform` on the scroll container to promote it to its own compositing layer
 
-### 4. Update `StaffProductSheet.tsx`
+### Task B: Harden mobile UX
 
-Same changes as ProductSheet.
+In the same `ProductSheet.tsx` changes:
+- Ensure the sticky footer "Add to Order" button uses `pb-[env(safe-area-inset-bottom)]` for iPhone home indicator spacing
+- Add `touch-manipulation` to all interactive elements to eliminate 300ms tap delay
+- Ensure the overlay click correctly closes (already handled by Radix)
 
-### 5. Clean up `pricingRules.ts`
+### Task C: Menu option changes (database + no frontend code changes needed)
 
-- Remove `getSaucePrice()` function (replaced by DB lookup)
-- Mark `getExtraPrice()` as deprecated with a comment (already not called anywhere)
-- Remove `EXTRA_PRICING` constant (no longer used)
+The product customization system is fully database-driven via `product_ingredients`. The UI already renders add/remove buttons for all ingredients linked to a product. So:
 
-### 6. No database changes needed
+**Database migrations needed:**
 
-The `ingredients` table already has correct pricing. Bacon = €2.50, sauces = €1.50, kids sauces = €0.00.
+1. **Create "Mayo" ingredient** (doesn't exist yet — only specialty mayos like "Jerk mayo" exist):
+   - Insert into `ingredients`: name="Mayo", addon_price=0.50, addon_price_kids=0.00, ingredient_type="sauce"
 
-## Files Changed
+2. **Sloppy Fries — add Salsa as removable ingredient**:
+   - The "Salsa" ingredient exists (id: `278cc272-...`) but is NOT linked to Small Sloppy Fries product
+   - Insert into `product_ingredients`: product_id=`50ba3f2f-...`, ingredient_id=`278cc272-...`, is_default=true, is_removable=true, is_addable=true
 
-| File | Change |
-|------|--------|
-| `src/hooks/useIngredientPriceLookup.ts` | New — shared hook for name-based ingredient price lookup |
-| `src/components/customer/ProductSheet.tsx` | Use DB prices for STANDALONE_ADDONS and sauce dropdown |
-| `src/components/staff/StaffProductSheet.tsx` | Same |
-| `src/lib/pricingRules.ts` | Remove `getSaucePrice()`, clean up legacy code |
+3. **Kids Smash Burger (Smash Burger Plain, id: `c64610a8-...`)**:
+   - Currently has: Lettuce, Onions, Pickles
+   - Add "Beef Patty" (id: `42ca577e-...`) as addable (is_default=false, is_addable=true, is_removable=false) — for "add a patty"
+   - Add new "Mayo" ingredient as addable+removable (is_default=false, is_addable=true, is_removable=true) — free via addon_price_kids=0.00
+   - Add "Ketchup" (id: `1eb5712d-...`) as addable+removable default (is_default=true, is_addable=true, is_removable=true) — already free for kids if addon_price_kids is set to 0.00
+
+4. **Kids Cheeseburger (id: `39852f78-...`)**:
+   - Currently has: Lettuce, Onions, Pickles, Ketchup, Cheese
+   - Add new "Mayo" ingredient as addable+removable (is_default=false, is_addable=true, is_removable=true)
+
+5. **Update Ketchup addon_price_kids to 0.00** (currently 0.50 — must be free for Kids Menu per business rule)
+
+6. **Update Beef Patty (42ca577e) addon_price_kids** to appropriate price for adding a patty to Kids items
+
+The UI will automatically show these options because the `ProductSheet` ingredient section already renders +/- buttons for all linked ingredients based on `is_addable` and `is_removable` flags, with pricing from `getIngredientAddonPrice()` which checks `addon_price_kids` for Kids Menu items.
+
+### Files changed summary
+1. `src/components/ui/sheet.tsx` — Add `hideDefaultClose` prop
+2. `src/components/customer/ProductSheet.tsx` — Use `hideDefaultClose`, add mobile scroll hardening
+3. Database migration — Create Mayo ingredient, link ingredients to products, update kids pricing
 
