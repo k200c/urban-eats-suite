@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
 import { useProducts } from '@/hooks/useProducts';
 import { useProductModifiers } from '@/hooks/useProductModifiers';
 import { useProductIngredients } from '@/hooks/useProductIngredients';
@@ -92,8 +91,6 @@ export function MenuSection() {
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef(null);
-  const headerRef = useRef(null);
-  const isHeaderInView = useInView(headerRef, { once: true });
 
   const { data: products, isLoading, isError, refetch } = useProducts(selectedCategory);
   const { data: modifierGroups } = useProductModifiers(selectedProduct?.id);
@@ -151,31 +148,15 @@ export function MenuSection() {
       {isStoreOpen && waitTime && <WaitTimeBanner waitTime={waitTime} />}
       
       <section ref={sectionRef} id="menu" className="w-full px-2 sm:px-4 py-1 sm:py-12 pb-28 max-w-3xl mx-auto scroll-mt-20 relative overflow-hidden">
-        {/* Animated Section Header */}
-        <motion.div 
-          ref={headerRef}
-          className="text-center mb-1 sm:mb-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.h2 
-            className="font-heading text-xl sm:text-2xl md:text-4xl font-bold text-foreground mb-0.5 sm:mb-1"
-            initial={{ opacity: 0, y: 30 }}
-            animate={isHeaderInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
+        {/* Section Header — no entrance animation to prevent CLS */}
+        <div className="text-center mb-1 sm:mb-4">
+          <h2 className="font-heading text-xl sm:text-2xl md:text-4xl font-bold text-foreground mb-0.5 sm:mb-1">
             OUR <span className="text-primary">MENU</span>
-          </motion.h2>
-          <motion.p 
-            className="text-muted-foreground text-xs sm:text-sm"
-            initial={{ opacity: 0 }}
-            animate={isHeaderInView ? { opacity: 1 } : {}}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
+          </h2>
+          <p className="text-muted-foreground text-xs sm:text-sm">
             Crafted with passion, served with pride
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
         {/* Sticky Category Bar with Scroll Snap and Gradients */}
         <div className="sticky z-30 bg-black/90 backdrop-blur-md py-0.5 sm:py-2 md:py-4 -mx-2 sm:-mx-4 px-2 sm:px-4 mb-1 sm:mb-4 md:mb-8 border-y border-white/5 overflow-hidden" style={{ top: 'var(--header-offset)' }}>
@@ -235,11 +216,7 @@ export function MenuSection() {
             ))}
           </div>
         ) : isError ? (
-          <motion.div 
-            className="text-center py-12"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">Failed to load menu items</p>
             <button
               onClick={() => refetch()}
@@ -247,7 +224,7 @@ export function MenuSection() {
             >
               Retry
             </button>
-          </motion.div>
+          </div>
         ) : selectedCategory === 'All' && productsByCategory ? (
           // Show grouped by category with parallax
           <div className="space-y-6 sm:space-y-10">
@@ -279,14 +256,10 @@ export function MenuSection() {
             </div>
           </div>
         ) : (
-          <motion.div 
-            className="text-center py-12"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <div className="text-center py-12">
             <p className="text-muted-foreground">Connected to database, but found 0 items.</p>
             <p className="text-xs text-muted-foreground/70 mt-2">Check Table Data in Supabase.</p>
-          </motion.div>
+          </div>
         )}
 
         {/* Product Sheet */}

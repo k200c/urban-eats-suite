@@ -76,6 +76,8 @@ export function ProductCardHorizontal({
           <img
             src={imageUrl}
             alt={product.name}
+            width={193}
+            height={70}
             className="w-full h-full object-cover"
             loading="lazy"
             onError={() => setImgError(true)}
@@ -140,6 +142,8 @@ export function ProductCardHorizontal({
           <img
             src={imageUrl}
             alt={product.name}
+            width={193}
+            height={120}
             className="w-full h-full object-cover"
             loading="lazy"
             onError={() => setImgError(true)}
@@ -223,6 +227,8 @@ export function ProductCardHorizontal({
           <img
             src={imageUrl}
             alt={product.name}
+            width={64}
+            height={64}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
           />
@@ -275,6 +281,8 @@ export function ProductCardHorizontal({
           <img
             src={imageUrl}
             alt={product.name}
+            width={193}
+            height={160}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
           />
@@ -325,6 +333,8 @@ export function ProductCardHorizontal({
         <img
           src={imageUrl}
           alt={product.name}
+          width={96}
+          height={96}
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
         />
