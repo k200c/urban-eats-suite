@@ -70,14 +70,22 @@ export function AddProductDialog({ onProductAdded }: AddProductDialogProps) {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Please upload a JPEG, PNG, or WebP image.');
+      return;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image is too large (max 10 MB).');
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
