@@ -694,6 +694,51 @@ export function ProductSheet({
               </div>
             )}
 
+            {/* ADD EXTRAS SECTION - For non-Fries products with addable-only ingredients (e.g. Mayo on Kids burgers) */}
+            {!showFriesCustomization && hasAddableIngredients && (
+              <div className="mb-8 p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 relative overflow-hidden">
+                <h4 className="font-heading text-lg uppercase tracking-wider text-amber-400 flex items-center gap-2 mb-5">
+                  ✨ Add Extras
+                </h4>
+
+                <div className="space-y-3">
+                  {addableOnlyIngredients.map((ingredient) => {
+                    const isSelected = ingredientStates[ingredient.id] === 'extra';
+                    const price = getIngredientAddonPrice(ingredient, product.category);
+                    const ingOos = ingredient.in_stock === false;
+                    const isFree = price === 0;
+                    
+                    return (
+                      <label
+                        key={ingredient.id}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                          ingOos
+                            ? 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                            : isSelected
+                            ? 'border-amber-500 bg-amber-500/15 shadow-sm shadow-amber-500/20'
+                            : 'border-white/10 bg-white/5 hover:border-amber-500/40 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => !ingOos && handleAddExtra(ingredient.id)}
+                            disabled={ingOos}
+                            className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                          />
+                          <span className="text-foreground font-medium">{ingredient.name}</span>
+                          {ingOos && <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Out of Stock</Badge>}
+                        </div>
+                        <span className={`font-bold ${ingOos ? 'text-muted-foreground' : isFree ? 'text-green-400' : 'text-amber-400'}`}>
+                          {isFree ? 'FREE' : `+€${price.toFixed(2)}`}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* FRIES MAKE IT EPIC - "Make it Large" + Drink upsell for Fries category */}
             {showFriesMakeItEpic && (
               <div className="mb-8 p-5 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 relative overflow-hidden">
