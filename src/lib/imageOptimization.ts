@@ -25,7 +25,7 @@ export function getOptimizedImageUrl(
     '/storage/v1/render/image/public/',
   );
 
-  // Append resize query params
+  // Append resize query params + request WebP format for smaller sizes
   const separator = optimized.includes('?') ? '&' : '?';
-  return `${optimized}${separator}width=${width}&resize=contain`;
+  return `${optimized}${separator}width=${width}&resize=contain&format=webp`;
 }
