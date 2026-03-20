@@ -460,6 +460,45 @@ export type Database = {
           },
         ]
       }
+      payment_ingestion_locks: {
+        Row: {
+          branch: string | null
+          created_at: string
+          id: string
+          order_code: string | null
+          order_id: string | null
+          provider: string
+          retry_count: number | null
+          status: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string
+          id?: string
+          order_code?: string | null
+          order_id?: string | null
+          provider: string
+          retry_count?: number | null
+          status?: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string
+          id?: string
+          order_code?: string | null
+          order_id?: string | null
+          provider?: string
+          retry_count?: number | null
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_allergens: {
         Row: {
           allergen_numbers: number[]
