@@ -227,6 +227,8 @@ export function ProductCardHorizontal({
           <img
             src={imageUrl}
             alt={product.name}
+            width={64}
+            height={64}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
           />
