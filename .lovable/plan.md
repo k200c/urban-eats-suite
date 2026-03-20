@@ -1,68 +1,56 @@
-# Duplicate Payment Callback Protection — Edge Function
 
-## What this solves
 
-Viva Wallet retries payment callbacks ~1 hour after initial success. Without idempotency protection, these retries trigger duplicate order ingestion and duplicate receipt printing. This new edge function acts as a gate that n8n calls before processing any payment callback.
+# Pre-Upload Image Optimization + Fix Broken Rendering
 
-## Implementation
+## Root Cause
 
-### New file: `supabase/functions/check-payment-ingestion-lock/index.ts`
+`getOptimizedImageUrl()` rewrites Supabase `/object/public/` URLs to `/render/image/public/` with `format=webp`. This endpoint returns 400 errors, breaking all Supabase-hosted product images (Drinks, Sauces, Specials, Kids Menu, some Burgers). Google Storage URLs pass through unaffected.
 
-A single edge function that:
+## Strategy
 
-1. Validates `Authorization: Bearer <N8N_WEBHOOK_SECRET>` (same pattern as `confirm-payment`)
-2. Validates `transaction_id` is present in the POST body
-3. Attempts `INSERT` into existing `payment_ingestion_locks` table
-4. On success → returns `{ success: true, duplicate: false }`
-5. On unique constraint violation (Postgres 23505) → updates `retry_count` and `updated_at`, returns `{ success: true, duplicate: true }`
-6. n8n checks the `duplicate` field and stops processing if `true`
+**Two changes:**
+1. **Fix rendering** — make `getOptimizedImageUrl` a pass-through (no URL rewriting). Images render from their stored URL directly.
+2. **Add pre-upload optimization** — new utility that resizes/compresses images client-side BEFORE uploading to Supabase Storage. This is where performance gains come from, not runtime URL rewriting.
 
-### Config update: `supabase/config.toml`
+## Files Changed
 
-Add `[functions.check-payment-ingestion-lock]` with `verify_jwt = false` (auth is handled via shared secret in code).
+### 1. `src/lib/imageOptimization.ts` — Rewrite entirely
 
-### No other changes
+Remove the broken `/render/image/` URL rewriter. Replace with:
 
-- No new tables
-- No schema changes
-- No modifications to existing functions
-- Uses existing `N8N_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` secrets
+- **`getOptimizedImageUrl(url, width)`** — becomes a simple pass-through returning the URL as-is (keeps all call sites working, zero rendering breakage)
+- **`optimizeImageBeforeUpload(file)`** — new async function:
+  - Validates file type (`image/jpeg`, `image/png`, `image/webp` only)
+  - Rejects files over 10MB with a clear error message
+  - Uses Canvas API to resize to max 1200px width (preserving aspect ratio)
+  - Exports as WebP at quality 0.8 (falls back to JPEG 0.85 if WebP unsupported)
+  - Returns an optimized `File` object ready for upload
+  - Logs original vs optimized size for staff debugging
 
-## n8n integration
+### 2. `src/components/staff/EditProductDialog.tsx`
 
-n8n adds this as the first step in the payment callback workflow:
+- In `handleImageChange`: add file type validation, show toast on rejection
+- In `uploadImage`: call `optimizeImageBeforeUpload(file)` before `supabase.storage.upload()`
+- Upload the optimized file; save the returned `publicUrl` unchanged to the database
 
-```
-POST /functions/v1/check-payment-ingestion-lock
-Authorization: Bearer <N8N_WEBHOOK_SECRET>
-Body: { "provider": "viva", "transaction_id": "...", "order_code": "...", "order_id": "...", "branch": "online" }
-```
+### 3. `src/components/staff/AddProductDialog.tsx`
 
-If response contains `"duplicate": true`, n8n skips all downstream processing.  
-  
-1. Make sure the function handles `OPTIONS`
+- Same changes as EditProductDialog:
+  - Validate file type/size in `handleImageChange`
+  - Call `optimizeImageBeforeUpload(file)` in `uploadImage` before Supabase upload
+  - Store the raw `publicUrl` from Supabase — no URL rewriting
 
-This is minor, but it should include CORS preflight properly, same as your other functions.
+### 4. No changes to rendering components
 
-### 2. Make sure duplicate handling does **not** fail the request
+`ProductCard.tsx`, `ProductCardHorizontal.tsx`, `ProductSheet.tsx`, `StaffProductSheet.tsx` — all call `getOptimizedImageUrl()` which now returns the URL unchanged. All product images (Drinks, Sauces, Specials, Burgers, Flatbreads, Kids Menu) render correctly.
 
-On duplicate:
+## How Performance Is Preserved
 
-- return `200`
-- return JSON with `success: true`
-- `duplicate: true`
+| Before (broken) | After (safe) |
+|---|---|
+| Upload raw 4MB PNGs, rewrite URL at render time | Optimize to ~200-400KB WebP before upload |
+| `/render/image/` endpoint returns 400 | No runtime URL transformation |
+| Images break for Supabase-hosted products | All images render from stored URL |
 
-That part is essential. We want “duplicate suppressed,” not “error thrown.”
+Pre-upload optimization is strictly better: the optimized file is what gets stored, so every subsequent page load serves the smaller file automatically — no runtime transformation needed.
 
-### 3. Make sure it trims and validates values
-
-At minimum:
-
-- `provider`
-- `transaction_id`
-
-No blank strings slipping through.
-
-### 4. Keep `verify_jwt = false`
-
-Yes, that is correct here, since you are doing your own shared-secret auth inside the function.
