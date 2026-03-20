@@ -199,7 +199,7 @@ export function StaffProductSheet({
   const showFriesMakeItEpic = product.category === 'Fries';
   const showDropdowns = !isKidsMenu;
   const showFlatbreadOption = product.category === 'Burgers' || product.category === 'Specials';
-  const showBeefPattyStepper = showMakeItEpic && !isKidsMenu && product.category !== 'Flatbreads';
+  const showBeefPattyStepper = showMakeItEpic && product.category !== 'Flatbreads';
 
   const toggleStandaloneAddon = (addonId: string) => {
     setStandaloneAddons(prev => {
