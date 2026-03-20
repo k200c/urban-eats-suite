@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useCartStore } from '@/stores/cartStore';
 import { toast } from 'sonner';
 import { AllergenBadges } from './AllergenBadges';
+import { getOptimizedImageUrl } from '@/lib/imageOptimization';
 import { useAllProductAllergens } from '@/hooks/useProductAllergens';
 
 import heroBurger from '@/assets/hero-burger.jpg';
