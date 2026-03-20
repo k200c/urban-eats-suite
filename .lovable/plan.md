@@ -1,76 +1,68 @@
+# Duplicate Payment Callback Protection — Edge Function
 
+## What this solves
 
-# Fix Mobile Product Details Bug + Harden Mobile UX + Menu Option Changes
+Viva Wallet retries payment callbacks ~1 hour after initial success. Without idempotency protection, these retries trigger duplicate order ingestion and duplicate receipt printing. This new edge function acts as a gate that n8n calls before processing any payment callback.
 
-## Root Cause Analysis
+## Implementation
 
-### Android Product Details Glitch
-The `ProductSheet` uses a Radix UI Sheet (`@radix-ui/react-dialog`) with `side="bottom"`. Two issues cause the Android glitch:
+### New file: `supabase/functions/check-payment-ingestion-lock/index.ts`
 
-1. **Duplicate close buttons**: The `SheetContent` component (sheet.tsx line 60-63) renders a default `SheetPrimitive.Close` X button at `right-4 top-4`, while `ProductSheet` renders its own custom close button at the same position. On Android, these overlap and fight for tap events, causing visual flicker and state confusion.
+A single edge function that:
 
-2. **`overflow-hidden` on SheetContent + inner scroll container**: The SheetContent has `overflow-hidden` in the className, and the inner scrollable div uses `overflow-y-auto` with `h-full`. On Android Chrome, the combination of a `position: fixed` sheet with `overflow-hidden` and a child scroll container causes rendering glitches during the slide-in animation — the browser attempts to composite layers that conflict during the transition.
+1. Validates `Authorization: Bearer <N8N_WEBHOOK_SECRET>` (same pattern as `confirm-payment`)
+2. Validates `transaction_id` is present in the POST body
+3. Attempts `INSERT` into existing `payment_ingestion_locks` table
+4. On success → returns `{ success: true, duplicate: false }`
+5. On unique constraint violation (Postgres 23505) → updates `retry_count` and `updated_at`, returns `{ success: true, duplicate: true }`
+6. n8n checks the `duplicate` field and stops processing if `true`
 
-3. **No `will-change` or `transform: translateZ(0)` hint**: Android's compositor doesn't promote the scroll container to its own layer, causing paint jank during open/close.
+### Config update: `supabase/config.toml`
 
-### Fix approach
-- Remove the default close button from `SheetContent` when used in bottom sheets (the ProductSheet already has its own styled one)
-- Add GPU compositing hints to the scroll container
-- Ensure touch-action is set correctly for the scroll area
+Add `[functions.check-payment-ingestion-lock]` with `verify_jwt = false` (auth is handled via shared secret in code).
 
-## Plan
+### No other changes
 
-### Task A: Fix Android product details glitch
+- No new tables
+- No schema changes
+- No modifications to existing functions
+- Uses existing `N8N_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` secrets
 
-**File: `src/components/ui/sheet.tsx`**
-- Add an optional `hideDefaultClose` prop to `SheetContent`
-- When true, skip rendering the default `SheetPrimitive.Close` button
-- This eliminates the duplicate close button conflict
+## n8n integration
 
-**File: `src/components/customer/ProductSheet.tsx`**
-- Pass `hideDefaultClose` to `SheetContent`
-- Add `-webkit-overflow-scrolling: touch` and `overscroll-behavior-y: contain` to the scroll container for smoother Android scrolling
-- Add `touch-action: pan-y` to the scroll container to prevent gesture conflicts
-- Use `will-change: transform` on the scroll container to promote it to its own compositing layer
+n8n adds this as the first step in the payment callback workflow:
 
-### Task B: Harden mobile UX
+```
+POST /functions/v1/check-payment-ingestion-lock
+Authorization: Bearer <N8N_WEBHOOK_SECRET>
+Body: { "provider": "viva", "transaction_id": "...", "order_code": "...", "order_id": "...", "branch": "online" }
+```
 
-In the same `ProductSheet.tsx` changes:
-- Ensure the sticky footer "Add to Order" button uses `pb-[env(safe-area-inset-bottom)]` for iPhone home indicator spacing
-- Add `touch-manipulation` to all interactive elements to eliminate 300ms tap delay
-- Ensure the overlay click correctly closes (already handled by Radix)
+If response contains `"duplicate": true`, n8n skips all downstream processing.  
+  
+1. Make sure the function handles `OPTIONS`
 
-### Task C: Menu option changes (database + no frontend code changes needed)
+This is minor, but it should include CORS preflight properly, same as your other functions.
 
-The product customization system is fully database-driven via `product_ingredients`. The UI already renders add/remove buttons for all ingredients linked to a product. So:
+### 2. Make sure duplicate handling does **not** fail the request
 
-**Database migrations needed:**
+On duplicate:
 
-1. **Create "Mayo" ingredient** (doesn't exist yet — only specialty mayos like "Jerk mayo" exist):
-   - Insert into `ingredients`: name="Mayo", addon_price=0.50, addon_price_kids=0.00, ingredient_type="sauce"
+- return `200`
+- return JSON with `success: true`
+- `duplicate: true`
 
-2. **Sloppy Fries — add Salsa as removable ingredient**:
-   - The "Salsa" ingredient exists (id: `278cc272-...`) but is NOT linked to Small Sloppy Fries product
-   - Insert into `product_ingredients`: product_id=`50ba3f2f-...`, ingredient_id=`278cc272-...`, is_default=true, is_removable=true, is_addable=true
+That part is essential. We want “duplicate suppressed,” not “error thrown.”
 
-3. **Kids Smash Burger (Smash Burger Plain, id: `c64610a8-...`)**:
-   - Currently has: Lettuce, Onions, Pickles
-   - Add "Beef Patty" (id: `42ca577e-...`) as addable (is_default=false, is_addable=true, is_removable=false) — for "add a patty"
-   - Add new "Mayo" ingredient as addable+removable (is_default=false, is_addable=true, is_removable=true) — free via addon_price_kids=0.00
-   - Add "Ketchup" (id: `1eb5712d-...`) as addable+removable default (is_default=true, is_addable=true, is_removable=true) — already free for kids if addon_price_kids is set to 0.00
+### 3. Make sure it trims and validates values
 
-4. **Kids Cheeseburger (id: `39852f78-...`)**:
-   - Currently has: Lettuce, Onions, Pickles, Ketchup, Cheese
-   - Add new "Mayo" ingredient as addable+removable (is_default=false, is_addable=true, is_removable=true)
+At minimum:
 
-5. **Update Ketchup addon_price_kids to 0.00** (currently 0.50 — must be free for Kids Menu per business rule)
+- `provider`
+- `transaction_id`
 
-6. **Update Beef Patty (42ca577e) addon_price_kids** to appropriate price for adding a patty to Kids items
+No blank strings slipping through.
 
-The UI will automatically show these options because the `ProductSheet` ingredient section already renders +/- buttons for all linked ingredients based on `is_addable` and `is_removable` flags, with pricing from `getIngredientAddonPrice()` which checks `addon_price_kids` for Kids Menu items.
+### 4. Keep `verify_jwt = false`
 
-### Files changed summary
-1. `src/components/ui/sheet.tsx` — Add `hideDefaultClose` prop
-2. `src/components/customer/ProductSheet.tsx` — Use `hideDefaultClose`, add mobile scroll hardening
-3. Database migration — Create Mayo ingredient, link ingredients to products, update kids pricing
-
+Yes, that is correct here, since you are doing your own shared-secret auth inside the function.
