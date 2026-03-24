@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { HeroSection } from "@/components/customer/HeroSection";
 import { MenuSection } from "@/components/customer/MenuSection";
 import { FloatingCartButton } from "@/components/customer/FloatingCartButton";
+import { MarketingBanner } from "@/components/customer/MarketingBanner";
 
 function AboutSection() {
   return (
