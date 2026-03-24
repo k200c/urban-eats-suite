@@ -602,7 +602,7 @@ export function StaffProductSheet({
                         </div>
                         <span className="text-[10px] text-muted-foreground ml-6">Replaces the standard bun</span>
                       </div>
-                      <span className="text-amber-400 font-bold text-sm">+€1.00</span>
+                      <span className="text-amber-400 font-bold text-sm">+€2.00</span>
                     </label>
                   </div>
                 )}

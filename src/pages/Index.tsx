@@ -63,6 +63,7 @@ function AboutSection() {
 export default function Index() {
   return (
     <div className="relative flex flex-col" style={{ minHeight: '100dvh', paddingBottom: 'calc(var(--bottom-nav-height) + var(--safe-bottom) + 2rem)' }}>
+      <MarketingBanner />
       <Navbar />
       <HeroSection />
       <MenuSection />

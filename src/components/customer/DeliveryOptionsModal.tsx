@@ -7,7 +7,6 @@ interface DeliveryOptionsModalProps {
 }
 
 const JUST_EAT_URL = 'https://www.just-eat.ie/restaurants-street-eatz-waterford-waterford/menu';
-const DELIVEROO_URL = 'https://deliveroo.ie/menu/Waterford/waterford/street-eatz-waterford/?day=today&geohash=gc6cq1jscdf2&time=ASAP&fulfillment_method=DELIVERY&timestamp=1772210225';
 
 export function DeliveryOptionsModal({ open, onOpenChange }: DeliveryOptionsModalProps) {
   return (
@@ -16,7 +15,7 @@ export function DeliveryOptionsModal({ open, onOpenChange }: DeliveryOptionsModa
         <DialogHeader className="text-center sm:text-center">
           <DialogTitle className="text-2xl font-heading font-bold">Order for Delivery</DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm tracking-wide">
-            Choose your preferred delivery partner
+            Order via Just Eat for delivery
           </DialogDescription>
         </DialogHeader>
 
@@ -30,17 +29,6 @@ export function DeliveryOptionsModal({ open, onOpenChange }: DeliveryOptionsModa
           >
             <ExternalLink className="w-5 h-5" />
             Just Eat
-          </a>
-
-          <a
-            href={DELIVEROO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => onOpenChange(false)}
-            className="flex items-center justify-center gap-3 min-h-[52px] rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-base px-6 py-4 transition-colors"
-          >
-            <ExternalLink className="w-5 h-5" />
-            Deliveroo
           </a>
         </div>
       </DialogContent>

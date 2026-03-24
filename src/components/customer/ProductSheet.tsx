@@ -643,7 +643,7 @@ export function ProductSheet({
                         </div>
                         <span className="text-xs text-muted-foreground ml-9">Replaces the standard bun</span>
                       </div>
-                      <span className="text-amber-400 font-bold">+€1.00</span>
+                      <span className="text-amber-400 font-bold">+€2.00</span>
                     </label>
                   </div>
                 )}
