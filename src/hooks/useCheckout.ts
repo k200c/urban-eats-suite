@@ -155,7 +155,7 @@ export function useCheckout() {
    */
   const sendToKitchen = async (
     orderResult: { orderId: string; orderNumber: number; createdAt: string },
-    customerData: { name: string; phone: string; email: string },
+    customerData: { name: string; phone: string; email: string; specialNotes?: string },
     cartItems: typeof items,
     orderTotal: number,
     orderSource: "staff" | "web" = "web",
@@ -218,6 +218,7 @@ export function useCheckout() {
         items: formattedItems,
         timestamp: new Date().toISOString(),
         order_source: orderSource,
+        special_notes: customerData.specialNotes || '',
         store_meta: {
           wait_time: waitTime,
         },

@@ -240,6 +240,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         items: formattedItems,
         timestamp: new Date().toISOString(),
         order_source: 'web',                     // Required field
+        special_notes: specialNotes.trim() || '',
       };
 
       console.log('🚀 Direct n8n payment request:', JSON.stringify(payload, null, 2));
@@ -364,6 +365,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
             name: customerName.trim(),
             phone: customerPhone.trim(),
             email: customerEmail.trim(),
+            specialNotes: specialNotes.trim(),
           },
           cartSnapshot,
           totalSnapshot,
