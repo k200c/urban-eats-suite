@@ -113,7 +113,7 @@ export function useStaffCheckout() {
    */
   const sendToKitchen = async (
     orderResult: StaffOrderResult,
-    customerData: { name: string; phone: string }
+    customerData: { name: string; phone: string; specialNotes?: string }
   ): Promise<boolean> => {
     if (items.length === 0) {
       console.error("No items to send to kitchen");
