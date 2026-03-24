@@ -3,6 +3,7 @@ import { FooterInfoBar } from '@/components/layout/FooterInfoBar';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { MenuSection } from '@/components/customer/MenuSection';
 import { FloatingCartButton } from '@/components/customer/FloatingCartButton';
+import { MarketingBanner } from '@/components/customer/MarketingBanner';
 
 export default function Menu() {
   return (
