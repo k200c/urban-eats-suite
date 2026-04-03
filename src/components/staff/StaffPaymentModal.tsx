@@ -200,7 +200,6 @@ export function StaffPaymentModal({
       const { error } = await supabase
         .from("orders")
         .update({
-          status: "pending",
           payment_method: "card",
           payment_status: "pending",
         })
