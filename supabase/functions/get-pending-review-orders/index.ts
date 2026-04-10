@@ -20,7 +20,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth: validate N8N_WEBHOOK_SECRET
     const authHeader = req.headers.get("Authorization");
     const expectedSecret = Deno.env.get("N8N_WEBHOOK_SECRET");
 
@@ -54,8 +53,6 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Temporary testing logic:
-    // Return today's completed orders where review_sms_sent = false and customer_phone exists
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -76,12 +73,13 @@ Deno.serve(async (req) => {
       .limit(100);
 
     if (error) {
-      console.error("❌ Query error:", error);
+      console.error("Query error:", error);
       return new Response(
         JSON.stringify({
           ok: false,
           error: "Database query failed",
           details: error.message,
+          version: "review-debug-v2-created-at-removed",
         }),
         {
           status: 500,
@@ -105,17 +103,30 @@ Deno.serve(async (req) => {
       review_link: reviewLink,
     }));
 
-    console.log(`✅ Found ${orders.length} orders pending review SMS`);
-
-    return new Response(JSON.stringify({ ok: true, count: orders.length, orders }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        version: "review-debug-v2-created-at-removed",
+        count: orders.length,
+        orders,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
-    console.error("❌ Unexpected error:", err);
-    return new Response(JSON.stringify({ ok: false, error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("Unexpected error:", err);
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Internal server error",
+        version: "review-debug-v2-created-at-removed",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });
