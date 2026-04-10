@@ -1,71 +1,69 @@
 
 
-# Production Fixes: Flatbread Pricing, Deliveroo Removal, Banner Display
+# Review SMS Backend — Implementation Plan
 
-## Task 1 — Flatbread Price: €1.00 → €2.00
+## Overview
+Add database fields, a trigger, and two Edge Functions to support a delayed Google review SMS system called by n8n.
 
-**Root cause**: `BREAD_SWAP_FLATBREAD.price` is hardcoded as `1.00` in two files.
+## 1. Database Migration
 
-**Files**:
-- `src/components/customer/ProductSheet.tsx` line 73: change `price: 1.00` → `price: 2.00`
-- `src/components/staff/StaffProductSheet.tsx` line 68: change `price: 1.00` → `price: 2.00`
+Single migration adding:
+- 4 columns to `public.orders`: `completed_at`, `review_sms_sent`, `review_sms_sent_at`, `review_sms_sid`
+- Partial composite index `idx_orders_review_pending`
+- Trigger function `set_completed_at()` — sets `completed_at = NOW()` only on first transition to `completed` and only if `completed_at IS NULL`
+- Trigger `trg_set_completed_at` on `public.orders` BEFORE UPDATE
 
-Also update the display text on line 646 of ProductSheet (`+€1.00` → `+€2.00`) and the equivalent in StaffProductSheet.
+Exact SQL as provided in the request — no deviations.
 
-No cart/payload/pricing logic changes needed — the price flows through `BREAD_SWAP_FLATBREAD.price` into `price_adjustment` automatically.
+## 2. Edge Function: `get-pending-review-orders`
 
----
+**File**: `supabase/functions/get-pending-review-orders/index.ts`
 
-## Task 2 — Remove Deliveroo
+- Auth: Bearer token validated against `N8N_WEBHOOK_SECRET`
+- Query: `status = 'completed'`, `review_sms_sent = false`, `completed_at <= now() - 60min`, `customer_phone` not null/empty
+- Limit 100, ordered by `completed_at ASC`
+- Review link from `GOOGLE_REVIEW_LINK` env var with hardcoded fallback
+- Returns `{ ok, count, orders }` structure
 
-**File**: `src/components/customer/DeliveryOptionsModal.tsx`
+## 3. Edge Function: `mark-review-sms-sent`
 
-- Remove the `DELIVEROO_URL` constant
-- Remove the Deliveroo `<a>` button (lines 35-44)
-- Update the dialog description from "Choose your preferred delivery partner" to "Order via Just Eat for delivery"
-- Since there's now only one option, simplify the modal accordingly
+**File**: `supabase/functions/mark-review-sms-sent/index.ts`
 
----
+- Auth: same Bearer token pattern
+- Accepts `{ order_id, review_sms_sid?, review_sms_body? }`
+- Reads current `review_sms_sent` state first
+- If already `true`, returns `{ ok: true, already_marked: true }`
+- Otherwise updates `review_sms_sent = true`, `review_sms_sent_at = now()`, `review_sms_sid`
+- Idempotent and retry-safe
 
-## Task 3 — Marketing Banner Not Showing on Homepage/Menu
+## 4. Config
 
-**Root cause**: The homepage (`Index.tsx`) and menu page (`Menu.tsx`) do NOT use `CustomerLayout`, which is the only component that renders `<MarketingBanner />`. They use their own layout with `<Navbar />` directly.
+Append to `supabase/config.toml`:
+```toml
+[functions.get-pending-review-orders]
+verify_jwt = false
 
-The database already has the banner enabled with text: *"This App is for collection only! Press Delivery button to access Just Eat"*
+[functions.mark-review-sms-sent]
+verify_jwt = false
+```
 
-**Fix**: Add `<MarketingBanner />` to both `Index.tsx` and `Menu.tsx`, positioned at the very top (before `<Navbar />`). This is the minimal fix — no need to refactor these pages to use `CustomerLayout`.
+## Files Changed
 
----
-
-## Task 4 — Collection Only Notice
-
-**Already handled**: The marketing banner text in the database is already set to the collection-only message. Once Task 3 is fixed, this displays automatically on all pages.
-
-No additional banner component needed.
-
----
-
-## Task 5 — Banner System
-
-The current `MarketingBanner` component already supports:
-- Toggle via `marketing_banner_enabled` in app_settings
-- Custom text via `marketing_banner_text`
-- Dismissible per session
-- Realtime updates
-
-This single banner serves both marketing and operational notices. No structural changes needed.
-
----
-
-## Summary of Changes
-
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/components/customer/ProductSheet.tsx` | `price: 1.00` → `2.00`, display `+€1.00` → `+€2.00` |
-| `src/components/staff/StaffProductSheet.tsx` | Same flatbread price fix |
-| `src/components/customer/DeliveryOptionsModal.tsx` | Remove Deliveroo button and URL |
-| `src/pages/Index.tsx` | Add `<MarketingBanner />` before `<Navbar />` |
-| `src/pages/Menu.tsx` | Add `<MarketingBanner />` before `<Navbar />` |
+| Migration SQL | New — schema changes + trigger |
+| `supabase/functions/get-pending-review-orders/index.ts` | New |
+| `supabase/functions/mark-review-sms-sent/index.ts` | New |
+| `supabase/config.toml` | Append 2 blocks |
 
-**No changes to**: cart logic, pricing rules, order payload, checkout, edge functions, receipt builder, n8n, database schema.
+## What Is NOT Changed
+- Existing order flows, KDS, payment, frontend — untouched
+- Existing edge functions — untouched
+- No field removals or renames
+
+## Idempotency Guarantees
+- `get-pending-review-orders` filters on `review_sms_sent = false` — already-processed orders never returned
+- `mark-review-sms-sent` checks state before updating — safe to retry
+- `completed_at` trigger only fires on first transition, guards against overwrite
+- Partial index ensures fast query performance
 
