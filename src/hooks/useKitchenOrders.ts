@@ -107,9 +107,14 @@ export function useKitchenOrders() {
       console.log(`[KDS] Updating order ${orderId} to status: ${status}`);
       
       // 1. Update database first
+      const updatePayload: Record<string, unknown> = { status };
+      if (status === 'completed') {
+        updatePayload.completed_at = new Date().toISOString();
+      }
+
       const { data, error } = await supabase
         .from('orders')
-        .update({ status })
+        .update(updatePayload)
         .eq('id', orderId)
         .select('id, status, customer_name, customer_phone')
         .maybeSingle();
