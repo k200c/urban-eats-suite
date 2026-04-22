@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditCard, Banknote, Check, Loader2, Smartphone, ChefHat } from 'lucide-react';
 import { useStaffCheckout } from '@/hooks/useStaffCheckout';
 import { supabase } from '@/integrations/supabase/client';
+import { getActivePaymentProvider } from '@/lib/paymentProvider';
 import { toast } from 'sonner';
 
 interface StaffCheckoutModalProps {
@@ -83,6 +84,7 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
         };
       });
 
+      const paymentProvider = await getActivePaymentProvider();
       const payload = {
         order_id: result.orderId,
         display_id: result.displayId,
@@ -96,6 +98,7 @@ export function StaffCheckoutModal({ open, onOpenChange, onSuccess }: StaffCheck
         items: formattedItems,
         timestamp: new Date().toISOString(),
         order_source: 'staff',
+        payment_provider: paymentProvider,
       };
 
       console.log('🔌 Staff Terminal Payment:', JSON.stringify(payload, null, 2));

@@ -226,6 +226,8 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
 
       // Step 4: Build EXACT payload structure for n8n webhook
       const formattedPhone = formatPhoneWithCountryCode(trimmedPhone);
+      const { getActivePaymentProvider } = await import('@/lib/paymentProvider');
+      const paymentProvider = await getActivePaymentProvider();
       const payload = {
         order_id: orderResult.orderId,           // UUID - n8n uses this to update Supabase
         display_id: orderResult.displayId,       // 4-digit number
@@ -241,6 +243,7 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         timestamp: new Date().toISOString(),
         order_source: 'web',                     // Required field
         special_notes: specialNotes.trim() || '',
+        payment_provider: paymentProvider,        // 'viva' | 'mypos' — routes n8n provider switch
       };
 
       console.log('🚀 Direct n8n payment request:', JSON.stringify(payload, null, 2));

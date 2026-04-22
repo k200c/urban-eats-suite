@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Store, Clock, ArrowLeft, Users, Share2, Bug, BarChart3, Megaphone } from 'lucide-react';
+import { Store, Clock, ArrowLeft, Users, Share2, Bug, BarChart3, Megaphone, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
 import { useStoreStatus } from '@/hooks/useStoreStatus';
@@ -21,6 +21,8 @@ import { IngredientPriceManager } from '@/components/staff/IngredientPriceManage
 import { toast } from 'sonner';
 
 const waitTimeOptions = ['15 mins', '20 mins', '30 mins', '45 mins', '60 mins'];
+
+type CardProvider = 'viva' | 'mypos';
 
 export default function CommandCenter() {
   const navigate = useNavigate();
@@ -53,6 +55,15 @@ export default function CommandCenter() {
     }
   };
 
+  const handleProviderChange = async (provider: CardProvider) => {
+    try {
+      await updateSettings.mutateAsync({ card_payment_provider: provider });
+      toast.success(`Card provider set to ${provider === 'viva' ? 'Viva' : 'MyPOS'}`);
+    } catch (error) {
+      toast.error('Failed to update card provider');
+    }
+  };
+
   if (loading || settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -65,6 +76,7 @@ export default function CommandCenter() {
 
   // Use effective store status (considers dev mode bypass)
   const isStoreOpen = devModeEnabled ? true : (settings?.is_store_open ?? true);
+  const activeProvider: CardProvider = (settings?.card_payment_provider === 'mypos' ? 'mypos' : 'viva');
 
   const handleDevModeToggle = () => {
     const newValue = toggleDevMode();
@@ -199,11 +211,63 @@ export default function CommandCenter() {
               </Card>
             </motion.div>
 
+            {/* Card Payment Provider Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
+            >
+              <Card className="bg-card border-border">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    Card Payment Provider
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Active provider for card transactions</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {activeProvider === 'mypos' ? 'MyPOS' : 'Viva'}
+                      </p>
+                    </div>
+                    <div className="inline-flex rounded-md border border-border bg-background p-1">
+                      <button
+                        type="button"
+                        onClick={() => handleProviderChange('viva')}
+                        disabled={updateSettings.isPending || activeProvider === 'viva'}
+                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${
+                          activeProvider === 'viva'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        VIVA
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleProviderChange('mypos')}
+                        disabled={updateSettings.isPending || activeProvider === 'mypos'}
+                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${
+                          activeProvider === 'mypos'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        MyPOS
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Dev Mode Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
+              transition={{ duration: 0.3, delay: 0.25 }}
             >
               <Card className={`border ${devModeEnabled ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-border bg-card'}`}>
                 <CardHeader className="pb-4">

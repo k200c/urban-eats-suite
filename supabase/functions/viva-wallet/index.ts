@@ -78,6 +78,23 @@ serve(async (req) => {
     // Handle direct online payment requests (new format with type: "online")
     if (data.type === 'online') {
       const { orderId, amount, customerEmail, customerPhone, customerName } = data as PaymentRequest;
+      // Resolve active payment provider: prefer client-supplied value, else fetch from app_settings, else default 'viva'
+      let paymentProvider: 'viva' | 'mypos' = 'viva';
+      const incomingProvider = (data as Record<string, unknown>).payment_provider;
+      if (incomingProvider === 'mypos' || incomingProvider === 'viva') {
+        paymentProvider = incomingProvider;
+      } else {
+        try {
+          const { data: settings } = await supabase
+            .from('app_settings')
+            .select('card_payment_provider')
+            .eq('id', 1)
+            .maybeSingle();
+          if (settings?.card_payment_provider === 'mypos') paymentProvider = 'mypos';
+        } catch (e) {
+          console.warn('Could not load card_payment_provider, defaulting to viva', e);
+        }
+      }
       
       console.log(`Online payment request - Order: ${orderId}, Amount: ${amount} cents, Customer: ${customerName}`);
 
@@ -157,6 +174,7 @@ serve(async (req) => {
           customerName,
           customerPhone,
           customerEmail,
+          payment_provider: paymentProvider,
         };
         
         console.log('Webhook payload:', JSON.stringify(webhookPayload));
@@ -310,6 +328,10 @@ serve(async (req) => {
               customerName: data.customerName,
               customerPhone,
               customerEmail,
+              payment_provider: (() => {
+                const p = (data as Record<string, unknown>).payment_provider;
+                return p === 'mypos' ? 'mypos' : 'viva';
+              })(),
             }),
           });
 

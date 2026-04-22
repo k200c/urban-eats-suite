@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
+          card_payment_provider: string
           current_wait_time: string
           id: number
           is_store_open: boolean
@@ -24,6 +25,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          card_payment_provider?: string
           current_wait_time?: string
           id?: number
           is_store_open?: boolean
@@ -32,6 +34,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          card_payment_provider?: string
           current_wait_time?: string
           id?: number
           is_store_open?: boolean
