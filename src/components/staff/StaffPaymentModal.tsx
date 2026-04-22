@@ -7,6 +7,7 @@ import { Banknote, Check, Loader2, CreditCard, ChefHat } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getActivePaymentProvider } from "@/lib/paymentProvider";
 
 // n8n Webhook URL - unified endpoint for all staff payments
 const N8N_PAYMENT_WEBHOOK = "https://kyle2000.app.n8n.cloud/webhook/street-eatz-payment";
@@ -134,7 +135,11 @@ export function StaffPaymentModal({
     setProcessingType("cash");
 
     try {
-      const webhookPayload = buildUnifiedPayload('cash', 'POSCash');
+      const paymentProvider = await getActivePaymentProvider();
+      const webhookPayload = {
+        ...buildUnifiedPayload('cash', 'POSCash'),
+        payment_provider: paymentProvider,
+      };
       
       // Send to n8n webhook
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {
@@ -181,7 +186,11 @@ export function StaffPaymentModal({
     setProcessingType("terminal");
 
     try {
-      const webhookPayload = buildUnifiedPayload('card', 'terminal');
+      const paymentProvider = await getActivePaymentProvider();
+      const webhookPayload = {
+        ...buildUnifiedPayload('card', 'terminal'),
+        payment_provider: paymentProvider,
+      };
       
       // Send to n8n webhook for terminal
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {

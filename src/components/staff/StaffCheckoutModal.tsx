@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { KitchenOrder } from '@/hooks/useKitchenOrders';
 import { useAuth } from '@/hooks/useAuth';
+import { getActivePaymentProvider } from '@/lib/paymentProvider';
 
 // n8n Webhook URL for payment processing
 const N8N_PAYMENT_WEBHOOK = 'https://kyle2000.app.n8n.cloud/webhook/street-eatz-payment';
@@ -171,8 +172,12 @@ export function StaffCheckoutModal({
     setProcessingType('cash');
 
     try {
-      // Build unified payload for cash payment
-      const webhookPayload = buildUnifiedPayload('cash', 'POSCash');
+      // Build unified payload for cash payment + inject active provider
+      const paymentProvider = await getActivePaymentProvider();
+      const webhookPayload = {
+        ...buildUnifiedPayload('cash', 'POSCash'),
+        payment_provider: paymentProvider,
+      };
 
       // Send to n8n webhook - async fetch with immediate acknowledgment
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {
@@ -223,8 +228,12 @@ export function StaffCheckoutModal({
     setProcessingType('card');
 
     try {
-      // Build unified payload for terminal payment
-      const webhookPayload = buildUnifiedPayload('card', 'terminal');
+      // Build unified payload for terminal payment + inject active provider
+      const paymentProvider = await getActivePaymentProvider();
+      const webhookPayload = {
+        ...buildUnifiedPayload('card', 'terminal'),
+        payment_provider: paymentProvider,
+      };
 
       // Send to n8n webhook - async fetch with immediate acknowledgment
       const response = await fetch(N8N_PAYMENT_WEBHOOK, {
