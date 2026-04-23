@@ -304,6 +304,23 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
         throw new Error(data.error || 'Payment initialization failed');
       }
 
+      // myPOS hosted-checkout (form-post) branch — additive, runs BEFORE the
+      // existing Viva paymentUrl redirect. If backend returns a form-post
+      // response shape, we POST hidden fields to the provider's action_url.
+      if (
+        data?.paymentMode === 'form-post' &&
+        typeof data?.action_url === 'string' &&
+        data?.fields &&
+        typeof data.fields === 'object'
+      ) {
+        if (data.orderCode) {
+          console.log('✅ myPOS order code:', data.orderCode);
+        }
+        console.log('✅ Submitting myPOS hosted-checkout form to:', data.action_url);
+        postFormToUrl(data.action_url, data.fields);
+        return;
+      }
+
       const paymentUrl = data.paymentUrl || data.url;
 
       if (!paymentUrl) {
