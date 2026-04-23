@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { hardResetApp } from '@/lib/resetApp';
+import { postFormToUrl } from '@/lib/postFormToUrl';
 
 interface CustomerCheckoutModalProps {
   open: boolean;
@@ -301,6 +302,23 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
       // Validate response has success flag
       if (!data.success) {
         throw new Error(data.error || 'Payment initialization failed');
+      }
+
+      // myPOS hosted-checkout (form-post) branch — additive, runs BEFORE the
+      // existing Viva paymentUrl redirect. If backend returns a form-post
+      // response shape, we POST hidden fields to the provider's action_url.
+      if (
+        data?.paymentMode === 'form-post' &&
+        typeof data?.action_url === 'string' &&
+        data?.fields &&
+        typeof data.fields === 'object'
+      ) {
+        if (data.orderCode) {
+          console.log('✅ myPOS order code:', data.orderCode);
+        }
+        console.log('✅ Submitting myPOS hosted-checkout form to:', data.action_url);
+        postFormToUrl(data.action_url, data.fields);
+        return;
       }
 
       const paymentUrl = data.paymentUrl || data.url;
