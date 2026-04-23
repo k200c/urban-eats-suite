@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { hardResetApp } from '@/lib/resetApp';
+import { postFormToUrl } from '@/lib/postFormToUrl';
 
 interface CustomerCheckoutModalProps {
   open: boolean;
