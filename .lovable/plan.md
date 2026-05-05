@@ -1,62 +1,54 @@
-# Auth Lock Deadlock Fix
-
-Surgical replacement of two files to eliminate the `getSession()` lock contention causing infinite menu skeletons and false logged-out state on refresh.
+# Data Layer Fix — Bypass Supabase Auth Lock for Public Reads
 
 ## Root cause
+`supabase.from().select()` internally awaits `getSession()`, which takes a `navigator.locks` mutex. When an expired token triggers a background refresh, that lock is held while the network call runs, so every other REST query (products, app_settings, etc.) queues in JS and never hits the network. Realtime works because it doesn't go through the same lock path.
 
-`supabase.auth.getSession()` acquires an internal async lock. When the stored access token is expired, it triggers `refreshSession()` over the network while holding that lock. Every Supabase REST call (products, app_settings, profiles, has_role, etc.) internally calls `getSession()` too — so they all queue behind the stuck lock and hang. Compounded by `gcTime: 0`, every auth-driven remount wipes the query cache and fires a parallel refetch storm that all land in `isLoading=true` at once.
+## Fix
+Introduce a second Supabase client (`publicSupabase`) configured with `autoRefreshToken: false` and `persistSession: false`. On that client `getSession()` returns `null` synchronously without touching the lock, so anon-keyed REST requests dispatch immediately. Use it only for queries already permitted by anon RLS (products + app_settings reads). Everything else — admin queries, mutations, realtime, auth — stays on the existing `supabase` client.
 
-## Changes
+## Files to replace
 
-### 1. `src/contexts/AuthContext.tsx`
+### 1. `src/integrations/supabase/client.ts`
+- Keep existing `supabase` client untouched (storage: localStorage, persistSession: true, autoRefreshToken: true).
+- Add and export a new `publicSupabase` created from the same URL + publishable key with:
+  ```ts
+  auth: { autoRefreshToken: false, persistSession: false, storage: undefined }
+  ```
+- Both clients typed with `Database`.
 
-- Remove `supabase.auth.getSession()` from boot entirely. No `initSession()` function.
-- Drive initial auth state from `onAuthStateChange` — the `INITIAL_SESSION` event fires synchronously from localStorage with no network call and no lock acquisition.
-- Event handling inside the listener:
-  - `INITIAL_SESSION`: set session/user, set `loading: false`, mark `loadingCompleted.current = true`, kick off background `fetchUserData` (no await) if user present.
-  - `SIGNED_IN`: set session/user, background `fetchUserData`.
-  - `TOKEN_REFRESHED`: update session silently, no profile refetch.
-  - `SIGNED_OUT` / `USER_DELETED`: clear role, profile, session, user.
-  - `USER_UPDATED`: update user object.
-- Remove `isInitialLoad` ref. Keep `isMounted`, `loadingCompleted`, `clearAuthStorage`, `applyManualCleanup`, `fetchUserData` (with its 5s race), `signIn`, `signUp`, `signInWithOtp`, `signInWithPhoneOtp`, `verifyOtp`, `verifyPhoneOtp`, `signOut`, `updateProfile` exactly as-is.
-- Reduce safety timeout from 15s to 5s (INITIAL_SESSION normally fires <100ms). Still gated on `loadingCompleted.current`.
-- Keep `setTimeout(0)` deferral around `fetchUserData` calls inside the listener to avoid Supabase client deadlock guidance.
+### 2. `src/hooks/useProducts.ts`
+- Import `publicSupabase` alongside `supabase`.
+- `useProducts` queryFn → `publicSupabase.from('products').select(...)`.
+- `useFeaturedProducts` queryFn → `publicSupabase`.
+- `useAllProducts` (staff/admin) → keep on `supabase` (needs auth context for admin views).
+- `useValidateCartItems` → keep on `supabase`.
+- All realtime channel subscriptions (`products-realtime`, `all-products-realtime`) → keep on `supabase`.
+- No other behavioural change (staleTime, retries, placeholderData, query keys all unchanged).
 
-### 2. `src/App.tsx`
-
-- One-line change in `QueryClient` defaults: `gcTime: 0` → `gcTime: 1000 * 60 * 5`.
-- Leave everything else unchanged: `staleTime: 0`, `retry: 1`, `refetchOnWindowFocus: false`, all routes, providers, imports.
+### 3. `src/hooks/useAppSettings.ts`
+- Import `publicSupabase`.
+- `useAppSettings` read queryFn → `publicSupabase.from('app_settings').select('*').eq('id',1).maybeSingle()`.
+- `useUpdateAppSettings` mutation → keep on `supabase` (RLS requires staff/admin).
+- Realtime channel `app-settings-changes` → keep on `supabase`.
+- Hook signature, return shape, query key, invalidation logic all unchanged.
 
 ## Explicitly NOT touched
-
+- `src/contexts/AuthContext.tsx` (INITIAL_SESSION fix retained)
+- `src/App.tsx` (gcTime: 5min retained)
 - `src/components/auth/AuthGuard.tsx`
-- `src/integrations/supabase/client.ts`
 - Any payment / checkout / cart / order / KDS / receipt / n8n / Viva / myPOS code
-- Edge functions, RLS policies, database schema
-- Routes, providers, layout, PWA kill-switch (`public/sw.js`, `src/main.tsx`, `src/lib/pwa.ts`)
+- RLS policies, edge functions, schema, secrets
+- PWA kill-switch files
 
-## Why this fixes it
+## Why this is safe
+- `products` and `app_settings` already have `SELECT … USING (true)` RLS, so the anon key reads the same rows the authenticated client would for these queries.
+- Mutations and admin-only reads still flow through the authenticated client, preserving RLS enforcement.
+- Realtime stays on the authenticated client, so subscriptions and presence behave identically.
+- No schema / RLS / edge function changes → trivial rollback by reverting the three files.
 
-- No `getSession()` on boot → no lock acquisition → no refresh-blocking → REST calls (products, app_settings, has_role, profiles) run immediately.
-- `INITIAL_SESSION` reads from localStorage synchronously, so app shell renders in tens of ms instead of waiting on a network refresh.
-- `gcTime: 5min` keeps query results across remounts, so an auth state change no longer triggers a full parallel refetch storm where every hook simultaneously reports `isLoading: true` (which is what was producing the menu skeleton flash).
-- `TOKEN_REFRESHED` is handled silently in the background — the user never sees a loading state for a routine token refresh.
-- `SIGNED_OUT` from an expired refresh token cleanly resets state instead of leaving the app stuck.
-
-## Test checklist
-
-- Refresh while logged in on `/`, `/menu`, `/cart`, `/profile`, `/admin` — no skeleton hang, no `[Auth] Safety timeout`, no false logged-out flash.
-- Refresh while logged out on `/menu` — products load, no auth required.
-- Login → redirect works (admin → `/admin`, customer → `/menu`).
-- Sign out → state clears, redirect to `/auth` from protected routes.
-- Leave tab idle past token expiry → `TOKEN_REFRESHED` fires silently, no UI flicker.
-- Payment redirect routes (`/processing`, `/order-success`, `/order-failed`) still public and functional.
-
-## Rollback
-
-Revert both files via project history. No schema/edge-function/secret changes to undo.
-
-## Remaining risks
-
-- If `INITIAL_SESSION` fails to fire (unlikely; it is contractually emitted by supabase-js v2 on listener attach), the 5s safety timeout still releases the loading gate.
-- Increasing `gcTime` means slightly stale data may be shown briefly across navigations; `staleTime: 0` ensures background refetch still happens, so this is purely a perceived-latency improvement, not a correctness change.
+## Verification
+- Network tab: REST calls to `/rest/v1/products` and `/rest/v1/app_settings` fire immediately on `/menu` even mid token-refresh.
+- Logged-out `/menu` still loads (already did; should not regress).
+- Logged-in refresh on `/menu`, `/`, `/cart`, `/profile`: no skeleton hang, no auth timeout.
+- Staff stock manager still sees hidden products (uses authenticated client).
+- Updating store-open / wait-time from staff UI still works and broadcasts via realtime.

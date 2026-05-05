@@ -15,3 +15,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Public client for unauthenticated reads (products, app_settings).
+// Bypasses navigator.locks mutex held by getSession() during token refresh,
+// so REST queries dispatch immediately using the anon key.
+export const publicSupabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
