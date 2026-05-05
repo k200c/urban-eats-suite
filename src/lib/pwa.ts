@@ -16,6 +16,7 @@ export const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSIO
 // Registration state
 let swRegistration: ServiceWorkerRegistration | null = null;
 let updateCallback: ((needRefresh: boolean) => void) | null = null;
+let updateApplied = false;
 
 // Update check interval (30 minutes)
 const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000;
@@ -207,6 +208,7 @@ export function applyUpdate(): void {
   }
 
   console.log('[PWA] Sending SKIP_WAITING to activate new SW...');
+  updateApplied = true;
   swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
 }
 
