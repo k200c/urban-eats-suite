@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, publicSupabase } from '@/integrations/supabase/client';
 import { Product, ProductCategory } from '@/types/database';
 import { useEffect } from 'react';
 
@@ -32,7 +32,7 @@ export function useProducts(category?: ProductCategory | 'All') {
   return useQuery({
     queryKey: ['products', category],
     queryFn: async () => {
-      let query = supabase
+      let query = publicSupabase
         .from('products')
         .select('*')
         .eq('is_available', true)
@@ -65,7 +65,7 @@ export function useFeaturedProducts() {
   return useQuery({
     queryKey: ['products', 'featured'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await publicSupabase
         .from('products')
         .select('*')
         .eq('is_featured', true)

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, publicSupabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
 export interface AppSettings {
@@ -18,7 +18,7 @@ export function useAppSettings() {
   const query = useQuery({
     queryKey: ['app-settings'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await publicSupabase
         .from('app_settings')
         .select('*')
         .eq('id', 1)
