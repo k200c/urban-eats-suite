@@ -51,9 +51,12 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        // Navigation fallback for offline
-        navigateFallback: '/offline.html',
-        // Exclude sensitive routes from navigation fallback
+        // SPA navigation fallback: serve the app shell so React Router can
+        // resolve the route (including authenticated refreshes). The static
+        // /offline.html remains available as a true offline fallback only.
+        navigateFallback: '/index.html',
+        // Exclude sensitive routes from the SPA fallback so they always hit
+        // the network (payments, auth, order returns, edge functions, APIs).
         navigateFallbackDenylist: [
           /^\/auth/,
           /^\/processing/,
