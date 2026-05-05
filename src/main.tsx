@@ -1,16 +1,19 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { registerSW, APP_VERSION } from "./lib/pwa";
+import { APP_VERSION } from "./lib/pwa";
 
-// Log app version on startup
 console.log(`[Street Eatz] App Version: ${APP_VERSION}`);
 
-// Register service worker for PWA
-registerSW().then((registration) => {
-  if (registration) {
-    console.log('[Street Eatz] PWA ready');
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then(regs => Promise.all(regs.map(r => r.unregister())))
+    .catch(() => {});
+  if ('caches' in window) {
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .catch(() => {});
   }
-});
+}
 
 createRoot(document.getElementById("root")!).render(<App />);
