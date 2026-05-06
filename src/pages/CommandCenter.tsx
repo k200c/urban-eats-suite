@@ -227,6 +227,30 @@ export default function CommandCenter() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.15 }}
             >
+              <Card className="bg-card border-border mb-6">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Wifi className="w-5 h-5 text-primary" />
+                    Online Payments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Allow customers to pay online by card</p>
+                      <p className={`text-2xl font-bold ${onlinePaymentsEnabled ? 'text-green-400' : 'text-red-400'}`}>
+                        {onlinePaymentsEnabled ? 'ENABLED' : 'DISABLED'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={onlinePaymentsEnabled}
+                      onCheckedChange={handleOnlinePaymentsToggle}
+                      disabled={updateSettings.isPending}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="bg-card border-border">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg">
