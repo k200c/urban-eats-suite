@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CreditCard, ShoppingBag, Loader2, ArrowRight, User, Phone, Mail, Clock, ChefHat, Shield, MessageSquare, RefreshCw } from 'lucide-react';
 import { useCheckout } from '@/hooks/useCheckout';
 import { useAuth } from '@/hooks/useAuth';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { hardResetApp } from '@/lib/resetApp';
@@ -25,6 +26,8 @@ type Step = 'details' | 'payment' | 'connecting' | 'sending' | 'pending';
 export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: CustomerCheckoutModalProps) {
   const { user, profile } = useAuth();
   const { submitOrder, sendToKitchen, clearCart, isSubmitting, isSendingToKitchen, total, items } = useCheckout();
+  const { data: appSettings } = useAppSettings();
+  const onlinePaymentsEnabled = appSettings?.online_payments_enabled ?? true;
   
   const [step, setStep] = useState<Step>('details');
   const [customerName, setCustomerName] = useState('');
@@ -567,30 +570,34 @@ export function CustomerCheckoutModal({ open, onOpenChange, onSuccess }: Custome
                   </div>
                 </div>
 
-                {/* Email required notice for card payments */}
-                {!customerEmail.trim() && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    💳 Email is required for card payments
-                  </p>
-                )}
+                {onlinePaymentsEnabled && (
+                  <>
+                    {/* Email required notice for card payments */}
+                    {!customerEmail.trim() && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        💳 Email is required for card payments
+                      </p>
+                    )}
 
-                {/* Pay Card - Viva Wallet */}
-                <Button
-                  variant="glow"
-                  size="lg"
-                  className="w-full h-16"
-                  onClick={handlePayCard}
-                  disabled={isButtonDisabled}
-                >
-                  {isButtonDisabled ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <>
-                      <CreditCard className="w-6 h-6 mr-3" />
-                      PAY CARD
-                    </>
-                  )}
-                </Button>
+                    {/* Pay Card - Viva Wallet */}
+                    <Button
+                      variant="glow"
+                      size="lg"
+                      className="w-full h-16"
+                      onClick={handlePayCard}
+                      disabled={isButtonDisabled}
+                    >
+                      {isButtonDisabled ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : (
+                        <>
+                          <CreditCard className="w-6 h-6 mr-3" />
+                          PAY CARD
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
 
                 {/* Pay on Collection */}
                 <Button
