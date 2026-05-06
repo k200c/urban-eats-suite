@@ -1,0 +1,1 @@
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS online_payments_enabled boolean NOT NULL DEFAULT true;
