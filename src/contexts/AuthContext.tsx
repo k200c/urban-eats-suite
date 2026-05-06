@@ -277,16 +277,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Use 'global' scope to ensure server-side session termination
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) {
-        console.error("Sign out error:", error);
-        // Still proceed with local cleanup even if server-side fails
-        applyManualCleanup();
+      // Race against a 3s timeout so a hung server call never blocks the UI.
+      const signOutPromise = supabase.auth.signOut({ scope: 'global' });
+      const timeoutPromise = new Promise<{ error: Error }>((resolve) =>
+        setTimeout(() => resolve({ error: new Error('Sign out timeout') }), 3000)
+      );
+
+      const result = (await Promise.race([signOutPromise, timeoutPromise])) as { error: Error | null };
+      if (result?.error) {
+        console.error('Sign out error:', result.error);
       }
     } catch (error) {
-      console.error("Sign out failed, applying manual cleanup:", error);
+      console.error('Sign out failed:', error);
+    } finally {
+      // Always reset local state — even on hang, error, or success.
       applyManualCleanup();
     }
   };

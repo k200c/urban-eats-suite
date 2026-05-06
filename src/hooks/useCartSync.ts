@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 import { useCartStore } from '@/stores/cartStore';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 /**
  * Hook to sync cart state with authentication.
@@ -10,49 +10,12 @@ import { useCartStore } from '@/stores/cartStore';
  */
 export const useCartSync = () => {
   const syncWithUser = useCartStore((state) => state.syncWithUser);
-  const isMounted = useRef(true);
-  const hasInitialized = useRef(false);
+  const { user, loading } = useAuthContext();
 
   useEffect(() => {
-    isMounted.current = true;
-
-    // Initial sync based on current session - WRAPPED IN TRY/CATCH
-    const initSync = async () => {
-      if (hasInitialized.current) return;
-      hasInitialized.current = true;
-      
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (isMounted.current) {
-          await syncWithUser(session?.user?.id || null);
-        }
-      } catch (error) {
-        console.error('[CartSync] getSession failed:', error);
-        // Fallback to guest mode
-        if (isMounted.current) {
-          await syncWithUser(null);
-        }
-      }
-    };
-
-    initSync();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted.current) return;
-        
-        if (event === 'SIGNED_IN') {
-          await syncWithUser(session?.user?.id || null);
-        } else if (event === 'SIGNED_OUT') {
-          await syncWithUser(null);
-        }
-      }
-    );
-
-    return () => {
-      isMounted.current = false;
-      subscription.unsubscribe();
-    };
-  }, [syncWithUser]);
+    if (loading) return;
+    syncWithUser(user?.id ?? null).catch((error) => {
+      console.error('[CartSync] syncWithUser failed:', error);
+    });
+  }, [user?.id, loading, syncWithUser]);
 };
