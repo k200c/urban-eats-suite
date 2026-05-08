@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { Send, Image, Loader2, Mail, DollarSign, Users, Vote, Calendar, Trophy, Tag, Percent, Trash2, Plus } from 'lucide-react';
+import { Send, Image, Loader2, Mail, DollarSign, Users, Vote, Calendar, Trophy, Tag, Percent, Trash2, Plus, X } from 'lucide-react';
 import { useBroadcasts, useSendBroadcast, useCommunityVotes, useCreateVote } from '@/hooks/useBroadcasts';
 import { usePromotions, useCreatePromotion, useUpdatePromotion, useDeletePromotion } from '@/hooks/usePromotions';
 import { useAppSettings, useUpdateAppSettings } from '@/hooks/useAppSettings';
@@ -52,8 +52,9 @@ function BroadcastsTab() {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [broadcastImageUrl, setBroadcastImageUrl] = useState('');
   const [voteTitle, setVoteTitle] = useState('');
-  const [optionA, setOptionA] = useState('');
-  const [optionB, setOptionB] = useState('');
+  const [voteMessage, setVoteMessage] = useState('');
+  const [voteOptions, setVoteOptions] = useState<string[]>(['', '']);
+  const [isStartingVote, setIsStartingVote] = useState(false);
   const [closingDate, setClosingDate] = useState<Date>();
 
   const { data: broadcasts, isLoading: broadcastsLoading } = useBroadcasts();
@@ -67,10 +68,77 @@ function BroadcastsTab() {
     setBroadcastTitle(''); setBroadcastMessage(''); setBroadcastImageUrl('');
   };
 
-  const handleCreateVote = async () => {
-    if (!voteTitle.trim() || !optionA.trim() || !optionB.trim() || !closingDate) return;
-    await createVote.mutateAsync({ title: voteTitle, option_a: optionA, option_b: optionB, closing_date: closingDate.toISOString() });
-    setVoteTitle(''); setOptionA(''); setOptionB(''); setClosingDate(undefined);
+  const updateVoteOption = (index: number, value: string) => {
+    setVoteOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
+  };
+  const addVoteOption = () => {
+    setVoteOptions((prev) => (prev.length >= 6 ? prev : [...prev, '']));
+  };
+  const removeVoteOption = (index: number) => {
+    setVoteOptions((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)));
+  };
+
+  const startCommunityVote = async () => {
+    const cleanOptions = voteOptions
+      .map((option) => String(option).trim())
+      .filter(Boolean)
+      .slice(0, 6);
+
+    if (!voteTitle.trim()) {
+      toast.error('Please enter a vote title.');
+      return;
+    }
+    if (!voteMessage.trim()) {
+      toast.error('Please enter a vote message.');
+      return;
+    }
+    if (cleanOptions.length < 2) {
+      toast.error('Please add at least two vote options.');
+      return;
+    }
+
+    const payload = {
+      title: voteTitle.trim(),
+      message: voteMessage.trim(),
+      options: cleanOptions,
+      send_sms: true,
+      send_email: true,
+      audience: 'demo',
+      vote_link: '',
+    };
+
+    setIsStartingVote(true);
+    try {
+      const response = await fetch('https://kyle2000.app.n8n.cloud/webhook/Voting-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Voting webhook failed with status ${response.status}`);
+      }
+
+      let result: unknown = {};
+      try {
+        result = await response.json();
+      } catch {
+        result = {};
+      }
+
+      toast.success('Community vote started. Demo SMS/email triggered.');
+      console.log('Community vote webhook result:', result);
+
+      setVoteTitle('');
+      setVoteMessage('');
+      setVoteOptions(['', '']);
+      setClosingDate(undefined);
+    } catch (error) {
+      console.error('Community vote start failed:', error);
+      toast.error('Community vote could not be started. Check the voting workflow and try again.');
+    } finally {
+      setIsStartingVote(false);
+    }
   };
 
   const broadcastStats = broadcasts?.reduce(
@@ -215,25 +283,53 @@ function BroadcastsTab() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Textarea
+                placeholder="e.g., Help us pick next week's Street Eatz special."
+                value={voteMessage}
+                onChange={(e) => setVoteMessage(e.target.value)}
+                className="bg-background/50 min-h-[80px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Vote Options ({voteOptions.filter((o) => o.trim()).length}/6)</Label>
               <div className="space-y-2">
-                <Label className="text-red-400">🅰️ Option A</Label>
-                <Input
-                  placeholder="e.g., Taco Fries"
-                  value={optionA}
-                  onChange={(e) => setOptionA(e.target.value)}
-                  className="bg-background/50 border-red-500/30"
-                />
+                {voteOptions.map((option, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <Input
+                      placeholder={`Option ${index + 1} (e.g., Taco Fries)`}
+                      value={option}
+                      onChange={(e) => updateVoteOption(index, e.target.value)}
+                      className="bg-background/50 border-violet-500/30"
+                    />
+                    {voteOptions.length > 2 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeVoteOption(index)}
+                        className="shrink-0"
+                        aria-label={`Remove option ${index + 1}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="space-y-2">
-                <Label className="text-blue-400">🅱️ Option B</Label>
-                <Input
-                  placeholder="e.g., Curry Fries"
-                  value={optionB}
-                  onChange={(e) => setOptionB(e.target.value)}
-                  className="bg-background/50 border-blue-500/30"
-                />
-              </div>
+              {voteOptions.length < 6 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addVoteOption}
+                  className="mt-2"
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Add option
+                </Button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -266,14 +362,19 @@ function BroadcastsTab() {
             </div>
 
             <Button
-              onClick={handleCreateVote}
-              disabled={createVote.isPending || !voteTitle.trim() || !optionA.trim() || !optionB.trim() || !closingDate}
+              onClick={startCommunityVote}
+              disabled={
+                isStartingVote ||
+                !voteTitle.trim() ||
+                !voteMessage.trim() ||
+                voteOptions.filter((o) => o.trim()).length < 2
+              }
               className="w-full bg-violet-600 hover:bg-violet-700"
             >
-              {createVote.isPending ? (
+              {isStartingVote ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  Starting vote...
                 </>
               ) : (
                 <>
